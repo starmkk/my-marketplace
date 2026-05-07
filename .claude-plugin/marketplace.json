@@ -1,0 +1,15 @@
+{
+  "name": "vibe-coding-tools",
+  "owner": {
+    "name": "kg.moon",
+    "email": "starmkk@gmail.com"
+  },
+  "description": "개인 Claude Code 플러그인 마켓플레이스 — 개발 워크플로우 자동화 도구 모음",
+  "plugins": [
+    {
+      "name": "dev-helper-plugin",
+      "source": "./plugins/dev-helper-plugin",
+      "description": "개발 워크플로우 자동화 — git 커밋 및 세션 문서 저장 스킬 제공"
+    }
+  ]
+}
