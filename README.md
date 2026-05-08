@@ -68,6 +68,41 @@
 
 ---
 
+### on-device-ai-plugin
+
+온디바이스 AI 모델 개발을 위한 레퍼런스 스킬을 제공합니다.
+
+**설치:**
+```shell
+/plugin install on-device-ai-plugin@vibe-coding-tools
+```
+
+#### gemma4
+
+Google Gemma 4 멀티모달 모델 공식 사용법 레퍼런스. 모델 로드/추론/파인튜닝, `apply_chat_template` 입력 구성, 오디오 ASR·이미지·비디오 멀티모달 태스크 구현, Thinking 모드·Function Calling, vLLM/llama.cpp/MLX 서빙을 다룬다.
+
+**트리거 표현:**
+- "gemma4", "gemma 4", "E2B", "E4B", "26B", "31B"
+- "apply_chat_template", "멀티모달", "ASR", "transcribe"
+- "thinking mode", "function calling"
+- "llama.cpp", "MLX", "온디바이스 추론"
+
+**지원 모델:**
+
+| 모델 | 유효 파라미터 | 컨텍스트 | 오디오 지원 |
+|------|-------------|---------|-----------|
+| Gemma 4 E2B | 2.3B (5.1B with embed) | 128K | O |
+| Gemma 4 E4B | 4.5B (8B with embed) | 128K | O |
+| Gemma 4 26B A4B | 4B activated / 26B total (MoE) | 256K | X |
+| Gemma 4 31B | 31B dense | 256K | X |
+
+**사용:**
+```shell
+/on-device-ai-plugin:gemma4
+```
+
+---
+
 ## 업데이트
 
 ```shell

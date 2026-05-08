@@ -10,6 +10,11 @@
       "name": "dev-helper-plugin",
       "source": "./plugins/dev-helper-plugin",
       "description": "개발 워크플로우 자동화 — git 커밋 및 세션 문서 저장 스킬 제공"
+    },
+    {
+      "name": "on-device-ai-plugin",
+      "source": "./plugins/on-device-ai-plugin",
+      "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4 멀티모달 모델 사용법 스킬 제공"
     }
   ]
 }
