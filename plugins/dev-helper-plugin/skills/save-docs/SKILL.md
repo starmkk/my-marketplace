@@ -29,20 +29,43 @@ allowed-tools:
 `AskUserQuestion`으로 다음을 확인한다:
 - **토픽명**: 파일명에 사용할 짧은 영문 또는 한글 키워드 (예: `github-commit-skill`, `mnn-build-fix`)
 - **문서 유형**: 판별한 세션 유형을 제안하되 사용자가 변경 가능하도록 옵션 제공
+- **하위 카테고리 폴더**: 기존 폴더 목록을 보여주고 선택하게 하거나, 새 폴더명을 입력받는다
 
 ## Step 3: 저장 경로 결정
 
-다음 순서로 저장 경로를 결정한다:
+### 3-1. 기본 경로 결정
+
+다음 순서로 기본 저장 경로를 결정한다:
 
 ```bash
 DOCS_DIR="${CLAUDE_DOCS_DIR:-$HOME/Documents/claude/docs}"
-mkdir -p "$DOCS_DIR"
 ```
 
 - `$CLAUDE_DOCS_DIR`가 설정된 경우 해당 경로 사용
 - 미설정 시 `~/Documents/claude/docs/` 사용 (macOS·Linux 공통)
 
 > 다른 PC에서 경로를 바꾸려면 셸 프로파일에 `export CLAUDE_DOCS_DIR=/원하는/경로` 를 추가하면 된다.
+
+### 3-2. 하위 카테고리 폴더 결정
+
+`$DOCS_DIR` 안의 기존 하위 폴더 목록을 조회해 사용자에게 제시한다:
+
+```bash
+ls -d "$DOCS_DIR"/*/  2>/dev/null | xargs -I{} basename {}
+```
+
+`AskUserQuestion`으로 다음 중 하나를 선택하게 한다:
+- **기존 폴더 선택**: 나열된 하위 폴더 중 하나를 고른다
+- **신규 폴더 생성**: 세션 내용을 바탕으로 적합한 폴더명을 1~3개 추천한 뒤, 사용자가 추천 중 하나를 선택하거나 직접 입력할 수 있게 한다 (영문 소문자, 숫자, `-` 권장)
+
+선택 또는 입력된 하위 카테고리를 적용해 최종 저장 경로를 확정한다:
+
+```bash
+SAVE_DIR="$DOCS_DIR/<선택한-카테고리>"
+mkdir -p "$SAVE_DIR"
+```
+
+MD 파일은 반드시 `$SAVE_DIR` 안에 저장한다.
 
 ## Step 4: 문서 작성
 
