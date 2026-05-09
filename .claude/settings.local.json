@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(claude plugin *)",
-      "Bash(xargs cat)",
-      "Skill(dev-helper-plugin:github-commit)"
-    ]
-  }
-}
