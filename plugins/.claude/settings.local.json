@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude plugin *)",
+      "Bash(claude --debug plugin list)",
+      "Bash(claude --debug -p \"list available skills from dev-helper-plugin\")"
+    ]
+  }
+}
