@@ -1,1 +1,15 @@
 .claude/settings.local.json
+**/.claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# 스킬 검증/설치 산출물
+**/.cache/

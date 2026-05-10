@@ -1,0 +1,27 @@
+# gemma4-asr-qa: QA 설정 예시
+
+# 본 스킬은 CLI 인자로 모든 옵션을 받지만,
+# 실험 재현성을 위해 설정을 yaml로 관리하고 싶을 때 참고.
+# 현재는 데모용 — 실제로는 filter_synth_dataset.py가 직접 인자를 받음.
+
+# 필터링 임계값
+cer_threshold: 0.30
+metric: cer            # cer | wer
+
+# ASR 설정
+asr:
+  language: Korean     # Korean | English | ...
+  device: auto         # auto | cuda | mps | cpu
+  max_new_tokens: 128
+
+# 임계값 가이드 (참고)
+thresholds_guide:
+  strict_eval:    0.10   # 평가셋용
+  recommended:    0.20   # 일반 학습 데이터
+  default:        0.30   # 본 스킬 기본값
+  loose:          0.50   # 거의 필터 없음 (속도 우선)
+
+# 분석용 그룹핑 (qa_report.csv 후처리)
+grouping:
+  - speaker_id    # 화자별 평균 CER
+  - text          # 키워드별 평균 CER

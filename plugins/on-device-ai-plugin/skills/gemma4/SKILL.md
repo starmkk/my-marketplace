@@ -1,6 +1,21 @@
 ---
 name: gemma4
-description: "Google Gemma 4 멀티모달 모델 공식 사용법 레퍼런스. Gemma 4 모델을 로드/추론/파인튜닝할 때, apply_chat_template으로 입력을 구성할 때, 오디오 ASR/이미지/비디오 멀티모달 태스크를 구현할 때, Thinking 모드나 Function Calling을 사용할 때, vLLM/llama.cpp/MLX로 서빙할 때 이 스킬을 반드시 참조하라. gemma4, gemma 4, E2B, E4B, 26B, 31B, apply_chat_template, 멀티모달, ASR, 전사, transcribe, thinking mode, function calling 등의 키워드가 나오면 트리거한다."
+description: |
+  Google Gemma 4 멀티모달 모델 공식 사용법 레퍼런스 스킬.
+  Reference for the official usage of Google Gemma 4 multimodal models.
+
+  사용자가 다음과 같은 표현을 쓸 때 반드시 이 스킬을 사용하라
+  (Trigger when the user mentions any of):
+  - "gemma4", "gemma 4", "E2B", "E4B", "26B", "31B"
+  - "Gemma 모델 로드/추론/파인튜닝", "Gemma load/inference/finetune"
+  - "apply_chat_template", "멀티모달 입력 구성", "multimodal input"
+  - "ASR", "전사", "transcribe", "오디오 입력", "이미지/비디오 입력"
+  - "thinking mode", "function calling"
+  - "vLLM 서빙", "llama.cpp 서빙", "MLX 서빙"
+
+  관련 스킬 (Related skills):
+  - `gemma4-asr-qa`: Gemma 4 ASR로 합성 데이터 round-trip QA를 수행.
+  - `litert-lm`: Gemma 4를 온디바이스에서 실행할 때.
 ---
 
 # Gemma 4 공식 사용법 레퍼런스
