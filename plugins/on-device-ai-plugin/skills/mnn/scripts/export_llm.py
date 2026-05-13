@@ -4,6 +4,9 @@ MNN-LLM Export Helper Script
 
 Simplifies exporting LLM models to MNN format with common configurations.
 
+필수 환경변수:
+    MNN_SOURCE_PATH  MNN 소스코드 레포 로컬 클론 경로
+
 Usage:
     python export_llm.py --model Qwen/Qwen2.5-7B
     python export_llm.py --model meta-llama/Llama-3.1-8B --quant 4
@@ -11,9 +14,13 @@ Usage:
 """
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
+
+from _env import ensure_mnn_env
+ensure_mnn_env()
 
 # Common model configurations
 MODEL_CONFIGS = {
@@ -101,11 +108,12 @@ def export_llm(args):
         print(f"HQQ: {'Yes' if args.hqq else 'No'}")
     print("========================================\n")
     
-    # Change to transformers/llm directory
-    llm_dir = Path('transformers/llm')
+    # Change to transformers/llm directory (MNN_SOURCE_PATH 기준)
+    mnn_root = Path(os.environ["MNN_SOURCE_PATH"])
+    llm_dir = mnn_root / 'transformers' / 'llm'
     if not llm_dir.exists():
         print(f"Error: {llm_dir} not found")
-        print("Please run this script from MNN root directory")
+        print(f"MNN_SOURCE_PATH={mnn_root} 에 transformers/llm 디렉토리가 없습니다.")
         sys.exit(1)
     
     # Check if requirements are installed
