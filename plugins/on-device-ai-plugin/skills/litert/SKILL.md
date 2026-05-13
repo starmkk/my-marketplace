@@ -21,6 +21,29 @@ description: |
 
 # LiteRT 레퍼런스 스킬
 
+## 환경변수
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `LITERT_SOURCE_PATH` | 선택 | LiteRT 소스코드 레포 로컬 클론 경로 |
+
+미설정 시에도 레퍼런스 스킬로 사용 가능하다. 로컬 클론이 있으면 설정해두면 헤더·소스 파일 경로를 직접 참조할 수 있다.
+
+**설정 방법:**
+```shell
+# 클론
+git clone https://github.com/google-ai-edge/LiteRT
+
+# 등록 (zsh/bash)
+echo 'export LITERT_SOURCE_PATH=/path/to/LiteRT' >> ~/.zshrc
+source ~/.zshrc
+
+# 검증
+bash scripts/install.sh
+```
+
+---
+
 LiteRT(formerly TensorFlow Lite)는 Google의 고성능 온디바이스 ML 추론 런타임이다. 모바일, 임베디드, IoT 디바이스에서 저지연 ML 추론을 수행한다.
 
 ## 코드베이스 탐색 방법

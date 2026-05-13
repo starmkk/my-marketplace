@@ -23,6 +23,26 @@ description: |
 
 # Qwen2.5-Omni Development Skill
 
+## 환경변수
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `QWEN25_OMNI_MODEL_PATH` | 스크립트 실행 시 **필수** | Qwen2.5-Omni 로컬 모델 디렉토리 절대경로 |
+
+미설정 시 `scripts/` 내 모든 스크립트가 친절한 안내 메시지와 함께 즉시 중단된다.
+
+**설정 방법:**
+```shell
+# 모델 다운로드
+huggingface-cli download Qwen/Qwen2.5-Omni-7B --local-dir /absolute/path/to/Qwen2.5-Omni-7B
+
+# 등록 (zsh/bash)
+echo 'export QWEN25_OMNI_MODEL_PATH=/absolute/path/to/Qwen2.5-Omni-7B' >> ~/.zshrc
+source ~/.zshrc
+```
+
+---
+
 ## Overview
 
 Qwen2.5-Omni is an end-to-end multimodal model by Qwen team at Alibaba Cloud, capable of understanding text, images, audio, and video while generating real-time text and natural speech responses. This skill provides comprehensive guidance for setup, deployment, and optimization across different platforms.

@@ -21,6 +21,29 @@ description: |
 
 # LiteRT-LM 레퍼런스 스킬
 
+## 환경변수
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `LITERT_LM_SOURCE_PATH` | 선택 | LiteRT-LM 소스코드 레포 로컬 클론 경로 |
+
+미설정 시에도 레퍼런스 스킬로 사용 가능하다. 로컬 클론이 있으면 설정해두면 소스 파일을 직접 참조할 수 있다.
+
+**설정 방법:**
+```shell
+# 클론
+git clone https://github.com/google-ai-edge/LiteRT-LM
+
+# 등록 (zsh/bash)
+echo 'export LITERT_LM_SOURCE_PATH=/path/to/LiteRT-LM' >> ~/.zshrc
+source ~/.zshrc
+
+# 검증
+bash scripts/install.sh
+```
+
+---
+
 LiteRT-LM은 Google의 온디바이스 LLM 추론 프레임워크다. Chrome, Chromebook Plus, Pixel Watch 등에서 GenAI 경험을 구동한다. Gemma, Qwen, Llama, Phi 등 다양한 LLM을 CPU/GPU/NPU에서 실행할 수 있다.
 
 ## 코드베이스 탐색 방법
