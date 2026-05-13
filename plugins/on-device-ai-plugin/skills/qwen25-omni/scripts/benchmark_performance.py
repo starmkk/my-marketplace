@@ -2,9 +2,18 @@
 """
 Performance benchmarking for Qwen2.5-Omni
 Measures inference speed and memory usage
+
+필수 환경변수:
+    QWEN25_OMNI_MODEL_PATH  Qwen2.5-Omni 로컬 모델 디렉토리 절대경로
+                            벤치마크 기준 모델로 사용된다.
 """
 
+import os
 import time
+
+from _env import ensure_qwen25_omni_env
+ensure_qwen25_omni_env()
+
 import torch
 from transformers import Qwen2_5OmniForConditionalGeneration, Qwen2_5OmniProcessor
 from qwen_omni_utils import process_mm_info
@@ -113,9 +122,11 @@ def benchmark_model(model_name, use_flash_attn=True):
 def main():
     print("Qwen2.5-Omni Performance Benchmark")
     print("=" * 50)
-    
+
+    # QWEN25_OMNI_MODEL_PATH를 기준 모델로, 3B는 비교용으로 추가
+    primary_model = os.environ["QWEN25_OMNI_MODEL_PATH"]
     models = [
-        "Qwen/Qwen2.5-Omni-7B",
+        primary_model,
         "Qwen/Qwen2.5-Omni-3B",
     ]
     
