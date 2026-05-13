@@ -1,0 +1,5 @@
+{
+  "name": "kws-speech-plugin",
+  "description": "KWS 학습용 한국어 합성 데이터 생성 파이프라인 — MeloTTS 단화자·OpenVoice V2 다화자 합성, wekws 학습·추론 스킬 3종 제공",
+  "version": "1.0.0"
+}

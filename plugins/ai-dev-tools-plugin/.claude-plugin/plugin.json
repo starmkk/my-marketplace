@@ -1,0 +1,5 @@
+{
+  "name": "ai-dev-tools-plugin",
+  "description": "AI 개발 도구 레퍼런스 — PyTorch 하네스 템플릿, TensorFlow/TFLite API, LLM 개인 지식베이스 스킬 3종 제공",
+  "version": "1.0.0"
+}

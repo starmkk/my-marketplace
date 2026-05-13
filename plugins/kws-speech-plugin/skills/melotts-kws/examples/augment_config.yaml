@@ -1,0 +1,37 @@
+# MeloTTS-KWS augmentation 설정
+# 1개 wav가 (speed × pitch × gain) 조합으로 N개 변형됩니다.
+# random_n을 설정하면 그 중 무작위 N개만 샘플링.
+
+seed: 42
+
+# Speed perturbation (re-tempo). 한국어 합성 결과는 다소 빠른 편이므로 1.0 근처를 중심으로.
+speed_factors: [0.9, 1.0, 1.1]
+
+# Pitch shift (semitones). ±2면 자연스럽게 화자 다양성 흉내 가능.
+# ±4 이상은 음질이 무너지므로 권장하지 않음.
+pitch_semitones: [-2, -1, 0, 1, 2]
+
+# Volume gain (dB). 녹음 환경의 다양성.
+gain_db: [-3, 0, 3]
+
+# 위 조합의 cartesian product = 3×5×3 = 45개. 너무 많으면 random_n으로 줄이기.
+random_n: 15
+
+# ---------- (선택) Acoustic augmentation ----------
+# 아래 두 항목은 KWS 도메인 갭 해소에 매우 중요.
+# wekws의 학습 단계 noise/RIR augmentation과 별개로,
+# 합성 데이터 단계에서 한 번 더 입혀두면 generalization이 개선됨.
+
+# MUSAN 등 잡음 코퍼스 디렉토리 (wav 파일들이 있는 곳).
+# 사용하지 않으려면 null로 두거나 라인 삭제.
+noise_dir: null
+# noise_dir: "/path/to/musan/noise"
+
+noise_prob: 0.5         # 각 변형에 잡음을 섞을 확률
+snr_db_range: [5, 20]   # SNR 랜덤 범위 (낮을수록 잡음 강함)
+
+# Room Impulse Response (BUT ReverbDB, RIRs_NOISES 등) 디렉토리.
+rir_dir: null
+# rir_dir: "/path/to/RIRS_NOISES/simulated_rirs"
+
+rir_prob: 0.3           # RIR convolution 적용 확률

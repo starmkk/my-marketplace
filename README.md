@@ -194,6 +194,160 @@ source ~/.zshrc
 
 ---
 
+### kws-speech-plugin
+
+KWS 학습용 한국어 합성 데이터 생성 파이프라인 스킬 3종을 제공합니다. MeloTTS 단화자 합성부터 OpenVoice V2 다화자 클로닝, wekws E2E KWS 학습까지 한 묶음으로 다룹니다.
+
+**설치:**
+```shell
+/plugin install kws-speech-plugin@vibe-coding-tools
+```
+
+**스킬 한눈에 보기:**
+
+| 스킬 | 카테고리 | 한 줄 설명 |
+|---|---|---|
+| `melotts-kws` | 합성 | MeloTTS 한국어 단화자 합성 + speed/pitch augmentation + wekws manifest 생성 |
+| `openvoice-v2-kws` | 합성 | OpenVoice V2 tone color cloning으로 다화자 한국어 합성 |
+| `wekws` | 학습/추론 | WeKws E2E KWS 모델 학습·ONNX 변환·C++ 스트리밍 디코더 레퍼런스 |
+
+---
+
+#### melotts-kws
+
+MeloTTS(MyShell.ai) 한국어 단화자 TTS로 KWS 학습/평가용 합성 음성 데이터를 대량 생성하고, speed/pitch/noise/RIR augmentation과 wekws 호환 manifest를 함께 만드는 스킬.
+
+**환경변수 (필수):**
+- `MELOTTS_KWS_DIR` — melotts-kws 스킬 디렉토리 절대경로
+
+**트리거 표현:**
+- "MeloTTS", "melo tts", "한국어 TTS", "TTS 합성"
+- "KWS 합성 데이터", "키워드 음성 생성", "wakeword 음성 합성"
+- "wekws 학습 데이터 만들기", "키워드 데이터셋 합성"
+
+---
+
+#### openvoice-v2-kws
+
+OpenVoice V2(MyShell.ai) + MeloTTS-Korean을 결합해 AIHub 등 다화자 reference wav 풀에서 N가지 화자로 동일 키워드를 합성하는 스킬. MeloTTS 단화자 한계를 voice cloning으로 극복합니다.
+
+**환경변수 (필수):**
+- `OPENVOICE_V2_KWS_DIR` — openvoice-v2-kws 스킬 디렉토리 절대경로
+
+**트리거 표현:**
+- "OpenVoice", "openvoice v2", "tone color cloning"
+- "voice cloning", "음성 복제", "화자 복제"
+- "multi-speaker 한국어 합성", "다화자 KWS 데이터"
+
+---
+
+#### wekws
+
+WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC/TCN/RNN 모델 학습, PyTorch → ONNX 변환, C++ 스트리밍 디코더 개발, Android/ARM 온디바이스 배포를 다룹니다.
+
+**트리거 표현:**
+- "wekws", "keyword spotting", "KWS", "wake word", "웨이크워드"
+- "MDTC", "streaming decoder", "ONNX runtime"
+- "on-device inference", "causal convolution"
+
+---
+
+### ai-dev-tools-plugin
+
+AI 개발을 위한 도구 레퍼런스 스킬 3종을 제공합니다. PyTorch 프로젝트 템플릿 생성기, TensorFlow/TFLite API 레퍼런스, LLM 기반 개인 지식베이스 패턴을 한 묶음으로 다룹니다.
+
+**설치:**
+```shell
+/plugin install ai-dev-tools-plugin@vibe-coding-tools
+```
+
+**스킬 한눈에 보기:**
+
+| 스킬 | 카테고리 | 한 줄 설명 |
+|---|---|---|
+| `pytorch-harness` | 템플릿 | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
+| `tensorflow` | 레퍼런스 | TensorFlow v2.21 / TFLite C/C++/Python API 및 Delegate 시스템 레퍼런스 |
+| `llm-wiki` | 지식 관리 | LLM이 마크다운 위키를 점진적으로 구축·유지하는 개인 지식베이스(PKB) 패턴 |
+
+---
+
+#### pytorch-harness
+
+새로운 PyTorch 프로젝트를 Config-Driven + Factory Pattern 기반의 5계층 하네스 구조로 스캐폴딩합니다. YAML 설정, Stage 테스트(stage1~4), 하드웨어별 프로파일링이 포함된 전체 프로젝트 템플릿을 생성합니다.
+
+**트리거 표현:**
+- "pytorch 프로젝트 템플릿", "신규 프로젝트 생성", "하네스 프로젝트 만들어줘"
+- "scaffold", "new project template"
+- "Config-Driven", "Factory Pattern", "ExperimentConfig"
+
+---
+
+#### tensorflow
+
+TensorFlow v2.21.0-rc0 및 TFLite 핵심 API 레퍼런스. TFLite C/C++/Python API, Delegate(XNNPACK/GPU/CoreML/NNAPI) 시스템, SavedModel → .tflite 변환, SignatureRunner/AsyncRunner, 프로파일링·벤치마크를 다룹니다.
+
+**트리거 표현:**
+- "tensorflow", "tflite", "TensorFlow Lite"
+- "delegate", "XNNPACK", "CoreML", "NNAPI"
+- "quantization", "interpreter", "converter"
+
+---
+
+#### llm-wiki
+
+LLM이 마크다운 파일로 구성된 위키를 점진적으로 구축·유지하는 개인 지식베이스(PKB) 패턴. Andrej Karpathy의 LLM-Wiki 아이디어를 기반으로 Ingest / Query / Lint 세 가지 오퍼레이션을 구현합니다.
+
+**트리거 표현:**
+- "llm wiki", "llm 위키", "개인 지식베이스", "PKB"
+- "소스 문서를 위키에 추가", "ingest", "문서 처리"
+- "Obsidian + LLM", "마크다운 위키 관리"
+
+---
+
+## 환경변수
+
+각 스킬이 요구하는 환경변수를 한눈에 정리합니다.
+
+### 변수 목록
+
+| 변수명 | 필수 | 사용 플러그인 / 스킬 | 설명 |
+|---|---|---|---|
+| `GEMMA4_MODEL_PATH` | ✅ | on-device-ai-plugin / `gemma4-asr-qa` | Gemma 4 E2B-it 모델 디렉토리 절대경로 |
+| `MELOTTS_KWS_DIR` | ✅ | kws-speech-plugin / `melotts-kws` | melotts-kws 스킬 디렉토리 절대경로 |
+| `OPENVOICE_V2_KWS_DIR` | ✅ | kws-speech-plugin / `openvoice-v2-kws` | openvoice-v2-kws 스킬 디렉토리 절대경로 |
+| `MELO_ENV_DIR` | 선택 | kws-speech-plugin / `melotts-kws` | MeloTTS venv 위치 (기본: `~/Documents/work_2026/KWS/melotts_env`) |
+| `MELO_SRC_DIR` | 선택 | kws-speech-plugin / `melotts-kws` | MeloTTS 소스 클론 위치 (기본: `~/Documents/work_2026/KWS/MeloTTS`) |
+| `OPENVOICE_ENV_DIR` | 선택 | kws-speech-plugin / `openvoice-v2-kws` | OpenVoice venv 위치 (기본: `~/Documents/work_2026/KWS/openvoice_env`) |
+| `OPENVOICE_SRC_DIR` | 선택 | kws-speech-plugin / `openvoice-v2-kws` | OpenVoice 소스 클론 위치 (기본: `~/Documents/work_2026/KWS/OpenVoice`) |
+| `OPENVOICE_CKPT_DIR` | 선택 | kws-speech-plugin / `openvoice-v2-kws` | OpenVoice V2 체크포인트 위치 (기본: `$OPENVOICE_SRC_DIR/checkpoints_v2`) |
+| `PYTHON_BIN` | 선택 | kws-speech-plugin / `install.sh` | Python 실행 파일 (기본: melotts=`python3.10`, openvoice=`python3.9`) |
+
+### 전체 설정 예제
+
+```shell
+# ~/.zshrc 또는 ~/.bashrc에 추가 후 `source ~/.zshrc` 실행
+
+# ── 필수 ──────────────────────────────────────────────────────────────────
+# [on-device-ai-plugin] gemma4-asr-qa
+export GEMMA4_MODEL_PATH=/path/to/gemma-4-E2B-it
+
+# [kws-speech-plugin] melotts-kws
+export MELOTTS_KWS_DIR=/path/to/kws-speech-plugin/skills/melotts-kws
+
+# [kws-speech-plugin] openvoice-v2-kws
+export OPENVOICE_V2_KWS_DIR=/path/to/kws-speech-plugin/skills/openvoice-v2-kws
+
+# ── 선택 (기본값으로 충분하면 설정 불필요) ────────────────────────────────
+# export MELO_ENV_DIR=~/KWS/melotts_env
+# export MELO_SRC_DIR=~/KWS/MeloTTS
+# export OPENVOICE_ENV_DIR=~/KWS/openvoice_env
+# export OPENVOICE_SRC_DIR=~/KWS/OpenVoice
+# export OPENVOICE_CKPT_DIR=~/KWS/OpenVoice/checkpoints_v2
+# export PYTHON_BIN=python3.10        # melotts-kws install.sh 전용
+```
+
+---
+
 ## 업데이트
 
 ```shell
