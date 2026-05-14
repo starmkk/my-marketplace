@@ -5,6 +5,9 @@
 #
 # Automates building MNN for Android with common configurations
 #
+# 필수 환경변수:
+#   MNN_SOURCE_PATH  MNN 소스코드 레포 로컬 클론 경로
+#
 # Usage:
 #   ./build_android.sh [OPTIONS]
 #
@@ -24,6 +27,52 @@
 
 set -e
 
+# ===== MNN_SOURCE_PATH 검증 게이트 =====
+_detect_rc() {
+  local sh="${SHELL:-}"
+  case "$sh" in
+    *zsh)  echo "$HOME/.zshrc zsh" ;;
+    *bash) echo "$HOME/.bashrc bash" ;;
+    *fish) echo "$HOME/.config/fish/config.fish fish" ;;
+    *)     echo "$HOME/.zshrc zsh" ;;
+  esac
+}
+
+if [ -z "${MNN_SOURCE_PATH:-}" ]; then
+  read -r RC_FILE SHELL_NAME < <(_detect_rc)
+  bar="======================================================================"
+  echo "" >&2
+  echo "$bar" >&2
+  echo "[mnn] 환경변수가 올바르게 설정되지 않아 실행을 중단합니다." >&2
+  echo "$bar" >&2
+  echo "" >&2
+  echo "[누락된 환경변수]" >&2
+  echo "  - MNN_SOURCE_PATH  (필수)" >&2
+  echo "      MNN 소스코드 레포 로컬 클론 경로" >&2
+  echo "" >&2
+  echo "[설정 방법] (감지된 셸: $SHELL_NAME, 권장 rc 파일: $RC_FILE)" >&2
+  echo "" >&2
+  if [ "$SHELL_NAME" = "fish" ]; then
+    echo "  set -Ux MNN_SOURCE_PATH /path/to/MNN" >&2
+  else
+    echo "  echo 'export MNN_SOURCE_PATH=/path/to/MNN' >> $RC_FILE" >&2
+    echo "  source $RC_FILE" >&2
+  fi
+  echo "" >&2
+  echo "  클론 방법: git clone https://github.com/alibaba/MNN" >&2
+  echo "" >&2
+  echo "환경변수 설정 후 동일 명령을 다시 실행해 주세요." >&2
+  echo "$bar" >&2
+  echo "" >&2
+  exit 2
+fi
+
+MNN_SOURCE_PATH="${MNN_SOURCE_PATH/#\~/$HOME}"
+if [ ! -d "$MNN_SOURCE_PATH" ]; then
+  echo "[mnn] MNN_SOURCE_PATH=$MNN_SOURCE_PATH — 디렉토리가 존재하지 않습니다." >&2
+  exit 2
+fi
+
 # Default values
 ABI="arm64-v8a"
 ENABLE_GPU=false
@@ -32,7 +81,7 @@ ENABLE_LLM=false
 ENABLE_MINI=false
 NDK_PATH="${ANDROID_NDK}"
 OUTPUT_DIR="./build_android"
-MNN_DIR="$(pwd)"
+MNN_DIR="$MNN_SOURCE_PATH"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do

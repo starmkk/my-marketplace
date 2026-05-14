@@ -1,5 +1,5 @@
 {
   "name": "on-device-ai-plugin",
   "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen2.5-Omni, LiteRT/LiteRT-LM, MNN, AI Edge Gallery, Gemma 4 ASR Round-Trip QA 스킬 7종 제공",
-  "version": "1.1.0"
+  "version": "1.1.1"
 }

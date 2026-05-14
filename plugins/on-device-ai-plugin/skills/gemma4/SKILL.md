@@ -20,6 +20,29 @@ description: |
 
 # Gemma 4 공식 사용법 레퍼런스
 
+## 환경변수
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `GEMMA4_MODEL_PATH` | 선택 | Gemma 4 모델 디렉토리 절대경로 (`gemma4-asr-qa` 스킬과 공유) |
+
+미설정 시에도 레퍼런스 스킬로 사용 가능하다. 설정하면 코드 예시에서 로컬 경로를 직접 사용한다.
+
+**설정 방법:**
+```shell
+# 모델 다운로드
+huggingface-cli download google/gemma-4-E2B-it --local-dir /absolute/path/to/gemma-4-E2B-it
+
+# 등록 (zsh/bash)
+echo 'export GEMMA4_MODEL_PATH=/absolute/path/to/gemma-4-E2B-it' >> ~/.zshrc
+source ~/.zshrc
+
+# 검증
+bash scripts/install.sh
+```
+
+---
+
 공식 문서: https://huggingface.co/blog/gemma4
 모델 카드: https://huggingface.co/google/gemma-4-E2B-it
 

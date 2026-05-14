@@ -21,6 +21,26 @@ description: |
 
 # MNN Development Skill
 
+## 환경변수
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `MNN_SOURCE_PATH` | 스크립트 실행 시 **필수** | MNN 소스코드 레포 로컬 클론 경로 |
+
+미설정 시 `scripts/` 내 모든 스크립트가 친절한 안내 메시지와 함께 즉시 중단된다.
+
+**설정 방법:**
+```shell
+# 클론
+git clone https://github.com/alibaba/MNN
+
+# 등록 (zsh/bash)
+echo 'export MNN_SOURCE_PATH=/path/to/MNN' >> ~/.zshrc
+source ~/.zshrc
+```
+
+---
+
 ## Overview
 
 MNN is a highly efficient and lightweight deep learning framework for mobile and embedded devices. This skill provides comprehensive guidance for converting models, building MNN for different platforms, deploying LLMs, and optimizing models for production use.

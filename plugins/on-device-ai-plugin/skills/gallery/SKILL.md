@@ -20,6 +20,29 @@ description: |
 
 # Google AI Edge Gallery 레퍼런스 스킬
 
+## 환경변수
+
+| 변수 | 필수 | 설명 |
+|------|------|------|
+| `GALLERY_SOURCE_PATH` | 선택 | Google AI Edge Gallery 레포 로컬 클론 경로 |
+
+미설정 시에도 레퍼런스 스킬로 사용 가능하다. 로컬 클론이 있으면 설정해두면 경로 탐색 없이 소스를 직접 참조할 수 있다.
+
+**설정 방법:**
+```shell
+# 클론
+git clone https://github.com/google-ai-edge/gallery
+
+# 등록 (zsh/bash)
+echo 'export GALLERY_SOURCE_PATH=/path/to/gallery' >> ~/.zshrc
+source ~/.zshrc
+
+# 검증
+bash scripts/install.sh
+```
+
+---
+
 Gallery는 온디바이스에서 오픈소스 LLM을 실행하는 Android/iOS 앱이다. 모델 다운로드, 멀티턴 채팅, 멀티모달(이미지/오디오), Agent Skills, 벤치마크를 지원한다. LiteRT-LM을 추론 백엔드로 사용한다.
 
 ## 코드베이스 탐색 방법
