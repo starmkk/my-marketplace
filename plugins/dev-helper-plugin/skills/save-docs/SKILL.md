@@ -2,7 +2,7 @@
 name: save-docs
 description: >
   현재 세션을 검토하고 문서로 저장하는 스킬. 개발 작업 세션과 질문·리뷰 세션을
-  단일 파일로 분류해 저장한다. 저장 경로는 $CLAUDE_DOCS_DIR 환경변수를 우선 사용한다.
+  단일 파일로 분류해 저장한다. 저장 경로는 ~/.claude/docs/ 이다.
   사용자가 "문서 저장", "save docs", "세션 정리", "이 대화 저장", "문서로 남겨줘",
   "/save-docs", "기록해줘" 등을 요청할 때 반드시 이 스킬을 사용하라.
   대화 히스토리를 직접 참조해야 하므로 메인 컨텍스트에서 실행한다.
@@ -35,16 +35,11 @@ allowed-tools:
 
 ### 3-1. 기본 경로 결정
 
-다음 순서로 기본 저장 경로를 결정한다:
+기본 저장 경로:
 
 ```bash
-DOCS_DIR="${CLAUDE_DOCS_DIR:-$HOME/Documents/claude/docs}"
+DOCS_DIR="$HOME/.claude/docs"
 ```
-
-- `$CLAUDE_DOCS_DIR`가 설정된 경우 해당 경로 사용
-- 미설정 시 `~/Documents/claude/docs/` 사용 (macOS·Linux 공통)
-
-> 다른 PC에서 경로를 바꾸려면 셸 프로파일에 `export CLAUDE_DOCS_DIR=/원하는/경로` 를 추가하면 된다.
 
 ### 3-2. 하위 카테고리 폴더 결정
 
