@@ -15,28 +15,65 @@ description: |
   - "MNN 빌드/배포/런타임 트러블슈팅", "troubleshoot MNN build/runtime"
 
   관련 스킬 (Related skills):
-  - `qwen25-omni`: Qwen2.5-Omni를 모바일/엣지에 MNN으로 배포할 때.
+  - `qwen`: Qwen 모델을 모바일/엣지에 MNN으로 배포할 때.
   - `litert`: 대안이 되는 온디바이스 추론 프레임워크.
 ---
 
 # MNN Development Skill
 
-## 환경변수
+## 소스 코드 관리 (~/.claude/repo)
 
-| 변수 | 필수 | 설명 |
-|------|------|------|
-| `MNN_SOURCE_PATH` | 스크립트 실행 시 **필수** | MNN 소스코드 레포 로컬 클론 경로 |
+소스코드가 필요한 작업(예: MNN 빌드, LLM 변환, MNNConvert 바이너리 사용 등)이
+생기면 **반드시 먼저 사용자에게 확인**한다:
 
-미설정 시 `scripts/` 내 모든 스크립트가 친절한 안내 메시지와 함께 즉시 중단된다.
+```
+[소스 사용 흐름]
+Step 1. 사용자에게 묻기:
+  "로컬에 이미 MNN 소스가 있으신가요? 있다면 경로를 알려주세요."
 
-**설정 방법:**
-```shell
-# 클론
-git clone https://github.com/alibaba/MNN
+Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용 (스크립트에 --mnn-source 인자로 전달)
 
-# 등록 (zsh/bash)
-echo 'export MNN_SOURCE_PATH=/path/to/MNN' >> ~/.zshrc
-source ~/.zshrc
+Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+```
+
+### 참조 repo
+
+| 항목 | 값 |
+|------|-----|
+| GitHub | https://github.com/alibaba/MNN.git |
+| 폴더 패턴 | `~/.claude/repo/MNN@<version>` |
+
+### 다운로드 방법
+
+```bash
+# 최신 버전 tag 조회
+LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/alibaba/MNN.git \
+  | grep -v '{}' | head -1 | awk '{print $2}' | sed 's|refs/tags/||')
+
+# 최신 버전 clone (버전 미명시 시)
+git clone --branch "$LATEST" --depth 1 \
+  https://github.com/alibaba/MNN.git \
+  ~/.claude/repo/MNN@"$LATEST"
+
+# 특정 버전 clone (예: 3.5.0)
+git clone --branch 3.5.0 --depth 1 \
+  https://github.com/alibaba/MNN.git \
+  ~/.claude/repo/MNN@3.5.0
+```
+
+이미 `~/.claude/repo/MNN@<version>`이 존재하면 재다운로드 없이 재사용한다.
+다운로드 후 사용자에게 경로 안내.
+
+### 스크립트 사용 시 --mnn-source 인자
+
+scripts/ 내 스크립트는 MNN 소스 경로가 필요할 때 `--mnn-source` 인자를 받는다:
+
+```bash
+python scripts/export_llm.py --model Qwen/Qwen2.5-7B \
+  --mnn-source ~/.claude/repo/MNN@3.5.0
+
+./scripts/build_android.sh --abi arm64-v8a --gpu \
+  --mnn-source ~/.claude/repo/MNN@3.5.0
 ```
 
 ---

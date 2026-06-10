@@ -1,14 +1,13 @@
 ---
-name: qwen25-omni
+name: qwen
 description: |
-  Alibaba Cloud Qwen2.5-Omni 멀티모달 AI 모델 개발 스킬
-  (텍스트/이미지/오디오/비디오 입력 + 자연스러운 음성 합성 출력).
-  Qwen2.5-Omni multimodal AI development skill for Alibaba Cloud's end-to-end model
-  (text/image/audio/video input with natural voice synthesis output).
+  Qwen 멀티모달/LLM 모델 개발 스킬 (Qwen 2.5-Omni, Qwen 3.x 통합 지원).
+  Unified development skill for Qwen 2.5-Omni and Qwen 3.x models.
 
   사용자가 다음과 같은 표현을 쓸 때 반드시 이 스킬을 사용하라
   (Trigger when the user mentions any of):
-  - "Qwen2.5-Omni", "qwen omni", "qwen25-omni"
+  - "qwen", "Qwen", "qwen3", "Qwen3", "qwen 3", "Qwen 3"
+  - "Qwen2.5-Omni", "qwen25-omni", "qwen omni", "qwen2.5"
   - "Transformers/vLLM/MNN으로 Qwen 사용", "Qwen with Transformers/vLLM/MNN"
   - "텍스트/이미지/오디오/비디오 멀티모달 입력", "multimodal input"
   - "실시간 음성 응답", "voice chatting", "speech synthesis"
@@ -17,33 +16,65 @@ description: |
   - "모바일/엣지 배포", "mobile/edge deployment with MNN"
 
   관련 스킬 (Related skills):
-  - `mnn`: Qwen2.5-Omni 모바일 배포 백엔드.
+  - `mnn`: Qwen 모바일/엣지 배포 백엔드. MNN으로 배포할 때 반드시 mnn 스킬을 invoke하라.
   - `gemma4`: 다른 멀티모달 LLM 옵션.
 ---
 
 # Qwen2.5-Omni Development Skill
 
-## 환경변수
+## 소스 코드 관리 (~/.claude/repo)
 
-| 변수 | 필수 | 설명 |
-|------|------|------|
-| `QWEN25_OMNI_MODEL_PATH` | 스크립트 실행 시 **필수** | Qwen2.5-Omni 로컬 모델 디렉토리 절대경로 |
+소스코드가 필요한 작업(예: MNN 변환 스크립트 참조, 예제 실행 등)이 생기면
+**반드시 먼저 사용자에게 확인**한다:
 
-미설정 시 `scripts/` 내 모든 스크립트가 친절한 안내 메시지와 함께 즉시 중단된다.
-
-**설정 방법:**
-```shell
-# 모델 다운로드
-huggingface-cli download Qwen/Qwen2.5-Omni-7B --local-dir /absolute/path/to/Qwen2.5-Omni-7B
-
-# 등록 (zsh/bash)
-echo 'export QWEN25_OMNI_MODEL_PATH=/absolute/path/to/Qwen2.5-Omni-7B' >> ~/.zshrc
-source ~/.zshrc
 ```
+[소스 사용 흐름]
+Step 1. 사용자에게 묻기:
+  "로컬에 이미 Qwen 소스가 있으신가요? 있다면 경로를 알려주세요."
+
+Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
+
+Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+```
+
+### 버전별 참조 repo
+
+| 버전 | GitHub |
+|------|--------|
+| Qwen 3.x | https://github.com/QwenLM/Qwen3.git |
+| Qwen 2.5 | https://github.com/QwenLM/Qwen2.5-Omni.git |
+
+### 다운로드 방법
+
+```bash
+# 최신 버전 tag 조회
+LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/QwenLM/Qwen3.git \
+  | grep -v '{}' | head -1 | awk '{print $2}' | sed 's|refs/tags/||')
+
+# 최신 버전 clone (버전 미명시 시)
+git clone --branch "$LATEST" --depth 1 \
+  https://github.com/QwenLM/Qwen3.git \
+  ~/.claude/repo/Qwen3@"$LATEST"
+
+# 특정 버전 clone (버전 명시 시, 예: v3.0.0)
+git clone --branch v3.0.0 --depth 1 \
+  https://github.com/QwenLM/Qwen3.git \
+  ~/.claude/repo/Qwen3@v3.0.0
+```
+
+이미 `~/.claude/repo/<RepoName>@<version>`이 존재하면 재다운로드 없이 재사용한다.
+다운로드 후 사용자에게 "~/.claude/repo/Qwen3@<tag>에 소스를 다운로드했습니다." 안내.
+
+### MNN 모바일 배포
+
+Qwen을 MNN으로 모바일/엣지 배포할 때는 **반드시 mnn 스킬을 invoke**한다.
 
 ---
 
 ## Overview
+
+이 스킬은 **Qwen 2.5-Omni** (멀티모달 음성/영상 이해 + 음성 생성)와
+**Qwen 3.x** (텍스트/멀티모달 LLM 최신 버전)를 통합 지원한다.
 
 Qwen2.5-Omni is an end-to-end multimodal model by Qwen team at Alibaba Cloud, capable of understanding text, images, audio, and video while generating real-time text and natural speech responses. This skill provides comprehensive guidance for setup, deployment, and optimization across different platforms.
 

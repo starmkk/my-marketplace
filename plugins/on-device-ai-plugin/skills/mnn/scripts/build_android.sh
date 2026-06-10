@@ -1,17 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##
 # MNN Android Build Script
 #
 # Automates building MNN for Android with common configurations
 #
-# 필수 환경변수:
-#   MNN_SOURCE_PATH  MNN 소스코드 레포 로컬 클론 경로
-#
 # Usage:
 #   ./build_android.sh [OPTIONS]
 #
 # Options:
+#   --mnn-source <path>   MNN source directory (required)
 #   --abi <abi>           Target ABI: arm64-v8a (default), armeabi-v7a, or both
 #   --gpu                 Enable GPU support (OpenCL)
 #   --vulkan              Enable Vulkan support
@@ -21,57 +19,11 @@
 #   --output <path>       Output directory (default: ./build_android)
 #
 # Examples:
-#   ./build_android.sh --abi arm64-v8a --gpu
-#   ./build_android.sh --abi both --llm --gpu
+#   ./build_android.sh --mnn-source ~/.claude/repo/MNN@3.5.0 --abi arm64-v8a --gpu
+#   ./build_android.sh --mnn-source ~/.claude/repo/MNN@3.5.0 --abi both --llm --gpu
 ##
 
 set -e
-
-# ===== MNN_SOURCE_PATH 검증 게이트 =====
-_detect_rc() {
-  local sh="${SHELL:-}"
-  case "$sh" in
-    *zsh)  echo "$HOME/.zshrc zsh" ;;
-    *bash) echo "$HOME/.bashrc bash" ;;
-    *fish) echo "$HOME/.config/fish/config.fish fish" ;;
-    *)     echo "$HOME/.zshrc zsh" ;;
-  esac
-}
-
-if [ -z "${MNN_SOURCE_PATH:-}" ]; then
-  read -r RC_FILE SHELL_NAME < <(_detect_rc)
-  bar="======================================================================"
-  echo "" >&2
-  echo "$bar" >&2
-  echo "[mnn] 환경변수가 올바르게 설정되지 않아 실행을 중단합니다." >&2
-  echo "$bar" >&2
-  echo "" >&2
-  echo "[누락된 환경변수]" >&2
-  echo "  - MNN_SOURCE_PATH  (필수)" >&2
-  echo "      MNN 소스코드 레포 로컬 클론 경로" >&2
-  echo "" >&2
-  echo "[설정 방법] (감지된 셸: $SHELL_NAME, 권장 rc 파일: $RC_FILE)" >&2
-  echo "" >&2
-  if [ "$SHELL_NAME" = "fish" ]; then
-    echo "  set -Ux MNN_SOURCE_PATH /path/to/MNN" >&2
-  else
-    echo "  echo 'export MNN_SOURCE_PATH=/path/to/MNN' >> $RC_FILE" >&2
-    echo "  source $RC_FILE" >&2
-  fi
-  echo "" >&2
-  echo "  클론 방법: git clone https://github.com/alibaba/MNN" >&2
-  echo "" >&2
-  echo "환경변수 설정 후 동일 명령을 다시 실행해 주세요." >&2
-  echo "$bar" >&2
-  echo "" >&2
-  exit 2
-fi
-
-MNN_SOURCE_PATH="${MNN_SOURCE_PATH/#\~/$HOME}"
-if [ ! -d "$MNN_SOURCE_PATH" ]; then
-  echo "[mnn] MNN_SOURCE_PATH=$MNN_SOURCE_PATH — 디렉토리가 존재하지 않습니다." >&2
-  exit 2
-fi
 
 # Default values
 ABI="arm64-v8a"
@@ -79,13 +31,17 @@ ENABLE_GPU=false
 ENABLE_VULKAN=false
 ENABLE_LLM=false
 ENABLE_MINI=false
-NDK_PATH="${ANDROID_NDK}"
+NDK_PATH="${ANDROID_NDK:-}"
 OUTPUT_DIR="./build_android"
-MNN_DIR="$MNN_SOURCE_PATH"
+MNN_DIR=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --mnn-source)
+            MNN_DIR="$2"
+            shift 2
+            ;;
         --abi)
             ABI="$2"
             shift 2
@@ -126,6 +82,20 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# MNN_DIR 검증
+if [ -z "$MNN_DIR" ]; then
+    echo "Error: --mnn-source is required"
+    echo "Usage: $0 --mnn-source /path/to/MNN [options]"
+    echo "Example: $0 --mnn-source ~/.claude/repo/MNN@3.5.0 --abi arm64-v8a"
+    exit 1
+fi
+
+MNN_DIR="${MNN_DIR/#\~/$HOME}"
+if [ ! -d "$MNN_DIR" ]; then
+    echo "Error: MNN source directory not found: $MNN_DIR"
+    exit 1
+fi
+
 # Validate NDK path
 if [ -z "$NDK_PATH" ]; then
     echo "Error: ANDROID_NDK not set"
@@ -146,7 +116,7 @@ build_for_abi() {
     echo "Building MNN for $TARGET_ABI"
     echo "========================================"
     echo ""
-    
+
     # Determine build script
     if [ "$TARGET_ABI" = "arm64-v8a" ]; then
         BUILD_SCRIPT="build_64.sh"
@@ -155,31 +125,31 @@ build_for_abi() {
         BUILD_SCRIPT="build_32.sh"
         BUILD_DIR="${OUTPUT_DIR}/build_32"
     fi
-    
+
     # Create build directory
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR"
-    
+
     # Prepare CMake flags
     CMAKE_FLAGS="-DMNN_BUILD_BENCHMARK=OFF"
     CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_BUILD_TEST=OFF"
     CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_USE_LOGCAT=ON"
-    
+
     # Add common optimizations
     CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_ARM82=ON"
     CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_LOW_MEMORY=ON"
-    
+
     # GPU support
     if [ "$ENABLE_GPU" = true ]; then
         CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_OPENCL=ON"
         echo "Enabling OpenCL GPU support"
     fi
-    
+
     if [ "$ENABLE_VULKAN" = true ]; then
         CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_VULKAN=ON"
         echo "Enabling Vulkan support"
     fi
-    
+
     # LLM support
     if [ "$ENABLE_LLM" = true ]; then
         CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_BUILD_LLM=ON"
@@ -187,34 +157,34 @@ build_for_abi() {
         CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_CPU_WEIGHT_DEQUANT_GEMM=ON"
         echo "Enabling LLM support"
     fi
-    
+
     # Minimal build
     if [ "$ENABLE_MINI" = true ]; then
         CMAKE_FLAGS="$CMAKE_FLAGS -DMNN_BUILD_MINI=ON"
         echo "Enabling minimal build"
     fi
-    
+
     # Run build script
     echo "CMake flags: $CMAKE_FLAGS"
     echo ""
-    
+
     cd "$MNN_DIR/project/android"
     ./$BUILD_SCRIPT "$CMAKE_FLAGS"
-    
+
     # Copy libraries
     echo ""
     echo "Copying libraries..."
     LIBS_DIR="${OUTPUT_DIR}/libs/${TARGET_ABI}"
     mkdir -p "$LIBS_DIR"
-    
+
     if [ "$TARGET_ABI" = "arm64-v8a" ]; then
         SOURCE_DIR="${MNN_DIR}/project/android/build_64/libs/arm64-v8a"
     else
         SOURCE_DIR="${MNN_DIR}/project/android/build_32/libs/armeabi-v7a"
     fi
-    
+
     cp -v "${SOURCE_DIR}"/*.so "$LIBS_DIR/" || true
-    
+
     echo ""
     echo "Build complete for $TARGET_ABI"
     echo "Libraries: $LIBS_DIR"
@@ -225,6 +195,7 @@ build_for_abi() {
 echo "========================================"
 echo "MNN Android Build Configuration"
 echo "========================================"
+echo "MNN Source:  $MNN_DIR"
 echo "ABI:         $ABI"
 echo "GPU:         $ENABLE_GPU"
 echo "Vulkan:      $ENABLE_VULKAN"

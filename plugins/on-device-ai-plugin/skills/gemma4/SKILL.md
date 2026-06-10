@@ -14,7 +14,6 @@ description: |
   - "vLLM 서빙", "llama.cpp 서빙", "MLX 서빙"
 
   관련 스킬 (Related skills):
-  - `gemma4-asr-qa`: Gemma 4 ASR로 합성 데이터 round-trip QA를 수행.
   - `litert-lm`: Gemma 4를 온디바이스에서 실행할 때.
 ---
 
@@ -24,7 +23,7 @@ description: |
 
 | 변수 | 필수 | 설명 |
 |------|------|------|
-| `GEMMA4_MODEL_PATH` | 선택 | Gemma 4 모델 디렉토리 절대경로 (`gemma4-asr-qa` 스킬과 공유) |
+| `GEMMA4_MODEL_PATH` | 선택 | Gemma 4 모델 디렉토리 절대경로 (ASR Round-Trip QA 스크립트와 공유) |
 
 미설정 시에도 레퍼런스 스킬로 사용 가능하다. 설정하면 코드 예시에서 로컬 경로를 직접 사용한다.
 
@@ -424,3 +423,52 @@ print(output[0]["generated_text"])
 | AIME 2026 | 89.2% | 88.3% | 42.5% | 37.5% |
 | LiveCodeBench | 80.0% | 77.1% | 52.0% | 44.0% |
 | MMMU Pro | 76.9% | 73.8% | 52.6% | 44.2% |
+
+## ASR Round-Trip QA (합성 데이터 품질 검증)
+
+Gemma 4 E2B-it의 ASR 기능을 활용해 TTS 합성 wav를 전사하고 원본 텍스트와
+비교(CER/WER)하여 품질이 낮은 데이터를 자동 필터링한다.
+
+### 환경변수
+
+`GEMMA4_MODEL_PATH`가 필수 (`scripts/_env.py` 참고).
+
+### 주요 스크립트 (scripts/)
+
+| 스크립트 | 기능 |
+|----------|------|
+| `transcribe.py` | 단일 wav 전사 |
+| `batch_transcribe.py` | 디렉토리 내 wav 배치 전사 → CSV |
+| `round_trip_qa.py` | 원본 manifest와 ASR 결과 비교 → QA 리포트 |
+| `filter_synth_dataset.py` | E2E — 배치 전사 + QA 필터링 |
+| `_asr.py` | ASR 공통 유틸리티 |
+
+### 빠른 시작
+
+```bash
+# 단일 wav 전사 테스트
+python scripts/transcribe.py --audio /path/to/test.wav --language Korean
+
+# E2E 필터링 (배치)
+python scripts/filter_synth_dataset.py \
+  --in_dir /path/to/synth_aug \
+  --source_manifest /path/to/manifest.csv \
+  --out_filtered_manifest ./filtered_manifest.csv \
+  --cer_threshold 0.3
+```
+
+### CER 임계값 가이드
+
+| CER | 권장 사용처 |
+|-----|------------|
+| < 0.10 | 평가셋, 핵심 학습 데이터 |
+| < 0.20 | 일반 학습 데이터 |
+| < 0.30 | 대량 학습 데이터 (권장 기본값) |
+| < 0.50 | 사전학습 / curriculum learning 초기 |
+
+### 참고 문서
+
+- `references/gemma4_asr_usage.md` — ASR API 상세
+- `references/round_trip_qa_strategy.md` — Round-trip QA 이론
+- `references/cer_wer_metrics.md` — 한국어 CER/WER 계산 주의사항
+- `examples/qa_config.yaml` — QA 설정 예시

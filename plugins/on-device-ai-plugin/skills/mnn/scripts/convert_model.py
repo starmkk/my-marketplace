@@ -22,9 +22,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from _env import ensure_mnn_env
-ensure_mnn_env()
-
 def run_command(cmd):
     """Run shell command and handle errors"""
     print(f"Running: {' '.join(cmd)}")
@@ -57,11 +54,13 @@ def convert_model(args):
         print("Please specify --framework")
         sys.exit(1)
     
-    # MNNConvert 바이너리 탐색: $MNN_SOURCE_PATH/build/MNNConvert 우선, 없으면 PATH 폴백
+    # MNNConvert 바이너리 탐색: --mnn-source 우선, 없으면 MNN_SOURCE_PATH, 없으면 PATH 폴백
+    _mnn_source = args.mnn_source or os.environ.get("MNN_SOURCE_PATH")
     mnn_convert_bin = "MNNConvert"
-    built_bin = Path(os.environ["MNN_SOURCE_PATH"]) / "build" / "MNNConvert"
-    if built_bin.exists():
-        mnn_convert_bin = str(built_bin)
+    if _mnn_source:
+        built_bin = Path(_mnn_source).expanduser().resolve() / "build" / "MNNConvert"
+        if built_bin.exists():
+            mnn_convert_bin = str(built_bin)
 
     # Build MNNConvert command
     cmd = [mnn_convert_bin]
@@ -160,6 +159,12 @@ Examples:
                        help='Quantization block size (default: 0 for Int8, 64 for Int4)')
     parser.add_argument('--keep-input-format', action='store_true',
                        help='Keep original input format (NHWC/NCHW)')
+    parser.add_argument(
+        '--mnn-source',
+        default=None,
+        help='MNN source directory for finding MNNConvert binary. '
+             'Also checks MNN_SOURCE_PATH env var as fallback.',
+    )
     
     args = parser.parse_args()
     

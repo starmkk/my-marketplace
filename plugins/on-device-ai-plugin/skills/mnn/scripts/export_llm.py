@@ -19,9 +19,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-from _env import ensure_mnn_env
-ensure_mnn_env()
-
 # Common model configurations
 MODEL_CONFIGS = {
     'qwen': {
@@ -108,8 +105,15 @@ def export_llm(args):
         print(f"HQQ: {'Yes' if args.hqq else 'No'}")
     print("========================================\n")
     
-    # Change to transformers/llm directory (MNN_SOURCE_PATH 기준)
-    mnn_root = Path(os.environ["MNN_SOURCE_PATH"])
+    # MNN 소스 경로 결정: --mnn-source 인자 우선, 없으면 MNN_SOURCE_PATH 환경변수
+    _mnn_source = args.mnn_source or os.environ.get("MNN_SOURCE_PATH", "")
+    if not _mnn_source:
+        print("Error: MNN source path required.")
+        print("  --mnn-source /path/to/MNN  또는")
+        print("  MNN_SOURCE_PATH 환경변수를 설정하세요.")
+        print("  예: --mnn-source ~/.claude/repo/MNN@3.5.0")
+        sys.exit(1)
+    mnn_root = Path(_mnn_source).expanduser().resolve()
     llm_dir = mnn_root / 'transformers' / 'llm'
     if not llm_dir.exists():
         print(f"Error: {llm_dir} not found")
@@ -186,6 +190,12 @@ Supported models:
     
     parser.add_argument('--model', required=True,
                        help='HuggingFace model path (e.g., Qwen/Qwen2.5-7B)')
+    parser.add_argument(
+        '--mnn-source',
+        default=None,
+        help='MNN source directory (e.g. ~/.claude/repo/MNN@3.5.0). '
+             'Also checks MNN_SOURCE_PATH env var as fallback.',
+    )
     parser.add_argument('--quant', type=int, choices=[2, 3, 4, 5, 6, 7, 8],
                        help='Quantization bits (default: 4)')
     parser.add_argument('--block', type=int,

@@ -1,6 +1,9 @@
 .claude/settings.local.json
 **/.claude/settings.local.json
 
+# 설계 문서 (로컬 전용)
+docs/
+
 # Python
 __pycache__/
 *.py[cod]
