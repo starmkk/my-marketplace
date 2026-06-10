@@ -25,11 +25,17 @@ import torch
 # ---------- 환경 ----------
 
 def get_ckpt_dir() -> Path:
-    """OPENVOICE_CKPT_DIR 환경변수 → 기본 경로 fallback."""
-    env = os.environ.get("OPENVOICE_CKPT_DIR")
-    if env:
-        return Path(env)
-    return Path.home() / "Documents" / "work_2026" / "KWS" / "OpenVoice" / "checkpoints_v2"
+    """~/.claude/repo/OpenVoice@*/checkpoints_v2 를 검색."""
+    repo_base = Path.home() / ".claude" / "repo"
+    if repo_base.exists():
+        candidates = sorted(repo_base.glob("OpenVoice@*/checkpoints_v2"))
+        if candidates:
+            return candidates[-1]
+    raise RuntimeError(
+        "OpenVoice checkpoints를 찾을 수 없습니다.\n"
+        "Claude Code에게 'OpenVoice 소스 다운로드해줘'라고 요청하세요.\n"
+        "기대 경로: ~/.claude/repo/OpenVoice@<version>/checkpoints_v2"
+    )
 
 
 def select_device(prefer: str = "auto") -> str:

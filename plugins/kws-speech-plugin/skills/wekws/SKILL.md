@@ -16,6 +16,41 @@ description: >
 WeKws는 IoT/온디바이스 환경을 위한 **소형(small-footprint) E2E 키워드 스포팅 툴킷**이다.
 논문: ICASSP 2023 "WeKws: A Production First Small-Footprint End-to-End KWS Toolkit"
 
+## 소스 코드 관리 (~/.claude/repo)
+
+소스코드가 필요한 작업(예: wekws 소스 탐색, 학습 스크립트 수정, 빌드 등)이 생기면
+**반드시 먼저 사용자에게 확인**한다:
+
+```
+[소스 사용 흐름]
+Step 1. 사용자에게 묻기:
+  "로컬에 이미 wekws 소스가 있으신가요? 있다면 경로를 알려주세요."
+
+Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
+
+Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+```
+
+| 항목 | 값 |
+|------|-----|
+| GitHub | https://github.com/wenet-e2e/wekws |
+| 폴더 패턴 | `~/.claude/repo/wekws@<version>` |
+
+```bash
+# 최신 버전 tag 조회
+LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/wenet-e2e/wekws \
+  | grep -v '{}' | head -1 | awk '{print $2}' | sed 's|refs/tags/||')
+
+# clone
+git clone --branch "$LATEST" --depth 1 \
+  https://github.com/wenet-e2e/wekws \
+  ~/.claude/repo/wekws@"$LATEST"
+```
+
+이미 `~/.claude/repo/wekws@<version>`이 존재하면 재다운로드 없이 재사용한다.
+
+---
+
 ### 핵심 특징
 - **Alignment-free**: 강제 정렬(force alignment) 없이 max-pooling loss 기반 E2E 학습
 - **스트리밍**: causal convolution으로 프레임 단위 실시간 처리 지원

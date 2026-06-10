@@ -45,19 +45,28 @@ description: |
 
 ## 3. 환경 구축 워크플로우
 
-**환경변수 (필수):**
-- `MELOTTS_KWS_DIR` — melotts-kws 스킬 디렉토리 절대경로
+### 소스 코드 관리 (~/.claude/repo)
 
-미설정 시 `cd` 명령이 실패합니다. 등록 방법:
-```shell
-echo 'export MELOTTS_KWS_DIR=/path/to/melotts-kws' >> ~/.zshrc
-source ~/.zshrc
+MeloTTS 소스코드가 필요한 작업이 생기면 **반드시 먼저 사용자에게 확인**한다:
+
+```
+[소스 사용 흐름]
+Step 1. 사용자에게 묻기:
+  "로컬에 이미 MeloTTS 소스가 있으신가요? 있다면 경로를 알려주세요."
+
+Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
+
+Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
 ```
 
-처음 사용 시:
+| 항목 | 값 |
+|------|-----|
+| GitHub | https://github.com/myshell-ai/MeloTTS |
+| 폴더 패턴 | `~/.claude/repo/MeloTTS@<version>` |
+| venv 위치 | `~/.claude/venvs/melotts` |
 
+처음 사용 시 환경 구축:
 ```bash
-cd "$MELOTTS_KWS_DIR"
 bash scripts/install.sh
 ```
 
