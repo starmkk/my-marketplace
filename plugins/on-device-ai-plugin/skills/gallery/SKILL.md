@@ -20,26 +20,48 @@ description: |
 
 # Google AI Edge Gallery 레퍼런스 스킬
 
-## 환경변수
+## 소스 코드 관리 (~/.claude/repo)
 
-| 변수 | 필수 | 설명 |
-|------|------|------|
-| `GALLERY_SOURCE_PATH` | 선택 | Google AI Edge Gallery 레포 로컬 클론 경로 |
+소스코드가 필요한 작업(예: Gallery 코드 탐색, 빌드, 수정 등)이 생기면
+**반드시 먼저 사용자에게 확인**한다:
 
-미설정 시에도 레퍼런스 스킬로 사용 가능하다. 로컬 클론이 있으면 설정해두면 경로 탐색 없이 소스를 직접 참조할 수 있다.
-
-**설정 방법:**
-```shell
-# 클론
-git clone https://github.com/google-ai-edge/gallery
-
-# 등록 (zsh/bash)
-echo 'export GALLERY_SOURCE_PATH=/path/to/gallery' >> ~/.zshrc
-source ~/.zshrc
-
-# 검증
-bash scripts/install.sh
 ```
+[소스 사용 흐름]
+Step 1. 사용자에게 묻기:
+  "로컬에 이미 Gallery 소스가 있으신가요? 있다면 경로를 알려주세요."
+
+Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
+
+Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+```
+
+### 참조 repo
+
+| 항목 | 값 |
+|------|-----|
+| GitHub | https://github.com/google-ai-edge/gallery |
+| 폴더 패턴 | `~/.claude/repo/gallery@<version>` |
+
+### 다운로드 방법
+
+```bash
+# 최신 버전 tag 조회
+LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/google-ai-edge/gallery \
+  | grep -v '{}' | head -1 | awk '{print $2}' | sed 's|refs/tags/||')
+
+# 최신 버전 clone (버전 미명시 시)
+git clone --branch "$LATEST" --depth 1 \
+  https://github.com/google-ai-edge/gallery \
+  ~/.claude/repo/gallery@"$LATEST"
+
+# 특정 버전 clone (예: v1.0.0)
+git clone --branch v1.0.0 --depth 1 \
+  https://github.com/google-ai-edge/gallery \
+  ~/.claude/repo/gallery@v1.0.0
+```
+
+이미 `~/.claude/repo/gallery@<version>`이 존재하면 재다운로드 없이 재사용한다.
+다운로드 후 사용자에게 경로 안내.
 
 ---
 
