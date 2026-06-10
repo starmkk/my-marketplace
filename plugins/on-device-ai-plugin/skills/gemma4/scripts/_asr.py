@@ -18,17 +18,20 @@ import torch
 
 def get_model_path() -> Path:
     """
-    GEMMA4_MODEL_PATH 환경변수에서 모델 경로를 읽는다.
-    이 함수가 호출되기 전에 _env.ensure_gemma4_env()가 통과되어야 하며,
-    여기서는 환경변수가 설정되어 있다고 가정한다.
+    ~/.claude/repo/gemma-4-* 디렉토리를 검색해 모델 경로를 반환한다.
+    사용자가 직접 경로를 지정한 경우 해당 경로를 우선 사용한다.
     """
-    env = os.environ.get("GEMMA4_MODEL_PATH", "").strip()
-    if not env:
-        # 진입 가드를 우회하고 직접 호출된 경우 대비
-        from _env import ensure_gemma4_env
-        ensure_gemma4_env()
-        env = os.environ["GEMMA4_MODEL_PATH"]
-    return Path(env)
+    repo_base = Path.home() / ".claude" / "repo"
+    if repo_base.exists():
+        candidates = sorted(repo_base.glob("gemma-4-*"))
+        if candidates:
+            return candidates[0]
+    raise RuntimeError(
+        "Gemma 4 모델을 찾을 수 없습니다.\n"
+        "Claude Code에게 'Gemma 4 모델 다운로드해줘'라고 요청하거나,\n"
+        "모델 경로를 직접 이 함수에 전달하세요.\n"
+        "기대 경로: ~/.claude/repo/gemma-4-<variant>"
+    )
 
 
 def select_dtype_and_device(prefer: str = "auto"):

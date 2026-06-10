@@ -19,26 +19,44 @@ description: |
 
 # Gemma 4 공식 사용법 레퍼런스
 
-## 환경변수
+## 모델 관리 (~/.claude/repo)
 
-| 변수 | 필수 | 설명 |
-|------|------|------|
-| `GEMMA4_MODEL_PATH` | 선택 | Gemma 4 모델 디렉토리 절대경로 (ASR Round-Trip QA 스크립트와 공유) |
+모델이 필요한 작업(예: ASR, 추론, 파인튜닝 등)이 생기면
+**반드시 먼저 사용자에게 확인**한다:
 
-미설정 시에도 레퍼런스 스킬로 사용 가능하다. 설정하면 코드 예시에서 로컬 경로를 직접 사용한다.
-
-**설정 방법:**
-```shell
-# 모델 다운로드
-huggingface-cli download google/gemma-4-E2B-it --local-dir /absolute/path/to/gemma-4-E2B-it
-
-# 등록 (zsh/bash)
-echo 'export GEMMA4_MODEL_PATH=/absolute/path/to/gemma-4-E2B-it' >> ~/.zshrc
-source ~/.zshrc
-
-# 검증
-bash scripts/install.sh
 ```
+[모델 사용 흐름]
+Step 1. 사용자에게 묻기:
+  "로컬에 이미 Gemma 4 모델이 있으신가요? 있다면 경로를 알려주세요."
+
+Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
+
+Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+```
+
+### 모델 저장 경로
+
+| 항목 | 값 |
+|------|-----|
+| HuggingFace | `google/gemma-4-E2B-it`, `google/gemma-4-E4B-it` 등 |
+| 폴더 패턴 | `~/.claude/repo/gemma-4-<variant>` |
+
+### 다운로드 방법
+
+```bash
+pip install huggingface_hub
+
+# E2B-it (128K, 오디오/이미지/비디오 지원)
+huggingface-cli download google/gemma-4-E2B-it \
+  --local-dir ~/.claude/repo/gemma-4-E2B-it
+
+# E4B-it
+huggingface-cli download google/gemma-4-E4B-it \
+  --local-dir ~/.claude/repo/gemma-4-E4B-it
+```
+
+이미 `~/.claude/repo/gemma-4-<variant>`이 존재하면 재다운로드 없이 재사용한다.
+다운로드 후 사용자에게 경로 안내.
 
 ---
 
@@ -429,9 +447,9 @@ print(output[0]["generated_text"])
 Gemma 4 E2B-it의 ASR 기능을 활용해 TTS 합성 wav를 전사하고 원본 텍스트와
 비교(CER/WER)하여 품질이 낮은 데이터를 자동 필터링한다.
 
-### 환경변수
+### 모델 경로
 
-`GEMMA4_MODEL_PATH`가 필수 (`scripts/_env.py` 참고).
+`~/.claude/repo/gemma-4-<variant>` 경로 또는 사용자 제공 경로를 사용한다 (`scripts/_asr.py` 참고).
 
 ### 주요 스크립트 (scripts/)
 
