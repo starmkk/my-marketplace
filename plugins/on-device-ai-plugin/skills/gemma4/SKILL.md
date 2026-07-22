@@ -6,7 +6,7 @@ description: |
 
   사용자가 다음과 같은 표현을 쓸 때 반드시 이 스킬을 사용하라
   (Trigger when the user mentions any of):
-  - "gemma4", "gemma 4", "E2B", "E4B", "26B", "31B"
+  - "gemma4", "gemma 4", "E2B", "E4B", "12B", "26B", "31B"
   - "Gemma 모델 로드/추론/파인튜닝", "Gemma load/inference/finetune"
   - "apply_chat_template", "멀티모달 입력 구성", "multimodal input"
   - "ASR", "전사", "transcribe", "오디오 입력", "이미지/비디오 입력"
@@ -53,6 +53,10 @@ huggingface-cli download google/gemma-4-E2B-it \
 # E4B-it
 huggingface-cli download google/gemma-4-E4B-it \
   --local-dir ~/.claude/repo/gemma-4-E4B-it
+
+# 12B-it (256K, 오디오/이미지/비디오 지원, Unified encoder-free)
+huggingface-cli download google/gemma-4-12B-it \
+  --local-dir ~/.claude/repo/gemma-4-12B-it
 ```
 
 이미 `~/.claude/repo/gemma-4-<variant>`이 존재하면 재다운로드 없이 재사용한다.
@@ -69,12 +73,13 @@ huggingface-cli download google/gemma-4-E4B-it \
 |------|-------------|-----------|---------|-----------|
 | Gemma 4 E2B | 2.3B | 5.1B | 128K | O |
 | Gemma 4 E4B | 4.5B | 8B | 128K | O |
+| Gemma 4 12B | 11.95B (Unified, encoder-free) | - | 256K | O |
 | Gemma 4 26B A4B | 4B activated / 26B total (MoE) | - | 256K | X |
 | Gemma 4 31B | 31B dense | - | 256K | X |
 
 **모달리티 지원:**
-- E2B, E4B: 텍스트 + 이미지 + 비디오 + 오디오
-- 26B A4B, 31B: 텍스트 + 이미지 + 비디오 (오디오 없음, 비디오 오디오 없음)
+- E2B, E4B, 12B: 텍스트 + 이미지 + 비디오 + 오디오
+- 26B A4B, 31B: 텍스트 + 이미지 (오디오·비디오 없음)
 
 ## 핵심 패턴: apply_chat_template
 
@@ -126,7 +131,7 @@ response = processor.decode(output[0][input_len:], skip_special_tokens=True)
 | `return_tensors` | - | "pt": PyTorch 텐서 |
 | `add_generation_prompt` | False | True: 생성 프롬프트 추가 (추론 시 필수) |
 | `enable_thinking` | False | True: Thinking 모드 활성화 |
-| `load_audio_from_video` | False | True: 비디오에서 오디오도 로드 (E2B/E4B만) |
+| `load_audio_from_video` | False | True: 비디오에서 오디오도 로드 (E2B/E4B/12B만) |
 | `tools` | None | Function Calling 도구 정의 리스트 |
 
 ## 오디오 ASR (음성 인식)
@@ -183,7 +188,7 @@ waveform, sr = sf.read("audio.flac", dtype="float32")
 
 **오디오 제한사항:**
 - 최대 30초
-- E2B, E4B만 지원 (26B A4B, 31B 미지원)
+- E2B, E4B, 12B 지원 (26B A4B, 31B 미지원)
 - 음성만 학습됨 (음악/비음성 소리 미지원)
 
 ## 이미지 이해
@@ -241,7 +246,7 @@ inputs = processor.apply_chat_template(
     return_dict=True,
     return_tensors="pt",
     add_generation_prompt=True,
-    load_audio_from_video=True,   # E2B/E4B: 비디오 오디오도 처리
+    load_audio_from_video=True,   # E2B/E4B/12B: 비디오 오디오도 처리
 ).to(model.device)
 
 output = model.generate(**inputs, max_new_tokens=200)
@@ -429,9 +434,9 @@ print(output[0]["generated_text"])
 1. **`processor(text=..., audio=...)` 직접 호출 금지** → 반드시 `apply_chat_template` 사용
 2. **`model.generate(input_ids=..., ...)` 선택적 전달 금지** → 반드시 `model.generate(**inputs, ...)` 사용
 3. **오디오는 텍스트 앞에 배치** — messages content에서 audio가 text보다 먼저
-4. **E2B/E4B만 오디오 지원** — 26B A4B, 31B는 오디오 미지원
+4. **E2B/E4B/12B만 오디오 지원** — 26B A4B, 31B는 오디오 미지원
 5. **오디오 최대 30초** — 초과 시 잘라야 함
-6. **비디오 오디오 로드** — E2B/E4B에서 비디오의 오디오도 처리하려면 `load_audio_from_video=True`
+6. **비디오 오디오 로드** — E2B/E4B/12B에서 비디오의 오디오도 처리하려면 `load_audio_from_video=True`
 
 ## 벤치마크 (참고)
 

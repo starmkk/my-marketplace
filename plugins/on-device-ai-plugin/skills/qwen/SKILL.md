@@ -41,8 +41,9 @@ Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드
 
 | 버전 | GitHub |
 |------|--------|
-| Qwen 3.x | https://github.com/QwenLM/Qwen3.git |
-| Qwen 2.5 | https://github.com/QwenLM/Qwen2.5-Omni.git |
+| Qwen 3.x (텍스트/LLM) | https://github.com/QwenLM/Qwen3.git |
+| Qwen3-Omni (멀티모달/음성) | https://github.com/QwenLM/Qwen3-Omni.git |
+| Qwen 2.5-Omni | https://github.com/QwenLM/Qwen2.5-Omni.git |
 
 ### 다운로드 방법
 
@@ -85,6 +86,29 @@ Qwen2.5-Omni is an end-to-end multimodal model by Qwen team at Alibaba Cloud, ca
 - Mobile/edge deployment with MNN
 - High-performance inference with vLLM
 - API integration with Alibaba Cloud
+
+## Qwen3 / Qwen3-Omni 라인업
+
+### Qwen3 (텍스트 LLM)
+
+- **Dense 모델**: 0.6B / 1.7B / 4B / 8B / 14B / 32B
+- **MoE 모델**: 30B-A3B (활성 3B), 235B-A22B (활성 22B)
+- **Thinking / Non-thinking 듀얼 모드** 지원 (`enable_thinking` 파라미터 또는 `/think`·`/no_think` 지시로 전환)
+- **컨텍스트**: dense 대형/MoE 모델 128K 지원
+- **2507 갱신 변형** (`Qwen3-*-Instruct-2507`, `Qwen3-*-Thinking-2507`, 4B/30B-A3B/235B-A22B): 256K 컨텍스트(최대 1M까지 확장) 지원. Instruct-2507은 non-thinking 전용, Thinking-2507은 thinking 전용
+- Apache 2.0 라이선스, Hugging Face·ModelScope 배포
+
+### Qwen3-Omni (멀티모달 + 음성, Qwen2.5-Omni 후속)
+
+- **아키텍처**: MoE 기반 30B-A3B, Thinker-Talker 구조
+- **변형**:
+  - `Qwen/Qwen3-Omni-30B-A3B-Instruct` — thinker+talker, 오디오/비디오/텍스트 입력 + 오디오·텍스트 출력
+  - `Qwen/Qwen3-Omni-30B-A3B-Thinking` — thinker 전용, CoT 추론, 텍스트 출력
+  - `Qwen/Qwen3-Omni-30B-A3B-Captioner` — 오디오 상세 캡션 특화(Instruct 파인튜닝)
+- **언어**: 텍스트 119개, 음성 이해 19개, 음성 생성 10개
+- **컨텍스트**: 32,768 토큰(멀티 GPU 시 65,536까지 확장)
+- **백엔드**: Transformers, vLLM (FlashAttention 2 포함)
+- **voice 옵션(Instruct)**: `Chelsie`(female), `Ethan`(male), `Aiden`(male) — Qwen2.5-Omni 대비 `Aiden` 추가
 
 ## Quick Reference
 
@@ -203,7 +227,8 @@ text = processor.batch_decode(text_ids, skip_special_tokens=True)
 
 **Change voice type:**
 ```python
-# Available: "Chelsie" (female), "Ethan" (male)
+# Qwen2.5-Omni: "Chelsie" (female), "Ethan" (male)
+# Qwen3-Omni-Instruct: 위 2종 + "Aiden" (male) 추가
 text_ids, audio = model.generate(**inputs, speaker="Chelsie")
 ```
 

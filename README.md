@@ -13,7 +13,7 @@
 | 플러그인 | 버전 | 스킬 수 | 한 줄 설명 |
 |---|---|---|---|
 | `dev-helper-plugin` | 1.0.2 | 1종 | git 커밋 자동화 |
-| `on-device-ai-plugin` | 1.1.4 | 6종 | 온디바이스 AI 모델 개발 레퍼런스 |
+| `on-device-ai-plugin` | 1.1.5 | 6종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.1 | 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `ai-dev-tools-plugin` | 1.0.0 | 3종 | PyTorch/TensorFlow/LLM-Wiki AI 개발 도구 |
 
@@ -111,11 +111,12 @@ bash skills/gemma4/scripts/install.sh
 |------|-------------|---------|-----------|
 | Gemma 4 E2B | 2.3B (5.1B with embed) | 128K | O |
 | Gemma 4 E4B | 4.5B (8B with embed) | 128K | O |
+| Gemma 4 12B | 11.95B (Unified, encoder-free) | 256K | O |
 | Gemma 4 26B A4B | 4B activated / 26B total (MoE) | 256K | X |
 | Gemma 4 31B | 31B dense | 256K | X |
 
 **트리거 표현:**
-- "gemma4", "gemma 4", "E2B", "E4B", "26B", "31B"
+- "gemma4", "gemma 4", "E2B", "E4B", "12B", "26B", "31B"
 - "apply_chat_template", "멀티모달", "ASR", "transcribe"
 - "thinking mode", "function calling"
 - "llama.cpp", "MLX", "온디바이스 추론"
@@ -128,6 +129,14 @@ bash skills/gemma4/scripts/install.sh
 
 Alibaba Cloud Qwen 2.5/3.x 멀티모달 모델 개발 레퍼런스. 텍스트/이미지/오디오/비디오 입력 + 자연스러운 음성 합성 출력을 단일 end-to-end 모델로 처리합니다. Transformers/vLLM/MNN 백엔드, 양자화(GPTQ-Int4/AWQ/FP16), voice chatting, 모바일/엣지 배포를 다룹니다.
 
+**지원 모델 라인업:**
+
+| 계열 | 모델 | 구분 | 비고 |
+|------|------|------|------|
+| Qwen2.5-Omni | 3B / 7B | dense | 멀티모달 + 음성(Chelsie/Ethan) |
+| Qwen3 (텍스트) | 0.6B~32B / 30B-A3B / 235B-A22B | dense + MoE | thinking·non-thinking 듀얼 모드, 2507 변형은 256K(최대 1M) |
+| Qwen3-Omni | 30B-A3B (Instruct/Thinking/Captioner) | MoE | 멀티모달 + 음성, voice에 Aiden 추가, 텍스트 119/음성이해 19/음성생성 10개 언어 |
+
 ### 소스 코드 관리 (~/.claude/repo)
 
 소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/Qwen@<version>`에 자동 다운로드합니다.
@@ -138,10 +147,10 @@ bash skills/qwen/scripts/install.sh
 ```
 
 **트리거 표현:**
-- "Qwen2.5-Omni", "qwen omni", "Qwen 3", "Qwen 2.5"
+- "Qwen2.5-Omni", "qwen omni", "Qwen 3", "Qwen 2.5", "Qwen3-Omni"
 - "voice chatting", "speech synthesis", "실시간 음성 응답"
 - "GPTQ-Int4", "AWQ", "FP16 양자화"
-- "Chelsie voice", "Ethan voice"
+- "Chelsie voice", "Ethan voice", "Aiden voice"
 - "모바일/엣지 배포", "MNN deployment"
 
 **관련 스킬:** `mnn` (모바일 배포 백엔드), `gemma4` (다른 멀티모달 LLM 옵션)
