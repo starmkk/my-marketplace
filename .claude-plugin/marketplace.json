@@ -9,7 +9,7 @@
     {
       "name": "dev-helper-plugin",
       "source": "./plugins/dev-helper-plugin",
-      "description": "개발 워크플로우 자동화 — git 커밋, PyTorch 프로젝트 하네스 스캐폴딩 스킬 제공"
+      "description": "개발 워크플로우 자동화 — git 커밋, PyTorch 프로젝트 하네스 스캐폴딩, 세션 인계(handoff) 문서 작성 스킬 3종 제공"
     },
     {
       "name": "on-device-ai-plugin",
