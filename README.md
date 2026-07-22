@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 스킬 수 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.1 | 2종 | git 커밋 자동화 + 세션 문서 저장 |
+| `dev-helper-plugin` | 1.0.2 | 1종 | git 커밋 자동화 |
 | `on-device-ai-plugin` | 1.1.4 | 6종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.1 | 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `ai-dev-tools-plugin` | 1.0.0 | 3종 | PyTorch/TensorFlow/LLM-Wiki AI 개발 도구 |
@@ -21,7 +21,7 @@
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 2종을 제공합니다.
+개발 워크플로우 자동화 스킬 1종을 제공합니다.
 
 ### 설치
 
@@ -34,7 +34,6 @@
 | 스킬 | 한 줄 설명 |
 |---|---|
 | `github-commit` | Conventional Commits + emoji 형식의 한국어 커밋 자동화 |
-| `save-docs` | 현재 세션을 마크다운 문서로 분류·저장 |
 
 ---
 
@@ -62,25 +61,6 @@
 | style | 🎨 | 코드 포맷팅 |
 | perf | 🚀 | 성능 개선 |
 | test | ✅ | 테스트 추가/수정 |
-
----
-
-### save-docs
-
-현재 세션 내용을 검토해 마크다운 문서로 정리하고 저장합니다. 개발 작업 세션과 질문·리뷰 세션을 구분해 단일 파일로 저장합니다.
-
-**사용:**
-```shell
-/dev-helper-plugin:save-docs
-```
-
-**트리거 표현:**
-- "문서 저장", "save docs", "세션 정리", "이 대화 저장", "기록해줘"
-
-**저장 경로:**
-- `~/.claude/docs/` (고정)
-
-**파일명 규칙:** `YYYYMMDD_<topic>.md`
 
 ---
 
@@ -539,7 +519,6 @@ LLM이 마크다운 파일로 구성된 위키를 점진적으로 구축·유지
 | `~/.claude/repo/gallery@<version>` | `gallery` | AI Edge Gallery 소스 |
 | `~/.claude/venvs/melotts` | `melotts-kws` | MeloTTS Python venv |
 | `~/.claude/venvs/openvoice` | `openvoice-v2-kws` | OpenVoice Python venv |
-| `~/.claude/docs/` | `save-docs` | 세션 문서 저장 경로 |
 
 ---
 
