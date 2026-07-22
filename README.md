@@ -12,15 +12,15 @@
 
 | 플러그인 | 버전 | 스킬 수 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.3 | 2종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 |
-| `on-device-ai-plugin` | 1.1.6 | 7종 | 온디바이스 AI 모델 개발 레퍼런스 |
-| `kws-speech-plugin` | 1.0.1 | 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
+| `dev-helper-plugin` | 1.0.4 | 3종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 |
+| `on-device-ai-plugin` | 1.1.7 | 7종 | 온디바이스 AI 모델 개발 레퍼런스 |
+| `kws-speech-plugin` | 1.0.2 | 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 
 ---
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 2종을 제공합니다.
+개발 워크플로우 자동화 스킬 3종을 제공합니다.
 
 ### 설치
 
@@ -34,6 +34,7 @@
 |---|---|
 | `github-commit` | Conventional Commits + emoji 형식의 한국어 커밋 자동화 |
 | `pytorch-harness` | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
+| `project-handoff` | 토픽별 자기완결 세션 인계(handoff) 문서 작성 — cross-repo / Claude Design 시안 변형 지원 |
 
 ---
 
@@ -93,6 +94,51 @@
 - "pytorch 프로젝트 템플릿", "신규 프로젝트 생성", "하네스 프로젝트 만들어줘"
 - "scaffold", "new project template"
 - "Config-Driven", "Factory Pattern", "ExperimentConfig"
+
+---
+
+### project-handoff
+
+세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계하기 위한 **토픽별 자기완결 handoff 문서**를 작성합니다. `docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 파일 1개가 산출물이며, next-turn Claude가 이 파일만 읽고 즉시 작업을 이어갈 수 있어야 함이 설계 기준입니다.
+
+> 구 `resume-handoff` / `enhanced-handoff` 대체 — `RESUME.md` 단일 누적 방식(1164 라인/214KB로 비대화)은 폐기하고, 토픽별 파일이 SoT입니다. 오래된 handoff는 그 자리에 남아 timeline archive 역할을 합니다.
+
+**3가지 변형 (발화·repo 상태로 self-detect):**
+
+| 변형 | 트리거 | 추가 산출물 |
+|---|---|---|
+| 기본 (session) | "마일스톤 PASS", "진행상황 정리", "다음 세션 인계", "`/clear` 전에 정리" | — |
+| cross-repo | "cross-repo", "sibling repo 인계", "여러 repo 걸친 변경", "includeBuild", "vendor 갱신" | multi-repo 스냅샷 표 |
+| design-mockup | "시안 도착", "Claude Design", "`.tar.gz` mockup", "inventory 갱신" | `design-mockups/inventory.md` 1행 갱신 |
+
+**표준 골격 (필수 섹션):**
+
+| 섹션 | 핵심 |
+|---|---|
+| 헤더 | 작성일 / branch / "이 문서만 읽고 진입 가능" 선언 / 진입 순서 / SDD ledger cross-link |
+| §1 현재 상태 스냅샷 | branch / HEAD / commit 범위 / 빌드 상태 / plan·spec·architect refs |
+| §2 완료 작업 | 커밋·검증됨 — "건드리지 말 것" commit 표 + 근본원인 |
+| §5 다음 작업 ★ | 우선순위 순, 각 항목의 왜 / 어디(파일:라인) / 주의 — next-turn의 진입점 |
+| §6 빌드·실행 환경 | 매번 붙이는 env prefix + gradle/adb 명령 |
+| §8 참조 인덱스 | spec / plan / architect-review / ledger 경로 |
+| §9 재개 절차 | next-turn이 그대로 실행 가능한 번호 스텝 |
+
+선택 섹션: §0 한 줄 요약, §3 핵심 설계 결정(동결), §4 핵심 파일 인덱스, §7 함정(신규 발견).
+
+**포함 스크립트:**
+```shell
+# git 상태 캡처 → §1 스냅샷 표 markdown 출력 (인자로 sibling repo 추가 시 multi-repo 표)
+bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" \
+    /path/to/sibling-repo-1 /path/to/sibling-repo-2
+
+# self-review — 문서의 HEAD anchor 가 실제 git log 와 일치하는지 검증 (불일치 시 exit 1)
+bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" \
+    docs/superpowers/handoffs/2026-07-22-my-topic-handoff.md
+```
+
+**결합 스킬:** `dev-helper-plugin:github-commit` (작성 후 커밋 — 직접 `git commit` 금지), `superpowers:verification-before-completion` (커밋 직전 실측 검증), `superpowers:systematic-debugging` (§7 함정 행), `superpowers:writing-plans` (§5가 신규 마일스톤일 때)
+
+**사용하지 말아야 할 때:** 단순 typo/1~2줄 패치, 작업 진행 중(TDD step 1~4), `RESUME.md` 복원 요청
 
 ---
 
