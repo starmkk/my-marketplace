@@ -9,22 +9,17 @@
     {
       "name": "dev-helper-plugin",
       "source": "./plugins/dev-helper-plugin",
-      "description": "개발 워크플로우 자동화 — git 커밋 스킬 제공"
+      "description": "개발 워크플로우 자동화 — git 커밋, PyTorch 프로젝트 하네스 스캐폴딩 스킬 제공"
     },
     {
       "name": "on-device-ai-plugin",
       "source": "./plugins/on-device-ai-plugin",
-      "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen (2.5/3.x), LiteRT/LiteRT-LM, MNN, AI Edge Gallery 스킬 6종 제공"
+      "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen (2.5/3.x), LiteRT/LiteRT-LM, MNN, AI Edge Gallery, TensorFlow/TFLite 스킬 7종 제공"
     },
     {
       "name": "kws-speech-plugin",
       "source": "./plugins/kws-speech-plugin",
       "description": "KWS 학습용 한국어 합성 데이터 생성 파이프라인 — MeloTTS 단화자·OpenVoice V2 다화자 합성, wekws 학습·추론 스킬 3종 제공"
-    },
-    {
-      "name": "ai-dev-tools-plugin",
-      "source": "./plugins/ai-dev-tools-plugin",
-      "description": "AI 개발 도구 레퍼런스 — PyTorch 하네스 템플릿, TensorFlow/TFLite API, LLM 개인 지식베이스 스킬 3종 제공"
     }
   ]
 }

@@ -12,16 +12,15 @@
 
 | 플러그인 | 버전 | 스킬 수 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.2 | 1종 | git 커밋 자동화 |
-| `on-device-ai-plugin` | 1.1.5 | 6종 | 온디바이스 AI 모델 개발 레퍼런스 |
+| `dev-helper-plugin` | 1.0.3 | 2종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 |
+| `on-device-ai-plugin` | 1.1.6 | 7종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.1 | 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
-| `ai-dev-tools-plugin` | 1.0.0 | 3종 | PyTorch/TensorFlow/LLM-Wiki AI 개발 도구 |
 
 ---
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 1종을 제공합니다.
+개발 워크플로우 자동화 스킬 2종을 제공합니다.
 
 ### 설치
 
@@ -34,6 +33,7 @@
 | 스킬 | 한 줄 설명 |
 |---|---|
 | `github-commit` | Conventional Commits + emoji 형식의 한국어 커밋 자동화 |
+| `pytorch-harness` | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
 
 ---
 
@@ -64,9 +64,41 @@
 
 ---
 
+### pytorch-harness
+
+새로운 PyTorch 프로젝트를 Config-Driven + Factory Pattern 기반의 5계층 하네스 구조로 스캐폴딩합니다. YAML 설정, Stage 테스트(stage1~4), 하드웨어별 프로파일링이 포함된 전체 프로젝트 템플릿을 생성합니다.
+
+**생성 시 확인 항목:**
+1. 프로젝트 이름 (예: `speech-recognition`)
+2. 태스크 유형 (ASR, 이미지 분류, 객체 탐지, NLP, 멀티모달 등)
+3. 베이스 모델 (예: `google/gemma-4-E2B-it`, `openai/whisper-large-v3`)
+4. 데이터셋 (예: LibriSpeech, ImageNet, 커스텀)
+5. 타깃 하드웨어 (Mac M4, RTX 3090, A100, 온디바이스 등)
+6. 파인튜닝 방식 (LoRA, Full Fine-tuning, QLoRA)
+
+**생성 구조 (5계층 하네스):**
+```
+<project>/
+├── configs/           # YAML 하이퍼파라미터
+├── src/
+│   ├── models/        # 모델 팩토리
+│   ├── data/          # 데이터로더 팩토리 + Preprocessor
+│   ├── training/      # Trainer
+│   ├── inference/     # Inferencer
+│   └── evaluation/    # Evaluator
+└── tests/             # stage1~4 단계별 테스트
+```
+
+**트리거 표현:**
+- "pytorch 프로젝트 템플릿", "신규 프로젝트 생성", "하네스 프로젝트 만들어줘"
+- "scaffold", "new project template"
+- "Config-Driven", "Factory Pattern", "ExperimentConfig"
+
+---
+
 ## on-device-ai-plugin
 
-온디바이스 AI 모델 개발을 위한 레퍼런스 스킬 6종을 제공합니다. 모델 사용법(Gemma 4, Qwen 2.5/3.x)과 추론 프레임워크(LiteRT, LiteRT-LM, MNN), 호스팅 앱(AI Edge Gallery)을 한 묶음으로 다룹니다.
+온디바이스 AI 모델 개발을 위한 레퍼런스 스킬 7종을 제공합니다. 모델 사용법(Gemma 4, Qwen 2.5/3.x)과 추론 프레임워크(LiteRT, LiteRT-LM, TensorFlow/TFLite, MNN), 호스팅 앱(AI Edge Gallery)을 한 묶음으로 다룹니다.
 
 ### 설치
 
@@ -82,6 +114,7 @@
 | `qwen` | 모델 | Alibaba Qwen 2.5/3.x 멀티모달 (텍스트/이미지/오디오/비디오 + 음성 합성) |
 | `litert` | 추론 엔진 | Google LiteRT (구 TensorFlow Lite) 온디바이스 ML 추론 |
 | `litert-lm` | 추론 엔진 | Google LiteRT-LM 온디바이스 LLM 추론 |
+| `tensorflow` | 추론 엔진 | TensorFlow v2.21 / TFLite C/C++/Python API 및 Delegate 시스템 레퍼런스 |
 | `mnn` | 추론 엔진 | Alibaba MNN 모바일 경량 딥러닝 프레임워크 |
 | `gallery` | 호스팅 앱 | Google AI Edge Gallery — 온디바이스 LLM Android/iOS 앱 |
 
@@ -201,6 +234,20 @@ bash skills/litert-lm/scripts/install.sh
 - ".litertlm 모델 로딩/실행"
 
 **관련 스킬:** `litert` (하위 추론 엔진), `gemma4` (대표 실행 모델), `gallery` (Android/iOS 호스팅 앱)
+
+---
+
+### tensorflow
+
+TensorFlow v2.21.0-rc0 및 TFLite 핵심 API 레퍼런스. TFLite C/C++/Python API, Delegate(XNNPACK/GPU/CoreML/NNAPI) 시스템, SavedModel → .tflite 변환, SignatureRunner/AsyncRunner, 프로파일링·벤치마크를 다룹니다.
+
+**트리거 표현:**
+- "tensorflow", "tflite", "TensorFlow Lite"
+- "delegate", "XNNPACK", "CoreML", "NNAPI"
+- "quantization", "interpreter", "converter"
+- "SavedModel → .tflite 변환"
+
+**관련 스킬:** `litert` (LiteRT/TFLite 온디바이스 추론)
 
 ---
 
@@ -422,89 +469,6 @@ WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC
 - "on-device inference", "causal convolution"
 
 **관련 스킬:** `melotts-kws` (학습 데이터 합성), `openvoice-v2-kws` (다화자 학습 데이터)
-
----
-
-## ai-dev-tools-plugin
-
-AI 개발을 위한 도구 레퍼런스 스킬 3종을 제공합니다. PyTorch 프로젝트 템플릿 생성기, TensorFlow/TFLite API 레퍼런스, LLM 기반 개인 지식베이스 패턴을 한 묶음으로 다룹니다.
-
-### 설치
-
-```shell
-/plugin install ai-dev-tools-plugin@vibe-coding-tools
-```
-
-### 스킬 한눈에 보기
-
-| 스킬 | 카테고리 | 한 줄 설명 |
-|---|---|---|
-| `pytorch-harness` | 템플릿 | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
-| `tensorflow` | 레퍼런스 | TensorFlow v2.21 / TFLite C/C++/Python API 및 Delegate 시스템 레퍼런스 |
-| `llm-wiki` | 지식 관리 | LLM이 마크다운 위키를 점진적으로 구축·유지하는 개인 지식베이스(PKB) 패턴 |
-
----
-
-### pytorch-harness
-
-새로운 PyTorch 프로젝트를 Config-Driven + Factory Pattern 기반의 5계층 하네스 구조로 스캐폴딩합니다. YAML 설정, Stage 테스트(stage1~4), 하드웨어별 프로파일링이 포함된 전체 프로젝트 템플릿을 생성합니다.
-
-**생성 시 확인 항목:**
-1. 프로젝트 이름 (예: `speech-recognition`)
-2. 태스크 유형 (ASR, 이미지 분류, 객체 탐지, NLP, 멀티모달 등)
-3. 베이스 모델 (예: `google/gemma-4-E2B-it`, `openai/whisper-large-v3`)
-4. 데이터셋 (예: LibriSpeech, ImageNet, 커스텀)
-5. 타깃 하드웨어 (Mac M4, RTX 3090, A100, 온디바이스 등)
-6. 파인튜닝 방식 (LoRA, Full Fine-tuning, QLoRA)
-
-**생성 구조 (5계층 하네스):**
-```
-<project>/
-├── configs/           # YAML 하이퍼파라미터
-├── src/
-│   ├── models/        # 모델 팩토리
-│   ├── data/          # 데이터로더 팩토리 + Preprocessor
-│   ├── training/      # Trainer
-│   ├── inference/     # Inferencer
-│   └── evaluation/    # Evaluator
-└── tests/             # stage1~4 단계별 테스트
-```
-
-**트리거 표현:**
-- "pytorch 프로젝트 템플릿", "신규 프로젝트 생성", "하네스 프로젝트 만들어줘"
-- "scaffold", "new project template"
-- "Config-Driven", "Factory Pattern", "ExperimentConfig"
-
----
-
-### tensorflow
-
-TensorFlow v2.21.0-rc0 및 TFLite 핵심 API 레퍼런스. TFLite C/C++/Python API, Delegate(XNNPACK/GPU/CoreML/NNAPI) 시스템, SavedModel → .tflite 변환, SignatureRunner/AsyncRunner, 프로파일링·벤치마크를 다룹니다.
-
-**트리거 표현:**
-- "tensorflow", "tflite", "TensorFlow Lite"
-- "delegate", "XNNPACK", "CoreML", "NNAPI"
-- "quantization", "interpreter", "converter"
-- "SavedModel → .tflite 변환"
-
-**관련 스킬:** `litert` (LiteRT/TFLite 온디바이스 추론)
-
----
-
-### llm-wiki
-
-LLM이 마크다운 파일로 구성된 위키를 점진적으로 구축·유지하는 개인 지식베이스(PKB) 패턴. Andrej Karpathy의 LLM-Wiki 아이디어를 기반으로 Ingest / Query / Lint 세 가지 오퍼레이션을 구현합니다.
-
-| 개념 | RAG 방식 | LLM-Wiki 방식 |
-|------|----------|--------------|
-| 지식 합성 | 질의할 때마다 재수행 | 소스 추가 시 한 번만 수행, 위키에 영구 저장 |
-| 교차 참조 | 없음 | 위키 페이지 간 링크로 구성됨 |
-| 모순 감지 | 없음 | ingestion 시 기존 위키와 비교해 플래그 |
-
-**트리거 표현:**
-- "llm wiki", "llm 위키", "개인 지식베이스", "PKB"
-- "소스 문서를 위키에 추가", "ingest", "문서 처리"
-- "Obsidian + LLM", "마크다운 위키 관리"
 
 ---
 
