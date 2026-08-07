@@ -4,9 +4,9 @@ description: >
   C++ 코딩 컨벤션 상세 레퍼런스 — C++17 동시성 패턴(std::async·future·atomic·condition_variable),
   Android NDK r25 전제 조건, CMake C++17 설정, include 순서, 에러 처리 규약을 다룬다.
   C++/C 코드를 작성·수정할 때, 스레드·비동기 처리를 구현할 때, CMakeLists.txt 를 수정할 때,
-  "동시성", "std::thread", "std::async", "NDK", "C++17", "include 순서", "브레이스" 가 언급될 때
-  사용하라. 브레이스 K&R 적용 예시도 이 스킬이 보유한다.
-  들여쓰기·네이밍 같은 기본 규약은 전역 CLAUDE.md 에 있으며 이 스킬은 그 상세판이다.
+  "동시성", "std::thread", "std::async", "NDK", "C++17", "include 순서", "브레이스", "네이밍",
+  "변수명", "함수명" 이 언급될 때 사용하라. 브레이스 K&R 적용 예시와 식별자·언어별 함수 명명
+  적용 예시를 이 스킬이 보유한다. 전역 CLAUDE.md 는 규칙만 진술하며 이 스킬이 그 상세판이다.
 ---
 
 # C++ 코딩 컨벤션 — 상세
@@ -74,3 +74,33 @@ raw thread 보다 modern C++17 비동기 패턴을 우선함.
 
 - **단일 문장 본문에도 브레이스를 생략하지 않음** — `{}` 를 항상 둠
 - 원칙 서술은 전역 `~/.claude/CLAUDE.md` 의 C++ 섹션에 있으며, 이 절은 그 적용 예시임
+
+## 6. 네이밍 적용 예시 (IMPORTANT)
+
+### 6.1 식별자 종류별
+
+| 대상 | 스타일 | 적용 예시 |
+| --- | --- | --- |
+| 클래스 | `UpperCamelCase` | `AudioProcessor` |
+| 클래스 멤버 변수 | `m_lowerCamelCase` | `m_sampleRate` |
+| 구조체 멤버 변수 | `snake_case` | `audio_path`, `utterance_id` |
+| 지역 변수 | `lowerCamelCase` | `sampleRate` |
+| 상수 | `kPascalCase` | `kMaxBufferSize` |
+| 매크로 | `UPPER_SNAKE_CASE` | `ENABLE_DEBUG_LOG` |
+| 파일명 | `snake_case` | `snake_case.cc` / `snake_case.h` |
+
+클래스 멤버는 `m_` 접두사를 붙이지만 **구조체 멤버는 붙이지 않고 `snake_case`** 를 씀. 이 둘을
+혼동하지 않도록 주의함.
+
+### 6.2 언어별 함수 명명
+
+| 언어 | 스타일 | 적용 예시 |
+| --- | --- | --- |
+| C++ 메서드 (클래스 멤버) | `lowerCamelCase` | `processAudioFrame()` |
+| C++ namespace 자유 함수 | `snake_case` | `read_manifest()` |
+| C | `snake_case` | `process_audio_frame()` |
+| Python / Shell | `snake_case` | `process_audio_frame()` |
+| Kotlin / Java | `lowerCamelCase` | `processAudioFrame()` |
+
+같은 C++ 안에서도 **클래스 메서드와 namespace 자유 함수의 스타일이 다름**. 자유 함수를
+`lowerCamelCase` 로 쓰지 않도록 주의함.
