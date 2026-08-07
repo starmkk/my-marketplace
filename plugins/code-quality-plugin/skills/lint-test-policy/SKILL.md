@@ -29,6 +29,23 @@ description: >
 - lint 오류는 즉시 수정함. 사용자 승인 없이 억제(suppress)하거나 무시하지 않음
 - 경고는 오류로 취급함 — zero warnings 를 통과 기준으로 함
 
+### 검증 실행 런타임 — Python (IMPORTANT)
+
+무슨 도구로 검증하는가만큼 **무슨 런타임으로 검증하는가**가 결과를 바꿈. 두 함정이 실제로 있었음.
+
+- **인터프리터**: 검증·실행은 프로젝트 `.venv` 로 함(`.venv/bin/python`). 시스템 python 에는
+  선행 프로젝트가 설치한 휠이 남아 있어, 그것으로 재면 **의도한 것과 다른 대상을 측정**하게 됨.
+- **`PYTHONPATH` 오염**: 환경의 `PYTHONPATH` 에 무관한 프로젝트가 들어 있으면 pytest 수집이 그
+  트리로 새어나감. 검증은 `env -u PYTHONPATH` 로 실행하거나 `PYTHONPATH=scripts` 로 **덮어씀**
+  (기존 값에 누적 금지).
+
+```bash
+env -u PYTHONPATH .venv/bin/python -m pytest
+```
+
+두 함정 모두 **조용히 실패**함 — 에러 없이 통과하지만 잰 대상이 틀림. 측정·검증 결과가
+납득되지 않으면 먼저 이 둘을 의심함.
+
 ### shell 스크립트 열거 방식
 
 ```bash
