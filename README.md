@@ -10,11 +10,13 @@
 
 ## 플러그인 목록
 
-| 플러그인 | 버전 | 스킬 수 | 한 줄 설명 |
+| 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.4 | 3종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 |
-| `on-device-ai-plugin` | 1.1.7 | 7종 | 온디바이스 AI 모델 개발 레퍼런스 |
-| `kws-speech-plugin` | 1.0.2 | 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
+| `dev-helper-plugin` | 1.0.4 | 스킬 3종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 |
+| `on-device-ai-plugin` | 1.1.8 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
+| `kws-speech-plugin` | 1.0.2 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
+| `code-quality-plugin` | 1.0.0 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
+| `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 
 ---
 
@@ -144,7 +146,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 
 ## on-device-ai-plugin
 
-온디바이스 AI 모델 개발을 위한 레퍼런스 스킬 7종을 제공합니다. 모델 사용법(Gemma 4, Qwen 2.5/3.x)과 추론 프레임워크(LiteRT, LiteRT-LM, TensorFlow/TFLite, MNN), 호스팅 앱(AI Edge Gallery)을 한 묶음으로 다룹니다.
+온디바이스 AI 모델 개발을 위한 레퍼런스 스킬 7종과 에이전트 1종을 제공합니다. 모델 사용법(Gemma 4, Qwen 2.5/3.x)과 추론 프레임워크(LiteRT, LiteRT-LM, TensorFlow/TFLite, MNN), 호스팅 앱(AI Edge Gallery)을 한 묶음으로 다룹니다.
 
 ### 설치
 
@@ -163,6 +165,16 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 | `tensorflow` | 추론 엔진 | TensorFlow v2.21 / TFLite C/C++/Python API 및 Delegate 시스템 레퍼런스 |
 | `mnn` | 추론 엔진 | Alibaba MNN 모바일 경량 딥러닝 프레임워크 |
 | `gallery` | 호스팅 앱 | Google AI Edge Gallery — 온디바이스 LLM Android/iOS 앱 |
+
+### 에이전트
+
+| 에이전트 | 모델 | 한 줄 설명 |
+|---|---|---|
+| `mnn-source-inspector` | opus | MNN C++ 소스트리를 직접 탐색해 내부 아키텍처·API 규격·커널 선택 로직을 확정 |
+
+`precision`/`memory`/`backend_type` 등 MNN 런타임 동작이나 llmexport 옵션의 의미가 불확실할 때, MNN 관련 오동작을 진단할 때 호출합니다. 추측 대신 소스로 확정하는 것이 목적입니다.
+
+누적 조사 결과는 `~/.claude/agent-memory/mnn-source-inspector/` 에 사용자 전역으로 저장되며 MNN 을 쓰는 저장소들이 공유합니다.
 
 ---
 
@@ -538,6 +550,88 @@ WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC
 | `~/.claude/repo/gallery@<version>` | `gallery` | AI Edge Gallery 소스 |
 | `~/.claude/venvs/melotts` | `melotts-kws` | MeloTTS Python venv |
 | `~/.claude/venvs/openvoice` | `openvoice-v2-kws` | OpenVoice Python venv |
+
+---
+
+## code-quality-plugin
+
+코드 구조 품질을 지키는 에이전트 1종·스킬 3종·훅 1종을 제공합니다. 작성 전 설계 협의와 작성 후 구조 리뷰를 한 묶음으로 다룹니다.
+
+### 설치
+
+```shell
+/plugin install code-quality-plugin@vibe-coding-tools
+```
+
+### 구성 한눈에 보기
+
+| 구성요소 | 종류 | 한 줄 설명 |
+|---|---|---|
+| `strategic-code-reviewer` | 에이전트 | DRY·KISS·SRP·YAGNI·SoC·Naming 6원칙으로 배치·분해·중복·복잡도·네이밍을 판단 |
+| `strategic-code-reviewer` | 스킬 | 6원칙 판정 기준, 오탐 필터, 우선순위 등급, 보고 형식 |
+| `cpp-convention` | 스킬 | C++17 동시성 패턴, NDK r25 전제, include 순서, `compile_commands.json` |
+| `lint-test-policy` | 스킬 | 언어별 lint 도구, 테스트 케이스 요건, 세션 연속성 절차 |
+| serena-first | 훅 | 재귀 `grep`/`rg` 실행 시 Serena 심볼 검색 우선 사용을 경고 (`PreToolUse`) |
+
+### 사용 흐름
+
+```
+[새 함수·클래스·모듈을 만들려 함]
+        │
+        ▼
+ strategic-code-reviewer (설계 협의 모드)
+   ① 이미 있는가  ② 정말 필요한가(YAGNI)
+   ③ 어디에 두는가(SoC)  ④ 어떻게 쪼개는가(SRP)
+        │
+        ▼
+     [구현]  ←─ cpp-convention / lint-test-policy 참조
+        │
+        ▼
+ strategic-code-reviewer (구현 리뷰 모드)
+   6원칙 스캔 → 오탐 제거 → 우선순위 부여
+        │
+        ▼
+   [lint · test 검증]
+```
+
+- 에이전트는 소스를 직접 수정하지 않습니다. 판단만 돌려주며 구현·수정은 메인 세션에서 합니다.
+- 버그·보안 취약점 탐지는 이 플러그인의 목적이 아닙니다. `/code-review`·`/security-review` 를 씁니다.
+- `cpp-convention`·`lint-test-policy` 는 전역 `~/.claude/CLAUDE.md` 의 상세판입니다. CLAUDE.md 에는 핵심 규약만 두고 상세는 이 스킬을 진실 원천으로 삼아 내용이 어긋나는 것을 막습니다.
+
+### serena-first 훅
+
+`grep -r` / `grep -R` / `grep --include` / `rg` 실행을 감지해 Serena 심볼 검색을 먼저 검토했는지 묻습니다. **차단하지 않고 경고만** 합니다 — 정의 찾기는 `find_symbol`, 참조 추적은 `find_referencing_symbols`(grep 으로 대체 불가), 파일 구조는 `get_symbols_overview` 가 정확합니다.
+
+serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파일(로그·JSON·바이너리)이면 grep 이 정당합니다. 해당하면 이유를 한 줄 밝히고 진행하면 됩니다.
+
+---
+
+## research-plugin
+
+근거 확보가 목적인 조사 전문 에이전트 3종을 제공합니다. 세 에이전트 모두 **없는 근거를 만들어내지 않는 것**을 최우선 규율로 삼으며, 확인한 것과 미확인을 구분해 보고합니다.
+
+### 설치
+
+```shell
+/plugin install research-plugin@vibe-coding-tools
+```
+
+### 에이전트 한눈에 보기
+
+| 에이전트 | 대상 | 한 줄 설명 |
+|---|---|---|
+| `quantization-literature-surveyor` | 논문 | 양자화·모델 압축 문헌을 원문까지 열어 직접 인용문을 확보하고 `[인용확정]`/`[미검증]` 을 구분 표기 |
+| `patent-prior-art-researcher` | 특허 | 특허 DB 를 검색해 문헌번호·출원인·청구범위를 확인하고 발명 후보별 저촉 위험을 판정 |
+| `reference-impl-comparator` | 외부 구현 | llama.cpp·transformers·ggml 등 레퍼런스 소스를 읽어 우리 구현과 대조하고 이식 힌트를 추출 |
+
+### 선택 기준
+
+- 논문 근거가 필요하면 → `quantization-literature-surveyor`
+- 직무발명 신고서·출원 준비라면 → `patent-prior-art-researcher`
+- "llama.cpp 는 어떻게 하는지" 가 궁금하면 → `reference-impl-comparator`
+- MNN **내부** 구조 조사는 이 플러그인이 아니라 `on-device-ai-plugin` 의 `mnn-source-inspector` 를 씁니다
+
+세 에이전트 모두 보고 시 `SendMessage` 로 보고서 전문을 전달합니다. 백그라운드 실행 시 평문 출력은 호출자에게 전달되지 않기 때문입니다.
 
 ---
 
