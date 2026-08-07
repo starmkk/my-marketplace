@@ -14,12 +14,22 @@
     {
       "name": "on-device-ai-plugin",
       "source": "./plugins/on-device-ai-plugin",
-      "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen (2.5/3.x), LiteRT/LiteRT-LM, MNN, AI Edge Gallery, TensorFlow/TFLite 스킬 7종 제공"
+      "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen (2.5/3.x), LiteRT/LiteRT-LM, MNN, AI Edge Gallery, TensorFlow/TFLite 스킬 7종 및 MNN 내부 구조 조사 에이전트 제공"
     },
     {
       "name": "kws-speech-plugin",
       "source": "./plugins/kws-speech-plugin",
       "description": "KWS 학습용 한국어 합성 데이터 생성 파이프라인 — MeloTTS 단화자·OpenVoice V2 다화자 합성, wekws 학습·추론 스킬 3종 제공"
+    },
+    {
+      "name": "code-quality-plugin",
+      "source": "./plugins/code-quality-plugin",
+      "description": "코드 품질 검토 도구 — DRY·KISS·SRP·YAGNI·SoC·Naming 6원칙 리뷰 에이전트, C++ 컨벤션·lint/테스트 정책 상세 스킬, Serena 우선 코드검색 훅 제공"
+    },
+    {
+      "name": "research-plugin",
+      "source": "./plugins/research-plugin",
+      "description": "조사 전문 에이전트 — 양자화·모델 압축 논문 문헌 조사, 특허 선행기술·청구항 설계, 외부 레퍼런스 구현 대조 에이전트 3종 제공"
     }
   ]
 }
