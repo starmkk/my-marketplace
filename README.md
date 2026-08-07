@@ -529,30 +529,6 @@ WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC
 **관련 스킬:** `melotts-kws` (학습 데이터 합성), `openvoice-v2-kws` (다화자 학습 데이터)
 
 ---
-
-## 환경변수 전체 목록
-
-각 스킬이 요구하는 환경변수를 한눈에 정리합니다.
-
-> **참고:** 모든 소스코드와 모델은 환경변수 대신 `~/.claude/repo/` 방식으로 관리됩니다.
-> Claude Code에게 소스나 모델이 필요하다고 하면 자동으로 다운로드해줍니다.
-> 추가로 설정해야 할 환경변수는 없습니다.
-
-| 경로 | 스킬 | 설명 |
-|---|---|---|
-| `~/.claude/repo/gemma-4-<variant>` | `gemma4` | Gemma 4 모델 (HuggingFace) |
-| `~/.claude/repo/MeloTTS@<version>` | `melotts-kws` | MeloTTS 소스 |
-| `~/.claude/repo/OpenVoice@<version>` | `openvoice-v2-kws` | OpenVoice V2 소스 + 체크포인트 |
-| `~/.claude/repo/wekws@<version>` | `wekws` | wekws 소스 |
-| `~/.claude/repo/MNN@<version>` | `mnn` | MNN 소스 |
-| `~/.claude/repo/LiteRT@<version>` | `litert` | LiteRT 소스 |
-| `~/.claude/repo/LiteRT-LM@<version>` | `litert-lm` | LiteRT-LM 소스 |
-| `~/.claude/repo/gallery@<version>` | `gallery` | AI Edge Gallery 소스 |
-| `~/.claude/venvs/melotts` | `melotts-kws` | MeloTTS Python venv |
-| `~/.claude/venvs/openvoice` | `openvoice-v2-kws` | OpenVoice Python venv |
-
----
-
 ## code-quality-plugin
 
 코드 구조 품질을 지키는 에이전트 1종·스킬 3종·훅 1종을 제공합니다. 작성 전 설계 협의와 작성 후 구조 리뷰를 한 묶음으로 다룹니다.
@@ -634,6 +610,31 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 세 에이전트 모두 보고 시 `SendMessage` 로 보고서 전문을 전달합니다. 백그라운드 실행 시 평문 출력은 호출자에게 전달되지 않기 때문입니다.
 
 ---
+
+## 환경변수 전체 목록
+
+각 스킬이 요구하는 환경변수를 한눈에 정리합니다.
+
+> **참고:** 모든 소스코드와 모델은 환경변수 대신 `~/.claude/repo/` 방식으로 관리됩니다.
+> Claude Code에게 소스나 모델이 필요하다고 하면 자동으로 다운로드해줍니다.
+> 추가로 설정해야 할 환경변수는 없습니다.
+
+| 경로 | 스킬 | 설명 |
+|---|---|---|
+| `~/.claude/repo/gemma-4-<variant>` | `gemma4` | Gemma 4 모델 (HuggingFace) |
+| `~/.claude/repo/MeloTTS@<version>` | `melotts-kws` | MeloTTS 소스 |
+| `~/.claude/repo/OpenVoice@<version>` | `openvoice-v2-kws` | OpenVoice V2 소스 + 체크포인트 |
+| `~/.claude/repo/wekws@<version>` | `wekws` | wekws 소스 |
+| `~/.claude/repo/MNN@<version>` | `mnn` | MNN 소스 |
+| `~/.claude/repo/LiteRT@<version>` | `litert` | LiteRT 소스 |
+| `~/.claude/repo/LiteRT-LM@<version>` | `litert-lm` | LiteRT-LM 소스 |
+| `~/.claude/repo/gallery@<version>` | `gallery` | AI Edge Gallery 소스 |
+| `~/.claude/venvs/melotts` | `melotts-kws` | MeloTTS Python venv |
+| `~/.claude/venvs/openvoice` | `openvoice-v2-kws` | OpenVoice Python venv |
+| `~/.claude/agent-memory/mnn-source-inspector/` | `mnn-source-inspector` | MNN 조사 결과 누적 메모리 (사용자 전역, 저장소 간 공유) |
+
+---
+
 
 ## 마켓플레이스 업데이트
 
