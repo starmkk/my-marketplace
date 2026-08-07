@@ -1,0 +1,17 @@
+{
+  "description": "code-quality-plugin — Serena 우선 코드검색 경고 훅",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/serena_first.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
