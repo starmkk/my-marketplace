@@ -43,7 +43,7 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 
 1. **토픽·범위 확정 + 파일명 결정** — `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/superpowers/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md`. 날짜는 `date +%Y-%m-%d` 로 확정 (추정 금지).
 2. **git 상태 캡처** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" [repo2 repo3 ...]` 실행 → §1 스냅샷 표에 붙일 HEAD / branch / 직전 10 commit chain markdown 출력. multi-repo 는 인자로 sibling repo 경로 추가.
-3. **표준 골격 채우기** — `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/assets/handoff-template.md` 골격을 복사 후 placeholder 치환. 필수/선택 섹션 상세는 `references/handoff-anatomy.md` 위임. cross-repo / design-mockup 변형은 해당 reference 의 추가 절차 병행.
+3. **표준 골격 채우기(§10 시작 프롬프트 포함)** — `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/assets/handoff-template.md` 골격을 복사 후 placeholder 치환. 필수/선택 섹션 상세는 `references/handoff-anatomy.md` 위임. cross-repo / design-mockup 변형은 해당 reference 의 추가 절차 병행.
 4. **commit** — CLAUDE.md §5.1 정책: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조.
 5. **self-review** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` 실행 → 문서의 HEAD anchor 가 실제 `git log` 와 일치하는지 검증. 불일치 시 정정 후 재검증.
 
@@ -66,6 +66,9 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 | §7 | 함정 (신규 발견) — 증상 / 원인 / fix 표 | 선택 | systematic-debugging 결과만 |
 | §8 | 참조 인덱스 — spec / plan / architect-review / ledger 경로 | **필수** | 깊이 파고들 링크 |
 | §9 | 재개 절차 (다음 세션) — 번호 스텝 | **필수** | "3. option 2 착수 = §5.1…" 형태 |
+| §10 | **다음 세션 시작 프롬프트** — 다음 사람이 assistant 의 **첫 입력으로 그대로 붙여넣는** 텍스트 블록 | **필수** | handoff 경로 + 진입 스텝 + 실행 위치/HEAD + 계획 순서 + 위임·리뷰·커밋 규칙 + 동결 결정 + 환경 확인 커맨드. 상세 `references/handoff-anatomy.md` §10 |
+
+**§9 와 §10 의 관계**: §9 는 사람이 읽고 따라가는 번호 스텝, §10 은 그 스텝을 **assistant 에게 그대로 명령하는 복붙용 원문**이다. 둘 다 있어야 한다 — §9 만 있으면 next-turn 이 handoff 를 스스로 해석하며 위임 모델·커밋 규칙·동결 결정을 빠뜨린다(실측: §10 없이 작성된 handoff 는 다음 세션이 지침 절반을 되물었다).
 
 **절 번호는 유동** — 위는 논리 순서. 실제 파일은 선택 섹션을 빼면 번호가 당겨진다 (reference 파일들도 §개수가 6~10 으로 제각각). 순서만 지키면 됨.
 
@@ -95,6 +98,7 @@ commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재�
 - [ ] **§1 회귀 / cold-load** — 실측값 (`./gradlew :app:testDebugUnitTest` / `am start -W` 결과)
 - [ ] **§8 참조 경로** — 모든 링크가 `ls <path>` 로 존재 확인 (spec / plan / architect-review / ledger)
 - [ ] **§9 재개 절차** — next-turn 이 그대로 실행 가능한 명령 (진입 site 가 §5 항목과 1:1)
+- [ ] **§10 시작 프롬프트** — ```text 블록 1개. 자기 파일 경로·HEAD hash·`§9 의 N번부터` 진입 스텝·환경 확인 커맨드가 들어 있고, 사용자 규칙(실행 위치·워크트리 금지·위임 모델·리뷰·lint·커밋 스킬·push 금지·add 제외)을 빠짐없이 옮겼는가 (verify-handoff-integrity.sh 가 heading·경로·HEAD 존재를 검사)
 - [ ] **§6 prefix** — env 4 변수 (CLAUDE.md §7) 포함
 - [ ] **자기완결성** — 이 파일만 읽고 진입 가능한가? RESUME.md 등 폐기된 외부 SoT 에 의존 안 함
 - [ ] **AppleDouble** — 외장 볼륨이면 `find . -name "._*" -type f -delete`

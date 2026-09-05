@@ -19,7 +19,7 @@
 - 작성일: YYYY-MM-DD
 - branch: `<branch>`
 - 목적: <이 handoff 가 무엇을 인계하는가 1~2 줄. 완료 상태 + 다음 착수 대상>
-- 다음 세션 진입: 본 문서 §5(다음 작업) → §6(빌드/실행) → §4(핵심 파일) 순서로 읽고 바로 착수
+- 다음 세션 진입: **§10 의 시작 프롬프트를 첫 입력으로 붙여넣기** → §5(다음 작업) → §6(빌드/실행) → §4(핵심 파일) 순서로 읽고 바로 착수
 - SoT 보조: `.superpowers/sdd/progress.md` (SDD ledger, gitignored) + 본 문서 §8 참조 인덱스
 ```
 
@@ -178,6 +178,52 @@ next-turn 이 순서대로 실행. 진입 site 는 §5 항목과 1:1.
 4. Kotlin 변경 시 `kotlin-audio-architect` 협의 (CLAUDE.md §1.4 — 테스트-only 는 면제 가능).
 5. 완료 시 `<results>.md` 메트릭 갱신 + 본 handoff §5 체크 + `dev-helper-plugin:github-commit`.
 ```
+
+---
+
+## §10. 다음 세션 시작 프롬프트 (필수) — 복붙용 원문
+
+§9 가 "사람이 읽는 절차" 라면 §10 은 **다음 사람이 assistant 에게 보내는 첫 입력 그 자체**다. handoff 를 읽으라는 지시, 어느 스텝부터 시작할지, 실행 위치, 계획 순서, 위임·리뷰·커밋 규칙, 동결 결정, 환경 확인 커맨드까지 한 블록에 넣어 next-turn 이 handoff 를 해석하다 지침을 빠뜨리는 일을 없앤다.
+
+**반드시 담을 8요소** (빠지면 next-turn 이 되묻는다 — 실측):
+1. **handoff 자기 경로** + `§9 의 N번은 완료됨, N+1번부터` 진입 스텝
+2. **실행 위치**(절대경로)·branch·HEAD hash, 워크트리/백그라운드 제약
+3. **primary 계획서 경로**와 실행 스킬, Task 범위·순서, 계획서 내부 우선순위 규칙(말미 절 우선 등)
+4. **위임 모델·리뷰·lint·테스트·커밋 스킬**의 Task 단위 절차 한 줄
+5. **차단 게이트**(커맨드 → 기대값, skip 은 실패)
+6. **기록 규칙**(dev-log 경로, 인덱스 갱신)
+7. **동결 결정**(메모리 파일·handoff §3 참조 + 핵심 3~5개 한 줄씩) + "새 갈림길만 AskUserQuestion"
+8. **금지·주의**(push 금지, add 제외 파일, 임시 디렉토리 고정) + **환경 확인 커맨드와 기대값**(예: `N passed`)
+
+**형식 규칙**
+- 제목은 `## 10. 다음 세션 시작 프롬프트 (그대로 복사해 첫 입력으로 사용)`, 본문은 ```` ```text ```` 펜스 블록 **1개**. 블록 앞에 blockquote 로 세션 형태 제약(대화형/워크트리) 1~2줄만.
+- 블록 안 문장은 **명령형**("~해라", "~할 것"), 번호 목록. 설명·근거는 §3/§7 에 두고 여기서는 참조만.
+- 경로·hash·커맨드는 §1/§6 과 **문자 그대로 동일**해야 한다(verify-handoff-integrity.sh 가 파일 경로·HEAD 존재를 검사). handoff 작성 후 커밋이 더 생기면 HEAD 를 함께 갱신.
+- 길이 15~30줄. 넘치면 규칙을 CLAUDE.md/메모리로 옮기고 참조만 남긴다.
+
+**실사용 예** (`docs/superpowers/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md` §10 축약):
+```text
+speechlm.v4_gemma_mnn 재개발을 이어서 진행한다. use AgentTool
+
+먼저 handoff 를 읽고 그 순서대로 진행해라:
+- docs/superpowers/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md
+  (§9 의 1번 환경 확인 → 2번 갈림길 확정 → 3번 Plan E 착수)
+
+작업 지침(~/.claude/CLAUDE.md 준수):
+1. 실행 위치는 사용자 체크아웃 /MyCode/share/SpeechLM.asset/speechlm.v4_gemma_mnn (main, HEAD 01a9100). 워크트리 만들지 말 것.
+2. Plan E 계획서 docs/superpowers/plans/2026-09-04-plan-e-bootstrap-convert-sh.md 를 superpowers:subagent-driven-development 로 E0 → E5 순서 실행(말미 "메인 세션 검수 보완" 우선).
+   - 구현 sonnet, Task 마다 diff 를 strategic-code-reviewer(opus) 로 리뷰 → High 반영 → lint(ruff·mypy·shellcheck 무경고) → 테스트 → 커밋(dev-helper-plugin:github-commit 스킬, Co-Authored-By 없음, push 금지).
+3. Plan E 완료 → Plan F(…plan-f-batch-eval-v3-50.md, 말미 "설계 검토 판정" 절 우선). 새 갈림길만 AskUserQuestion.
+4. 중간 마일스톤마다 docs/dev-logs/dev-log-<오늘날짜>.md 에 append(실측 수치 + 재현 커맨드).
+5. 확정된 결정(메모리 project-speechlm-v4-mnn-v2-rebuild.md, handoff §3)은 다시 묻지 말 것. 특히 D-D15(audio encoder 는 memory normal·fp32).
+6. 모드만 바뀐 파일 3개와 .vscode/ 는 add 금지. slow e2e 는 --basetemp 고정 디렉토리 사용.
+7. Plan F 완료 시점에 dev-helper-plugin:project-handoff 로 handoff 를 새로 작성.
+
+시작 전 환경 확인: nvidia-smi, python3 -c "import torch;print(torch.cuda.is_available())",
+cd speechlm.v4_gemma_mnn && PYTHONPATH=$PWD/scripts python3 -m pytest tests -p no:warnings -m "not slow and not gpu" -o addopts="" (361 passed 확인 후 착수).
+```
+
+**흔한 누락**: (a) 위임 모델·리뷰어 지정이 없어 next-turn 이 전부 직접 구현 (b) 동결 결정 참조가 없어 이미 확정된 사항을 사용자에게 재질문 (c) 환경 확인 기대값(`N passed`)이 없어 skip 을 통과로 오인 (d) HEAD 가 §1 과 달라 verify 실패.
 
 ---
 
