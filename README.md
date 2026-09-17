@@ -15,7 +15,7 @@
 | `dev-helper-plugin` | 1.0.4 | 스킬 3종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 |
 | `on-device-ai-plugin` | 1.1.8 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.2 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
-| `code-quality-plugin` | 1.0.4 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
+| `code-quality-plugin` | 1.0.5 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.6 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 
@@ -548,7 +548,7 @@ WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC
 | `strategic-code-reviewer` | 스킬 | 6원칙 판정 기준, 오탐 필터, 우선순위 등급, 보고 형식 |
 | `cpp-convention` | 스킬 | C++17 동시성 패턴, NDK r25 전제, include 순서, `compile_commands.json` |
 | `lint-test-policy` | 스킬 | 언어별 lint 도구, 테스트 케이스 요건, 세션 연속성 절차 |
-| serena-first | 훅 | 재귀 `grep`/`rg` 실행 시 Serena 심볼 검색 우선 사용을 경고 (`PreToolUse`) |
+| serena-first | 훅 | 재귀 `grep`/`rg` 실행 시 Serena 우선 안내를 사용자 화면·모델 컨텍스트 2채널로 전달 (`PreToolUse`) |
 
 ### 사용 흐름
 
@@ -577,7 +577,12 @@ WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC
 
 ### serena-first 훅
 
-`grep -r` / `grep -R` / `grep --include` / `rg` 실행을 감지해 Serena 심볼 검색을 먼저 검토했는지 묻습니다. **차단하지 않고 경고만** 합니다 — 정의 찾기는 `find_symbol`, 참조 추적은 `find_referencing_symbols`(grep 으로 대체 불가), 파일 구조는 `get_symbols_overview` 가 정확합니다.
+`grep -r` / `grep -R` / `grep --include` / `rg` 실행을 감지해 Serena 심볼 검색을 먼저 검토하도록 안내합니다(`PreToolUse`). **차단하지 않습니다** — 정의 찾기는 `find_symbol`, 참조 추적은 `find_referencing_symbols`(grep 으로 대체 불가), 파일 구조는 `get_symbols_overview` 가 정확합니다.
+
+- 안내는 **두 채널로 동시에** 나갑니다. `systemMessage` 는 사용자 화면에만 표시되고, `hookSpecificOutput.additionalContext` 는 모델 컨텍스트에만 주입됩니다 — 도구를 고르는 주체가 모델이므로 안내 본문(도구 선택·`ToolSearch` 로드 한 줄)은 후자가 본채널입니다.
+- 모델용 문구는 **사실 서술**로 씁니다 — 명령형은 프롬프트 인젝션 방어에 걸려 컨텍스트로 쓰이지 않고 사용자에게 노출됩니다.
+- 줄 수 상한은 **모델 5줄·사용자 3줄**로 채널마다 다릅니다. `secure-coding-hint` 훅의 "두 채널 모두 5줄"과 값이 다른데, 훅별 상한이 다른 것은 정상입니다 — 사용자 화면에는 도구 페이로드를 싣지 않기 때문입니다.
+- `permissionDecision` 은 출력하지 않습니다 — matcher 가 `Bash` 라 `"allow"` 를 내면 **모든 Bash 호출의 권한 프롬프트가 사라집니다.** "차단하지 않음"은 "권한 확인을 건너뜀"이 아닙니다.
 
 serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파일(로그·JSON·바이너리)이면 grep 이 정당합니다. 해당하면 이유를 한 줄 밝히고 진행하면 됩니다.
 
