@@ -170,4 +170,48 @@ pure_check "0건 입력도 상한 이내" "
 assert len(build_message([]).splitlines()) <= 5
 "
 
+# ── 10. 출력 채널 2종 — systemMessage(사용자) + additionalContext(모델) ──────
+#  ⭐ 두 채널은 수신자가 다르다. 하나만 내면 상대에게 닿지 않으므로 둘 다 단언한다.
+HIT='{"tool_name":"Write","tool_input":{"file_path":"/app/src/main/java/W.java","content":"web.addJavascriptInterface(b, \"a\");"}}'
+if printf '%s' "$HIT" | python3 "$HOOK" | python3 -c '
+import sys, json
+d = json.load(sys.stdin)
+assert d.get("systemMessage"), "systemMessage 없음"
+h = d.get("hookSpecificOutput") or {}
+assert h.get("hookEventName") == "PostToolUse", h
+ctx = h.get("additionalContext") or ""
+assert ctx, "additionalContext 없음"
+assert "owasp-masvs" in ctx, ctx
+assert "구속력 없음" in ctx, ctx
+' 2>&1; then
+  echo "PASS  두 채널 동시 출력 (systemMessage + additionalContext)"
+else
+  echo "FAIL  두 채널 동시 출력"
+  fail=1
+fi
+
+# 10-1. 비매칭이면 두 채널 모두 비어야 한다 (빈 경고를 주입하지 않는다)
+MISS='{"tool_name":"Write","tool_input":{"file_path":"/app/src/main/java/W.java","content":"int x = 1;"}}'
+if printf '%s' "$MISS" | python3 "$HOOK" | python3 -c '
+import sys, json
+d = json.load(sys.stdin)
+assert not d.get("systemMessage"), d
+assert not d.get("hookSpecificOutput"), d
+' 2>&1; then
+  echo "PASS  비매칭은 두 채널 모두 없음"
+else
+  echo "FAIL  비매칭은 두 채널 모두 없음"
+  fail=1
+fi
+
+# 10-2. ⭐ additionalContext 는 사실 서술이어야 한다 — 명령형은 프롬프트 인젝션
+#       방어에 걸려 모델이 컨텍스트로 쓰지 않고 사용자에게 노출해 버린다.
+pure_check "모델용 문구에 명령형 없음" "
+from secure_coding_hint import build_context
+ctx = build_context(list(PATTERNS))
+for bad in ['할 것', '하라', '하십시오', '해야 한다']:
+    assert bad not in ctx, bad + ' 발견: ' + ctx
+assert len(ctx.splitlines()) <= 5, ctx
+"
+
 exit $fail

@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """국내 기준 공백 영역 보안 API 감지 시 OWASP 스킬 점검을 권하는 PostToolUse hook.
 
-차단하지 않음. systemMessage 만 출력하고 모든 경로에서 exit 0 함.
+차단하지 않음. 경고만 출력하고 모든 경로에서 exit 0 함.
+
+출력 채널이 둘이며 **수신자가 다르다** (공식 훅 문서 확인, 2026-09-18):
+  · `systemMessage`                        → 사용자 화면에만 표시
+  · `hookSpecificOutput.additionalContext` → 모델 컨텍스트에만 주입
+어느 한쪽만 내면 상대에게 닿지 않는다. 이 훅의 목적이 "모델이 스킬을 로드하게
+하는 트리거"이므로 additionalContext 가 필수이고, 사람이 훅의 동작을 관찰할 수
+있어야 하므로 systemMessage 도 함께 낸다.
 역할 분담: 이 훅은 "지금 이 코드를 점검하라"는 트리거만 담당하고, 판정 내용은
 `owasp-masvs`·`owasp-asvs` 스킬에 위임함. 주석·리터럴 완전 분리 같은 판정 수준
 분석을 훅에 넣으면 역할 분담이 무너지므로 하지 않음.
@@ -153,25 +160,58 @@ def find_matches(path: str, text: str) -> list[PatternEntry]:
     return [entry for entry in PATTERNS if entry.pattern.search(code)]
 
 
-def build_message(matches: list[PatternEntry]) -> str:
-    """매칭 엔트리들을 메시지 1개로 병합함 — 템플릿 1개 + 패턴별 데이터.
+def note_for(entry: PatternEntry) -> str:
+    """국내 대응 여부 표기 — "구속력 없음" 병기 규약을 이 한 곳에만 둔다.
 
-    "구속력 없음" 병기 규약을 이 템플릿 한 곳에만 둔다. 패턴마다 전문을 쓰면
-    규약이 6곳에 복제되고, 불변식 8 은 .md 만 검사해 기계도 누락을 못 잡는다.
+    사용자용·모델용 두 템플릿이 각자 문구를 쓰면 규약이 복제되고, 불변식 8 은
+    .md 만 검사해 기계도 누락을 못 잡는다. 두 템플릿 모두 이 함수를 쓴다.
+    """
+    if entry.domestic == "대응":
+        return "국내 기준 대응 항목"
+    return "국내 원문 미기재 — 현행 점검 권장(구속력 없음)"
+
+
+def fold(matches: list[PatternEntry]) -> tuple[list[PatternEntry], int]:
+    """(노출할 엔트리, 접힌 건수). 두 템플릿이 같은 상한을 쓰게 한다."""
+    shown = matches[:MAX_ENTRIES]
+    return shown, len(matches) - len(shown)
+
+
+def build_message(matches: list[PatternEntry]) -> str:
+    """사용자 화면용 메시지 — `systemMessage` 로 나간다 (모델에는 닿지 않음).
 
     엔트리는 MAX_ENTRIES 개까지만 나열하고 초과분은 꼬리 줄에 건수로 접는다 —
     줄을 새로 만들지 않아야 5줄 상한이 유지된다.
     """
-    shown = matches[:MAX_ENTRIES]
+    shown, overflow = fold(matches)
     lines = ["🔐 **시큐어코딩 점검 힌트** — 방금 쓴 코드가 다음 점검 대상에 해당함:"]
     for entry in shown:
-        note = ("국내 기준 대응 항목" if entry.domestic == "대응"
-                else "국내 원문 미기재 — 현행 점검 권장(구속력 없음)")
-        lines.append(f"- {entry.name}: `{entry.skill}` 스킬 · {entry.ids} — {note}")
+        lines.append(f"- {entry.name}: `{entry.skill}` 스킬 · {entry.ids} — {note_for(entry)}")
     tail = "위반 확정이 아니라 점검 유도임 — 해당 스킬을 로드해 컨트롤 원문 기준으로 확인할 것."
-    overflow = len(matches) - len(shown)
     if overflow:
         tail = f"(외 {overflow}건 더 매칭됨) {tail}"
+    lines.append(tail)
+    return "\n".join(lines)
+
+
+def build_context(matches: list[PatternEntry]) -> str:
+    """모델 컨텍스트용 문자열 — `hookSpecificOutput.additionalContext` 로 나간다.
+
+    `systemMessage` 는 사용자 화면 전용이라 모델에 닿지 않는다(공식 훅 문서).
+    이 훅의 목적은 "해당 스킬을 로드하게 하는 트리거"이므로 모델용 채널이
+    따로 필요하다 — 둘은 대체재가 아니라 수신자가 다른 별개 채널이다.
+
+    ⚠️ 어조는 **사실 서술**로 유지한다. "…하라" 같은 명령형은 프롬프트 인젝션
+    방어에 걸려, 모델이 컨텍스트로 쓰지 않고 사용자에게 노출해 버린다.
+    """
+    shown, overflow = fold(matches)
+    lines = ["방금 쓴 코드에 국내 49개 보안약점 기준이 다루지 않는 영역의 API 가 있다."]
+    for entry in shown:
+        lines.append(
+            f"- {entry.name}: `{entry.skill}` 스킬이 {entry.ids} 를 다룬다. {note_for(entry)}.")
+    tail = "이 표기는 위반 확정이 아니라 점검 대상 식별이며, 판정 근거는 해당 스킬이 보유한다."
+    if overflow:
+        tail = f"매칭 {overflow}건이 더 있다. {tail}"
     lines.append(tail)
     return "\n".join(lines)
 
@@ -190,7 +230,15 @@ def main() -> None:
 
     matches = find_matches(*normalized)
     if matches:
-        print(json.dumps({"systemMessage": build_message(matches)}))
+        # 두 채널 모두에 낸다 — systemMessage 는 사용자 화면, additionalContext 는
+        # 모델 컨텍스트. 어느 한쪽만으로는 상대에게 닿지 않는다.
+        print(json.dumps({
+            "systemMessage": build_message(matches),
+            "hookSpecificOutput": {
+                "hookEventName": "PostToolUse",
+                "additionalContext": build_context(matches),
+            },
+        }))
     else:
         print(json.dumps({}))
 
