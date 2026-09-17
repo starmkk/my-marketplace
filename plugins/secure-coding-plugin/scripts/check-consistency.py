@@ -10,6 +10,7 @@
 종료 코드: 0 = 통과, 1 = 문제 발견
 """
 
+import importlib.util
 import json
 import pathlib
 import re
@@ -51,7 +52,7 @@ def fail(msg: str) -> None:
 def parse_frontmatter(path: pathlib.Path) -> tuple[str, str]:
     """(frontmatter 원문, 본문) 반환."""
     text = path.read_text()
-    m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+    m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
     if not m:
         fail(f"{path.relative_to(PLUGIN)}: frontmatter 없음")
         return "", text
@@ -106,7 +107,7 @@ def main() -> int:
             fail(f"{rel}: frontmatter {len(fm)}자 > 예산 {FM_BUDGET}자")
 
         # 3) name과 디렉터리 일치
-        nm = re.search(r"^name:\s*(\S+)", fm, re.M)
+        nm = re.search(r"^name:\s*(\S+)", fm, re.MULTILINE)
         if not nm:
             fail(f"{rel}: name 필드 없음")
         elif nm.group(1) != d.name:
@@ -198,6 +199,25 @@ def main() -> int:
                 checked_notices += 1
     if checked_notices:
         notes.append(f"OWASP references 출처 고지 {checked_notices}건 확인")
+
+    # 11) 훅 → 스킬 라우팅 정합성 — 훅은 트리거만 담당하고 판정은 스킬에 위임하므로,
+    #     스킬 삭제·개명 시 훅 메시지가 죽은 곳을 가리키게 된다. 이를 기계로 잡는다.
+    #     텍스트 추출 대신 import 로 패턴 테이블을 직접 읽는 이유: 테이블 서식이
+    #     바뀌어도 검사가 조용히 무력화되지 않는다 (import 실패는 시끄럽게 죽는다).
+    #     hooks/ 미보유 상태(과거 판본·방어적)에서도 통과해야 하므로 존재 검사 선행.
+    hook_py = PLUGIN / "hooks" / "secure_coding_hint.py"
+    if hook_py.exists():
+        sys.dont_write_bytecode = True    # hooks/__pycache__ 오염 방지
+        spec = importlib.util.spec_from_file_location("secure_coding_hint", hook_py)
+        assert spec is not None and spec.loader is not None
+        hook_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hook_mod)
+        hook_skills = {entry[2] for entry in hook_mod.PATTERNS}
+        for missing_skill in sorted(hook_skills - names):
+            fail(f"hooks/secure_coding_hint.py: 실재하지 않는 스킬 '{missing_skill}' 참조 — "
+                 f"스킬 개명·삭제 시 훅 패턴 테이블도 함께 고칠 것")
+        if hook_skills <= names:
+            notes.append(f"훅 패턴 {len(hook_mod.PATTERNS)}개 → 스킬 {len(hook_skills)}종 실재 확인")
 
     print_report()
     return 1 if problems else 0
