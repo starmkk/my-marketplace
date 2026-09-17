@@ -32,6 +32,14 @@ BANNED_TRIGGERS = ["MISRA", "GPKI", "행정전자서명"]
 # 제도 판정과 기술 권고를 뒤섞었던 표현. 재발하면 사용자가 부적합 판정을 받을 수 있다.
 BANNED_PHRASES = ["최신 권고가 우선한다"]
 
+# OWASP 계열 스킬(owasp-*)의 references 출처 고지 요건.
+# 근거 문서가 CC BY-SA 4.0 이므로 저작자표시가 의무다. 국내 가이드(관행상 페이지 인용)와 달리
+# 기계로 강제해야 누락이 남지 않는다. 버전·조회일까지 묶는 이유는 상류가 수시로 바뀌기 때문 —
+# MASWE 는 main 브랜치에서 이미 78개를 넘어섰고 프로파일도 늘었다.
+OWASP_PREFIX = "owasp-"
+NOTICE_HEAD = 15           # 고지는 파일 상단에 있어야 읽는 쪽이 먼저 본다
+NOTICE_KEYS = ["출처", "버전", "조회일", "CC BY-SA 4.0"]
+
 problems: list[str] = []
 notes: list[str] = []
 
@@ -172,6 +180,24 @@ def main() -> int:
             fail(f"{d.name}: 다른 스킬을 하나도 링크하지 않음 (라우팅 고립)")
         else:
             notes.append(f"{d.name} → {len(linked)}개 스킬 링크")
+
+    # 10) OWASP references 출처 고지 — CC BY-SA 4.0 저작자표시 의무를 기계로 강제.
+    #     주 출처 1개를 지정하고 부출처는 본문에 병기한다(문서가 여럿인 파일이 있다).
+    checked_notices = 0
+    for d in skill_dirs:
+        if not d.name.startswith(OWASP_PREFIX):
+            continue
+        for ref in sorted((d / "references").glob("*.md")):
+            head = "\n".join(ref.read_text().splitlines()[:NOTICE_HEAD])
+            missing = [k for k in NOTICE_KEYS if k not in head]
+            rel = ref.relative_to(PLUGIN)
+            if missing:
+                fail(f"{rel}: 출처 고지 누락 {missing} — 상단 {NOTICE_HEAD}줄 안에 "
+                     f"출처·버전·조회일·라이선스를 모두 적을 것")
+            else:
+                checked_notices += 1
+    if checked_notices:
+        notes.append(f"OWASP references 출처 고지 {checked_notices}건 확인")
 
     print_report()
     return 1 if problems else 0
