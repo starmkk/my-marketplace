@@ -15,6 +15,7 @@ import json
 import pathlib
 import re
 import sys
+from typing import Any
 
 # 불변식 11 이 훅 모듈을 import 한다 — 그 부산물로 hooks/__pycache__ 가 생기지
 # 않게 막는다. 프로세스 전역 설정이므로 main() 중간이 아니라 여기서 선언한다.
@@ -61,6 +62,48 @@ def parse_frontmatter(path: pathlib.Path) -> tuple[str, str]:
         fail(f"{path.relative_to(PLUGIN)}: frontmatter 없음")
         return "", text
     return m.group(1), text[m.end():]
+
+
+def check_readme_hook_table(patterns: "tuple[Any, ...]") -> None:
+    """README 훅 표 ↔ 훅 PATTERNS 대조 (불변식 11 의 일부).
+
+    `Any` 인 이유: 훅 모듈은 importlib 로 동적 로드되므로 PatternEntry 를
+    정적으로 import 할 수 없다. 필드는 이름으로만 읽는다(불변식 11 본문과 동일).
+
+    훅 메시지 문자열이 정본이고 README 가 그 사본이다 — 사본을 먼저 고치면
+    사용자 문서와 실제 출력이 갈린다. 실제로 이 검사를 넣기 전까지
+    ASVS 3행이 `ASVS V9(...)` ↔ `V9 (...)` 로 조용히 벌어져 있었다(실측).
+
+    표를 못 찾으면 실패시킨다 — 검사가 조용히 0건을 세고 통과하면 대조가
+    사라진 것을 아무도 모른다(불변식 7·8 이 겪은 것과 같은 함정).
+    """
+    readme = PLUGIN.parent.parent / "README.md"
+    if not readme.exists():
+        fail("README.md 를 찾을 수 없음 — 훅 표 대조 불가")
+        return
+    # `스킬명` · ID 형태의 2열 표 행만 집는다. 스킬명이 백틱 안에 있고
+    # 가운뎃점으로 ID 가 이어지는 행은 이 표에만 있다.
+    rows = []
+    for line in readme.read_text().splitlines():
+        m = re.match(r"^\|\s*(.+?)\s*\|\s*`(owasp-[^`]+)`\s*·\s*(.+?)\s*\|$", line)
+        if m:
+            rows.append((m.group(1), m.group(2), m.group(3)))
+
+    if len(rows) != len(patterns):
+        fail(f"README.md 훅 표 행 {len(rows)}개 ≠ 훅 패턴 {len(patterns)}개 — "
+             f"패턴을 늘리거나 줄이면 README 훅 표도 함께 고칠 것")
+        return
+
+    for (rname, rskill, rids), entry in zip(rows, patterns):
+        if not rname.startswith(entry.name):
+            fail(f"README.md 훅 표 탐지명 불일치: 훅 '{entry.name}' ≠ README '{rname}'")
+        if rskill != entry.skill:
+            fail(f"README.md 훅 표 스킬 불일치({entry.name}): "
+                 f"훅 '{entry.skill}' ≠ README '{rskill}'")
+        if rids != entry.ids:
+            fail(f"README.md 훅 표 ID 불일치({entry.name}): "
+                 f"훅 '{entry.ids}' ≠ README '{rids}' — 훅 문자열이 정본")
+    notes.append(f"README 훅 표 {len(rows)}행 ↔ 훅 패턴 대조")
 
 
 def canonical_criteria() -> dict[str, set[str]]:
@@ -225,6 +268,7 @@ def main() -> int:
                      f"스킬 개명·삭제 시 훅 패턴 테이블도 함께 고칠 것")
             if hook_skills <= names:
                 notes.append(f"훅 패턴 {len(hook_mod.PATTERNS)}개 → 스킬 {len(hook_skills)}종 실재 확인")
+            check_readme_hook_table(hook_mod.PATTERNS)
 
     print_report()
     return 1 if problems else 0

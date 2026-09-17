@@ -658,9 +658,9 @@ Edit/Write 로 쓰인 코드에서 **국내 49개 기준이 덮지 못하는 공
 | WebView 설정 (`addJavascriptInterface` 등) | `owasp-masvs` · MASVS-PLATFORM-2 / MASWE-0033~0035 |
 | 생체인증 (`BiometricPrompt` 등) | `owasp-masvs` · MASVS-AUTH-2 / MASWE-0020~0022 |
 | 인증서 피닝·TLS (`CertificatePinner`·`TrustManager` 등) | `owasp-masvs` · MASVS-NETWORK-2 / MASWE-0028 |
-| JWT (`io.jsonwebtoken` 등) | `owasp-asvs` · V9 (Self-contained Tokens) |
-| OAuth·OIDC (`code_verifier`·`PKCE` 등) | `owasp-asvs` · V10 (OAuth and OIDC) |
-| 브라우저 보안 헤더 (`Content-Security-Policy` 등) | `owasp-asvs` · V3 (Web Frontend Security) |
+| JWT (`io.jsonwebtoken` 등) | `owasp-asvs` · ASVS V9(Self-contained Tokens) |
+| OAuth·OIDC (`code_verifier`·`PKCE` 등) | `owasp-asvs` · ASVS V10(OAuth and OIDC) |
+| 브라우저 보안 헤더 (`Content-Security-Policy` 등) | `owasp-asvs` · ASVS V3(Web Frontend Security) |
 
 - 확장자 화이트리스트(`.java`·`.kt`·`.kts`·`.xml`·`.gradle`·`.json`·`.js`·`.ts`)와 테스트·샘플 경로 제외, 행 선두 주석 제외로 오탐을 억제합니다. 특히 `.md` 를 통과시키지 않아 이 플러그인 스킬 문서의 취약 예시 코드에 자기 경고를 쏘지 않습니다.
 - 국내 기준이 대응하는 영역(SQL 인젝션·XSS 등)은 훅 대상이 아닙니다 — `secure-coding-java` 등 기존 스킬 소관입니다. 훅 메시지는 "국내 원문 미기재 — 현행 점검 권장(구속력 없음)"을 병기해 제도 판정과 기술 권고를 분리합니다.
