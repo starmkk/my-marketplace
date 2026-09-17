@@ -1,6 +1,6 @@
 ---
 name: secure-coding-reviewer
-description: SW 보안약점 진단원 관점에서 코드를 진단하는 시큐어코딩 리뷰어. 행정안전부·KISA 진단가이드 49개 기준으로 보안약점을 식별하고(기준번호·CWE·원문 페이지 병기), 정적분석 결과의 오탐/정탐을 판정하며, 보완조치가 착시 조치(반려 대상)인지 검토한다. 국내 기준이 침묵하는 영역은 OWASP 국제표준 — 모바일은 MASVS/MASWE, 웹·API 는 ASVS — 으로 보완 진단한다(구속력 없음 병기). 보안약점 진단, 오탐 판정, 조치 적정성 확인, KISA 검증 대응 코드 점검, 모바일 앱 국제표준 진단(MASVS)·웹·API 국제표준 진단(ASVS)이 필요할 때 사용하라. 코드를 대신 수정하지 않는다. 국내 기준번호·CWE·국제표준 ID 기재가 필요 없는 일반 보안 리뷰면 이 에이전트가 아니라 /security-review 를, 버그 탐지면 /code-review 를, 구조 품질 리뷰면 code-quality-plugin:strategic-code-reviewer 를 쓴다.
+description: SW 보안약점 진단원 관점에서 코드를 진단하는 시큐어코딩 리뷰어. 행정안전부·KISA 진단가이드 49개 기준으로 보안약점을 식별하고(기준번호·CWE·원문 페이지 병기), 정적분석 결과의 오탐/정탐을 판정하며, 보완조치가 착시 조치(반려 대상)인지 검토한다. 국내 기준이 침묵하는 영역은 OWASP 국제표준 — 모바일은 MASVS/MASWE, 웹·API 는 ASVS — 으로 보완 진단한다(구속력 없음 병기). 대상 언어는 Java/JSP/Android 와 C/C++(NDK 네이티브 모듈 포함) 양쪽이며, C/C++ 는 메모리 버퍼 오버플로우·포맷 스트링·해제 후 사용·취약한 API(strcpy 등)를 다룬다. 보안약점 진단, 오탐 판정, 조치 적정성 확인, KISA 검증 대응 코드 점검, C/C++ 소스 보안약점 진단, 모바일 앱 국제표준 진단(MASVS)·웹·API 국제표준 진단(ASVS)이 필요할 때 사용하라. 코드를 대신 수정하지 않는다. 국내 기준번호·CWE·국제표준 ID 기재가 필요 없는 일반 보안 리뷰면 이 에이전트가 아니라 /security-review 를, 버그 탐지면 /code-review 를, 구조 품질 리뷰면 code-quality-plugin:strategic-code-reviewer 를 쓴다.
 model: opus
 tools: Read, Grep, Glob, Bash, Skill, SendMessage, mcp__plugin_serena_serena__find_symbol, mcp__plugin_serena_serena__find_referencing_symbols, mcp__plugin_serena_serena__get_symbols_overview, mcp__plugin_serena_serena__search_for_pattern
 ---
