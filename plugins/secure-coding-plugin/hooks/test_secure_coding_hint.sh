@@ -94,6 +94,19 @@ check "file_path 가 빈 문자열"    '{"tool_name":"Write","tool_input":{"file
 check ".swift 무경고 (iOS 미포함)" '{"tool_name":"Write","tool_input":{"file_path":"/ios/Auth.swift","content":"let ctx = LAContext(); CertificatePinner()"}}' no
 check ".py 무경고"                 '{"tool_name":"Write","tool_input":{"file_path":"/srv/app.py","content":"CSP = \"Content-Security-Policy\""}}' no
 
+# 8-3. ⭐ C/C++ 무경고 — 커버리지 한계 ③ 을 기계로 고정한다.
+#  누락이 아니라 "공백 영역만" 원칙의 귀결이다(2026-09-18 기준 경계 판정):
+#  자체 암호=기준21 · rand/srand=기준25 · JNI 자원·Null·버퍼=기준40/39/16 으로
+#  전부 국내 대응이라 secure-coding-c 소관이고, 국내가 침묵하는 유일한 영역
+#  (MASVS-RESILIENCE-4)은 전부 부재형이라 정규식으로 잡히지 않는다.
+#  ⚠️ 이 케이스가 빨개졌다면 확장자만 늘린 것은 아닌지 먼저 의심할 것 —
+#     패턴 없이 확장자만 열면 무의미하고, 넣을 패턴이 있는지는 기준 경계
+#     판정을 다시 거쳐야 한다(README 훅 절 참조).
+check ".c 무경고 (C/C++ 미포함)"   '{"tool_name":"Write","tool_input":{"file_path":"/app/src/main/cpp/crypto.c","content":"srand(time(NULL)); TrustManager tm;"}}' no
+check ".cpp 무경고"                '{"tool_name":"Write","tool_input":{"file_path":"/app/src/main/cpp/net.cpp","content":"CertificatePinner p; ptrace(PTRACE_TRACEME, 0, 0, 0);"}}' no
+check ".h 무경고"                  '{"tool_name":"Write","tool_input":{"file_path":"/app/src/main/cpp/tls.h","content":"void setJavaScriptEnabled(bool);"}}' no
+check ".cc 무경고"                 '{"tool_name":"Write","tool_input":{"file_path":"/app/src/main/cpp/jni.cc","content":"env->GetStringUTFChars(s, 0); BiometricPrompt b;"}}' no
+
 # ── 9. 순수 함수 단언 — 셸을 거치지 않고 build_message 를 직접 검증 ──────────
 # pure_check <설명> <python 본문> : 본문이 exit 0 이면 PASS
 # ⚠️ 본문은 셸 큰따옴표 안에서 확장된다 — `$`·백틱·큰따옴표를 쓰지 말 것
