@@ -1,0 +1,27 @@
+{
+  "description": "secure-coding-plugin — 국내 기준 공백 영역(OWASP 보완) 자동 점검 힌트 훅",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/secure_coding_hint.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/secure_coding_hint.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
