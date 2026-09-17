@@ -16,6 +16,10 @@ import pathlib
 import re
 import sys
 
+# 불변식 11 이 훅 모듈을 import 한다 — 그 부산물로 hooks/__pycache__ 가 생기지
+# 않게 막는다. 프로세스 전역 설정이므로 main() 중간이 아니라 여기서 선언한다.
+sys.dont_write_bytecode = True
+
 PLUGIN = pathlib.Path(__file__).resolve().parent.parent
 SKILLS = PLUGIN / "skills"
 CANON = SKILLS / "secure-coding-kr" / "references" / "weakness-49.md"
@@ -207,17 +211,20 @@ def main() -> int:
     #     hooks/ 미보유 상태(과거 판본·방어적)에서도 통과해야 하므로 존재 검사 선행.
     hook_py = PLUGIN / "hooks" / "secure_coding_hint.py"
     if hook_py.exists():
-        sys.dont_write_bytecode = True    # hooks/__pycache__ 오염 방지
         spec = importlib.util.spec_from_file_location("secure_coding_hint", hook_py)
-        assert spec is not None and spec.loader is not None
-        hook_mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(hook_mod)
-        hook_skills = {entry[2] for entry in hook_mod.PATTERNS}
-        for missing_skill in sorted(hook_skills - names):
-            fail(f"hooks/secure_coding_hint.py: 실재하지 않는 스킬 '{missing_skill}' 참조 — "
-                 f"스킬 개명·삭제 시 훅 패턴 테이블도 함께 고칠 것")
-        if hook_skills <= names:
-            notes.append(f"훅 패턴 {len(hook_mod.PATTERNS)}개 → 스킬 {len(hook_skills)}종 실재 확인")
+        if spec is None or spec.loader is None:
+            fail("hooks/secure_coding_hint.py: 모듈 스펙을 만들 수 없음 — 파일 손상 여부 확인")
+        else:
+            hook_mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(hook_mod)
+            # 위치 인덱스가 아니라 필드명으로 읽는다 — PatternEntry 에 필드가
+            # 추가돼도 이 검사가 엉뚱한 원소를 읽지 않는다.
+            hook_skills = {entry.skill for entry in hook_mod.PATTERNS}
+            for missing_skill in sorted(hook_skills - names):
+                fail(f"hooks/secure_coding_hint.py: 실재하지 않는 스킬 '{missing_skill}' 참조 — "
+                     f"스킬 개명·삭제 시 훅 패턴 테이블도 함께 고칠 것")
+            if hook_skills <= names:
+                notes.append(f"훅 패턴 {len(hook_mod.PATTERNS)}개 → 스킬 {len(hook_skills)}종 실재 확인")
 
     print_report()
     return 1 if problems else 0
