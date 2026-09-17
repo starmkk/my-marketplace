@@ -17,7 +17,7 @@
 | `kws-speech-plugin` | 1.0.2 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.4 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
-| `secure-coding-plugin` | 1.0.4 | 스킬 7종 + 에이전트 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
+| `secure-coding-plugin` | 1.0.5 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 
 ---
 
@@ -614,7 +614,7 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 
 ## secure-coding-plugin
 
-한국 전자정부 소프트웨어 개발보안(시큐어코딩) 공식 가이드 6종을 근거로 한 국내 기준 레퍼런스 스킬 5종에, OWASP 국제표준을 근거로 국내 기준의 공백을 보완하는 스킬 2종(모바일 — MASVS v2.1.0 / MASWE v1.0.0 / MASTG v2.0.0, 웹·API — ASVS 5.0.0)을 더한 스킬 7종과 시큐어코딩 리뷰 에이전트 1종을 제공합니다. 코드 진단/리뷰, 안전한 코드 작성, 검증 절차 대응에 사용합니다.
+한국 전자정부 소프트웨어 개발보안(시큐어코딩) 공식 가이드 6종을 근거로 한 국내 기준 레퍼런스 스킬 5종에, OWASP 국제표준을 근거로 국내 기준의 공백을 보완하는 스킬 2종(모바일 — MASVS v2.1.0 / MASWE v1.0.0 / MASTG v2.0.0, 웹·API — ASVS 5.0.0)을 더한 스킬 7종과 시큐어코딩 리뷰 에이전트 1종, 국내 기준 공백 영역 API 를 감지해 점검을 권하는 훅 1종을 제공합니다. 코드 진단/리뷰, 안전한 코드 작성, 검증 절차 대응에 사용합니다.
 
 ### 설치
 
@@ -643,6 +643,23 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 보안약점 진단, 정적분석 결과의 오탐/정탐 판정, 보완조치가 착시 조치(반려 대상)인지 확인이 필요할 때 호출합니다. 허브 `secure-coding-kr` 의 라우터 표에 따라 언어·맥락별 판정 기준 스킬을 로드해 쓰며, 코드를 대신 수정하지 않고 `SendMessage` 로 보고서 전문을 전달합니다. 오탐 판정이 판단 결정적 작업이므로 실행 모델은 `model: opus` 로 고정되어 있습니다(v1.0.2).
 
 국내 기준번호·CWE 기재가 필요 없는 일반 보안 리뷰는 `/security-review`, 버그 탐지는 `/code-review`, 구조 품질 리뷰는 `code-quality-plugin` 의 `strategic-code-reviewer` 를 씁니다.
+
+### secure-coding-hint 훅
+
+Edit/Write 로 쓰인 코드에서 **국내 49개 기준이 덮지 못하는 공백 영역**의 보안 API 를 감지해 OWASP 스킬 점검을 권합니다(`PostToolUse`). **차단하지 않고 경고만** 하며, 판정은 스킬에 위임합니다 — 훅은 "지금 점검하라"는 트리거만 담당합니다.
+
+| 탐지 대상 | 안내 스킬 · 컨트롤/요구사항 ID |
+|---|---|
+| WebView 설정 (`addJavascriptInterface` 등) | `owasp-masvs` · MASVS-PLATFORM-2 / MASWE-0033~0035 |
+| 생체인증 (`BiometricPrompt` 등) | `owasp-masvs` · MASVS-AUTH-2 / MASWE-0020~0022 |
+| 인증서 피닝·TLS (`CertificatePinner`·`TrustManager` 등) | `owasp-masvs` · MASVS-NETWORK-2 / MASWE-0028 |
+| JWT (`io.jsonwebtoken` 등) | `owasp-asvs` · V9 (Self-contained Tokens) |
+| OAuth·OIDC (`code_verifier`·`PKCE` 등) | `owasp-asvs` · V10 (OAuth and OIDC) |
+| 브라우저 보안 헤더 (`Content-Security-Policy` 등) | `owasp-asvs` · V3 (Web Frontend Security) |
+
+- 확장자 화이트리스트(`.java`·`.kt`·`.kts`·`.xml`·`.gradle`·`.json`·`.js`·`.ts`)와 테스트·샘플 경로 제외, 행 선두 주석 제외로 오탐을 억제합니다. 특히 `.md` 를 통과시키지 않아 이 플러그인 스킬 문서의 취약 예시 코드에 자기 경고를 쏘지 않습니다.
+- 국내 기준이 대응하는 영역(SQL 인젝션·XSS 등)은 훅 대상이 아닙니다 — `secure-coding-java` 등 기존 스킬 소관입니다. 훅 메시지는 "국내 원문 미기재 — 현행 점검 권장(구속력 없음)"을 병기해 제도 판정과 기술 권고를 분리합니다.
+- 정규식은 존재하는 문자열만 잡습니다 — `FLAG_SECURE` 미설정처럼 **부재가 취약점인 항목은 훅이 잡지 못하므로**, 훅이 조용하다고 점검이 끝난 것이 아닙니다.
 
 ### 설계 특징 — 원문 근거와 현행 모범사례의 분리 병기
 
