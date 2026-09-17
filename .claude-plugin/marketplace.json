@@ -30,6 +30,11 @@
       "name": "research-plugin",
       "source": "./plugins/research-plugin",
       "description": "조사 전문 에이전트 — 양자화·모델 압축 논문 문헌 조사, 특허 선행기술·청구항 설계, 외부 레퍼런스 구현 대조 에이전트 3종 제공"
+    },
+    {
+      "name": "secure-coding-plugin",
+      "source": "./plugins/secure-coding-plugin",
+      "description": "한국 전자정부 SW 개발보안 레퍼런스 — 보안약점 진단기준(49개)·진단절차, Java/Android·C/C++ 시큐어코딩, 모바일 앱 소스코드 검증, 암호 알고리즘·키 길이 권고 스킬 5종 제공"
     }
   ]
 }
