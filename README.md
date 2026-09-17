@@ -17,7 +17,7 @@
 | `kws-speech-plugin` | 1.0.2 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.4 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
-| `secure-coding-plugin` | 1.0.2 | 스킬 5종 + 에이전트 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 |
+| `secure-coding-plugin` | 1.0.3 | 스킬 6종 + 에이전트 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS 국제표준 보완 |
 
 ---
 
@@ -614,7 +614,7 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 
 ## secure-coding-plugin
 
-한국 전자정부 소프트웨어 개발보안(시큐어코딩) 공식 가이드 6종을 근거로 한 레퍼런스 스킬 5종과 시큐어코딩 리뷰 에이전트 1종을 제공합니다. 코드 진단/리뷰, 안전한 코드 작성, 검증 절차 대응에 사용합니다.
+한국 전자정부 소프트웨어 개발보안(시큐어코딩) 공식 가이드 6종을 근거로 한 국내 기준 레퍼런스 스킬 5종에, OWASP 국제표준(MASVS v2.1.0 / MASWE v1.0.0 / MASTG v2.0.0)을 근거로 국내 기준의 공백을 보완하는 스킬 1종을 더한 스킬 6종과 시큐어코딩 리뷰 에이전트 1종을 제공합니다. 코드 진단/리뷰, 안전한 코드 작성, 검증 절차 대응에 사용합니다.
 
 ### 설치
 
@@ -631,6 +631,7 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 | `secure-coding-c` | C/C++ 위험함수 매핑, 메모리·정수 안전성 | C 시큐어 코딩 가이드(3판, 222p) |
 | `mobile-app-verify` | 전자정부 앱 소스코드 검증 절차·기준 | 모바일 전자정부서비스 앱 소스코드 검증 가이드라인(2021) |
 | `crypto-policy-kr` | 암호 알고리즘·키 길이·유효기간 판정 | 암호 알고리즘 및 키 길이 이용 안내서(2018) |
+| `owasp-masvs` | 국내 기준 공백 보완 — 모바일 앱 보안 국제표준 (제도 판정 근거 아님) | OWASP MASVS v2.1.0 / MASWE v1.0.0 / MASTG v2.0.0 |
 
 ### 에이전트
 
@@ -656,6 +657,7 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 - C 가이드 3판 보안약점 **58개**, 위험함수→대체함수 매핑 **40건**
 - 모바일 앱 검증기준 **51개** (소스코드 보안약점 26 + 기능 보안취약점 FV-1~FV-9 세부 25)
 - 암호 권고 기본선 **보안강도 112비트 이상**, 장기(2030년 이후) 사용 시 **128비트 / RSA 3072비트 이상**
+- OWASP 국제표준 보완 — MASVS 컨트롤 **24개** / MASWE 약점 **78개** / MASTG-TEST **292개** (CC BY-SA 4.0, 2026-09-17 조회)
 
 ---
 
@@ -745,7 +747,7 @@ Java/Android 시큐어코딩 및 SW 보안약점 진단원 관점의 취약→�
 
 **references:** `procedure.md` (검증 절차 상세), `verification-criteria.md` (검증기준 상세)
 
-**관련 스킬:** `secure-coding-kr` (진단기준 허브), `secure-coding-java` (Java/Android 구현), `crypto-policy-kr` (중요정보 암호화 검증)
+**관련 스킬:** `secure-coding-kr` (진단기준 허브), `secure-coding-java` (Java/Android 구현), `crypto-policy-kr` (중요정보 암호화 검증), `owasp-masvs` (국내 기준으로 지적할 수 없는 영역의 국제표준 보완 — 방향 반대 항목 주의)
 
 ---
 
@@ -769,6 +771,30 @@ KISA 「암호 알고리즘 및 키 길이 이용 안내서」(2018) 기반 암�
 **references:** `algorithm-tables.md` (알고리즘·키 길이 표 전수)
 
 **관련 스킬:** `secure-coding-kr` (진단기준 허브), `secure-coding-java` (Java 암호 API), `secure-coding-c` (C/C++ 암호 구현), `mobile-app-verify` (중요정보 암호화 검증)
+
+---
+
+### owasp-masvs
+
+OWASP **MASVS v2.1.0**(8카테고리 24컨트롤) / **MASWE v1.0.0**(약점 78개) / **MASTG v2.0.0**(TEST 292) 기반 모바일 앱 보안 국제표준 레퍼런스(CC BY-SA 4.0, 2026-09-17 조회). OWASP MAS 생태계 전체를 담은 레퍼런스가 아니라 **국내 기준의 공백을 메우는 보완재**로, 「모바일 전자정부서비스 앱 소스코드 검증 가이드라인」을 근거로는 지적할 수 없는 영역 **확정 6건**(NETWORK-2 인증서 피닝 · PLATFORM-2 WebView · PLATFORM-3 화면캡처·알림·오버레이 · RESILIENCE-4 디버거/후킹 탐지 · AUTH-2 생체인증 · AUTH-3 Step-up 인증)과 **재분류 여지 2건**(PRIVACY-2·PRIVACY-3)을 중심으로 다룹니다. 기존 5종과 달리 **제도 판정 근거가 아니므로**, 이 스킬을 근거로 지적할 때는 출처를 OWASP MASVS/MASWE 로 밝히고 "구속력 없음"을 병기합니다.
+
+> ⚠️ **방향 반대 경고**: `mobile-app-verify` 의 FV-5.1(루팅·탈옥을 유발하는 기능 금지)과 MASWE-0051(루팅·탈옥 탐지 구현 의무)은 같은 단어를 쓰면서 점검 방향이 정반대입니다 — 두 기준을 혼용하면 오판이 됩니다.
+
+**주요 내용:**
+- MASVS 8카테고리 24컨트롤 총괄과 MAS 프로파일(L1/L2/R/P) 선택 가이드
+- `mobile-app-verify` 와의 경계 — 방향 반대 항목(FV-5.1 ↔ MASWE-0051) 오판 방지 규칙
+- 국내 기준으로 지적할 수 없는 영역 확정 6건 + 재분류 여지 2건 (이 스킬의 핵심 부가가치)
+- 추적 체인(MASVS → MASWE → MASTG-TEST → DEMO)과 소스 저장소 역참조 검색법
+- MAS Checklist 폐지(2026-07) 이후의 대체 점검 워크플로
+
+**트리거 표현:**
+- "MASVS", "MASTG", "MASWE", "모바일 앱 보안 국제표준"
+- "인증서 피닝", "WebView 보안", "탭재킹"
+- "Play Integrity", "App Attest", "앱 어테스테이션"
+
+**references:** `masvs-24-controls.md` (24컨트롤 전수 — ID·원문·연결 MASWE), `maswe-78.md` (MASWE-0001~0078 전수 색인), `mastg-structure.md` (MASTG 구성요소별 규모·상태 실측), `masvs-gap-vs-mobile-app-verify.md` (국내 51항목 ↔ 24컨트롤 전수 매핑)
+
+**관련 스킬:** `mobile-app-verify` (국내 제도 판정 — 방향 반대 항목 주의), `secure-coding-kr` (진단기준 허브), `secure-coding-java` (Java/Android 구현), `crypto-policy-kr` (암호 알고리즘·키 길이)
 
 ---
 
