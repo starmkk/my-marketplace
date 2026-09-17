@@ -1,6 +1,12 @@
 .claude/settings.local.json
 **/.claude/settings.local.json
 
+# 세션 산출물 (로컬 전용) — 공유 설정인 .claude/settings.json 은 커밋 가능하도록 통째로 막지 않는다
+.claude/plans/
+
+# Serena 프로젝트 설정·캐시 (로컬 도구 산출물)
+.serena/
+
 # 설계 문서 (로컬 전용)
 docs/
 
