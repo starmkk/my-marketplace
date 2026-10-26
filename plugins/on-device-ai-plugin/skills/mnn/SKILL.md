@@ -78,6 +78,12 @@ python scripts/export_llm.py --model Qwen/Qwen2.5-7B \
 
 ---
 
+## 런타임 동작·변환 옵션 확인 규칙 (IMPORTANT)
+
+MNN 런타임 동작(`precision`/`memory`/`backend_type`)이나 llmexport 옵션의 의미는 추측하지 않는다.
+`on-device-ai-plugin:mnn-source-inspector` 에이전트로 소스에서 확인한 뒤 적용한다.
+이 문서의 설명과 소스가 다르면 소스가 우선한다.
+
 ## Overview
 
 MNN is a highly efficient and lightweight deep learning framework for mobile and embedded devices. This skill provides comprehensive guidance for converting models, building MNN for different platforms, deploying LLMs, and optimizing models for production use.
