@@ -1,6 +1,6 @@
 {
   "name": "project-board",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "프로젝트 현황판 mod — 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)을 오른쪽 패널에 표시. 프로젝트별 설정은 .claude/project-board.json",
   "author": { "name": "kg.moon", "email": "starmkk@gmail.com" },
   "types": "./types/index.d.ts"

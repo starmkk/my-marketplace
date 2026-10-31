@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { findTerms, kDefaultGlossary, mergeSeen } from '../hooks/glossary'
-import { buildBoard, mergeGlossary, parseDecisions, plainText, tableRows, validateConfig } from '../hooks/parse'
+import { buildBoard, folderTitle, mergeGlossary, parseDecisions, plainText, tableRows, validateConfig } from '../hooks/parse'
 import type { BoardConfig, DecisionSource } from '../hooks/parse'
 
 const kRoadmap = {
@@ -74,6 +74,24 @@ describe('roadmap', () => {
     expect(b.recent.map(r => r.id)).toEqual(['U-1'])
     const b2 = await buildBoard(kConfig, async p => (p === 'design.html' ? '<p>x</p>' : null), [], 't')
     expect(b2.warnings.some(w => w.includes('roadmap-data'))).toBe(true)
+  })
+})
+
+describe('title', () => {
+  test('folderTitle 은 경로의 마지막 폴더 이름(끝 구분자·윈도 경로 포함)', async () => {
+    expect(folderTitle('/Users/me/work/poketshell')).toBe('poketshell')
+    expect(folderTitle('/Users/me/work/my-app/')).toBe('my-app')
+    expect(folderTitle('C:\\work\\demo')).toBe('demo')
+  })
+  test('folderTitle 은 빈 경로·루트에서 기본값', async () => {
+    expect(folderTitle('')).toBe('Project Board')
+    expect(folderTitle('/')).toBe('Project Board')
+  })
+  test('설정에 title 이 없으면 폴더 이름, 있으면 title', async () => {
+    const { title, ...rest } = kConfig
+    expect(title).toBe('시험 보드')
+    expect((await buildBoard(rest, readFake, [], 't', 'my-app')).title).toBe('my-app')
+    expect((await buildBoard(kConfig, readFake, [], 't', 'my-app')).title).toBe('시험 보드')
   })
 })
 

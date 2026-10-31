@@ -18,7 +18,7 @@
 | `code-quality-plugin` | 1.0.5 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.7 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
-| `project-board` | 1.0.0 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로) 표시 |
+| `project-board` | 1.0.1 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로) 표시 |
 
 ---
 
@@ -896,6 +896,7 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 | `decisions[].format` | `html-table`(`<tr><td>ID-n</td>…`) 또는 `md-table`(`\| ID-n \| … \|`). 행 경계 안에서만 매칭 |
 | `decisions[].kind` | `past` — 모든 행이 지난 결정 / `classify` — 상태 칸이 `decided` 정규식이면 현재 결정, `pending` 이면 앞으로 결정(둘 다 아니면 제외, `pending` 이 없으면 나머지 전부) |
 | `*Column` | 0 기반 칸 번호(ID = 0). 음수는 뒤에서부터. 기본 `topic 1 · detail -1 · status -1` |
+| `title` | 패널 제목. 없으면 작업 폴더 이름(예: `my-app`) |
 | `glossary` | `{ term, meaning, match[] }`. 영문 표기는 단어 경계·대소문자 무시, 한글은 포함 여부로 찾음. 같은 `term` 은 기본 용어를 덮어씀 |
 
 설정이 잘못되면 패널 위에 어느 키가 잘못됐는지 빨간 줄로, 파일이 없으면 노란 줄로 알립니다.

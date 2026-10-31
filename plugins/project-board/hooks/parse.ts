@@ -40,6 +40,13 @@ export type BoardConfig = {
 }
 
 export const kConfigPath = '.claude/project-board.json'
+export const kDefaultTitle = 'Project Board'
+
+// 설정에 title 이 없을 때 쓰는 패널 제목 = 작업 폴더 이름
+export function folderTitle(cwd: string): string {
+  const name = cwd.replace(/[\\/]+$/, '').split(/[\\/]/).pop() ?? ''
+  return name || kDefaultTitle
+}
 
 export type Roadmap = {
   as_of?: string
@@ -276,10 +283,16 @@ export function mergeGlossary(defaults: Term[], project: Term[]): Term[] {
 
 export type ReadFile = (path: string) => Promise<string | null>
 
-export async function buildBoard(config: BoardConfig, read: ReadFile, defaults: Term[], loadedAt: string): Promise<BoardData> {
+export async function buildBoard(
+  config: BoardConfig,
+  read: ReadFile,
+  defaults: Term[],
+  loadedAt: string,
+  fallbackTitle = kDefaultTitle,
+): Promise<BoardData> {
   const warnings: string[] = []
   const board: BoardData = {
-    title: config.title ?? 'Project Board',
+    title: config.title ?? fallbackTitle,
     asOf: '-',
     currentStage: '로드맵 미설정',
     tracks: [],

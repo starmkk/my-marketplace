@@ -3,7 +3,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { BoardData, BoardTab, DecisionRow, Term } from '../types'
 import { kDefaultGlossary, findTerms, mergeSeen } from './glossary'
-import { buildBoard, cell, kConfigPath, validateConfig } from './parse'
+import { buildBoard, cell, folderTitle, kConfigPath, kDefaultTitle, validateConfig } from './parse'
 import type { BoardConfig } from './parse'
 
 const kPane = 'project-board'
@@ -55,7 +55,8 @@ async function reload($: EngineInterface): Promise<void> {
     if (errors.length) {
       throw new Error(`${kConfigPath}: ${errors.join('; ')}`)
     }
-    const board = await buildBoard(config as BoardConfig, p => readOrNull($, p), kDefaultGlossary, loadedAt)
+    const title = folderTitle(await $.session.cwd())
+    const board = await buildBoard(config as BoardConfig, p => readOrNull($, p), kDefaultGlossary, loadedAt, title)
     await update($, data, () => board)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -65,7 +66,7 @@ async function reload($: EngineInterface): Promise<void> {
 
 function emptyBoard(loadedAt: string): BoardData {
   return {
-    title: 'Project Board', asOf: '-', currentStage: '-', tracks: [], stages: [], doing: [], nextUp: [],
+    title: kDefaultTitle, asOf: '-', currentStage: '-', tracks: [], stages: [], doing: [], nextUp: [],
     recent: [], past: [], pending: [], glossary: [], sources: [], loadedAt, warnings: [],
   }
 }
@@ -125,7 +126,7 @@ function decisionsMarkdown(b: BoardData): string {
 
 async function openPane($: EngineInterface): Promise<void> {
   const board = await read($, data)
-  await $.ui.open({ id: kPane, title: board?.title ?? 'Project Board' })
+  await $.ui.open({ id: kPane, title: board?.title ?? folderTitle(await $.session.cwd()) })
 }
 
 export const register: Register = on => {
