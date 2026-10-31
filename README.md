@@ -18,6 +18,7 @@
 | `code-quality-plugin` | 1.0.5 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.7 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
+| `project-board` | 1.0.0 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로) 표시 |
 
 ---
 
@@ -847,6 +848,57 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 **references:** `asvs-17-chapters.md` (17챕터 색인 + 국내 공백 7개 챕터의 요구사항 수준 수록), `asvs-sr20-mapping.md` (국내 설계단계 20개 ↔ ASVS 챕터 대응표 — SR 번호별 20행 + 역방향 공백 요약)
 
 **관련 스킬:** `owasp-masvs` (모바일 앱 국제표준 — 자매 스킬), `secure-coding-kr` (진단기준 허브 — 제도 판정), `secure-coding-java` (Java/JSP 구현), `crypto-policy-kr` (암호 알고리즘·키 길이)
+
+---
+
+## project-board
+
+프로젝트 현황판 mod 입니다. Claude Code 오른쪽 패널에 탭 3개를 띄웁니다. 무엇을 읽을지는 프로젝트마다 `.claude/project-board.json` 한 파일로 정하므로 특정 프로젝트에 묶이지 않습니다.
+
+| 탭 | 내용 |
+|---|---|
+| 개발 현황 | 로드맵 JSON 의 트랙별 진행률(말단 항목 기준), 전체 단계 표, ▶ 현재 단계·진행 중·다음 착수 가능 항목 |
+| 용어 | 답변이 끝날 때마다 대화에 나온 개발용어를 위로 올려 뜻과 함께 표시. 기본 용어 + 프로젝트 용어 |
+| 결정 | 현재 결정된 내용 / 앞으로 결정해야 할 내용 / 지난 결정 — 문서의 결정 표(HTML·Markdown)를 정규식 규칙으로 분류 |
+
+### 설치
+
+```shell
+/plugin install project-board@vibe-coding-tools
+```
+
+설치 뒤 새 세션에서 `/project-board` 로 엽니다. 설정 파일이 있는 프로젝트에서는 세션 시작 때 저절로 열립니다(터미널 폭 144열 이상일 때 옆 패널로). 설정 파일이 없으면 패널에 예시 설정을 보여 줍니다.
+
+### 설정 `.claude/project-board.json`
+
+```json
+{
+  "title": "My Project",
+  "roadmap": { "file": "docs/roadmap.html", "format": "html-script", "id": "roadmap-data", "stageTracks": ["app"] },
+  "decisions": [
+    { "file": "docs/roadmap.html", "label": "미결 표", "format": "html-table", "idPrefix": "Q",
+      "kind": "classify", "topicColumn": 1, "detailColumn": 3, "decided": "확정|해소", "pending": "결정 필요" },
+    { "file": "docs/plan.md", "label": "계획 미결", "format": "md-table", "idPrefix": "U",
+      "kind": "classify", "decided": "^\\*\\*결정 \\d{4}-\\d{2}-\\d{2}\\*\\*" },
+    { "file": "docs/roadmap.html", "label": "결정 기록", "format": "html-table", "idPrefix": "DR", "kind": "past" }
+  ],
+  "glossary": [{ "term": "SSH", "meaning": "원격 접속 규약", "match": ["SSH"] }],
+  "includeDefaultGlossary": true
+}
+```
+
+| 키 | 뜻 |
+|---|---|
+| `roadmap.format` | `html-script`(HTML 안 `<script id="…">` 의 JSON) 또는 `json`(파일 전체가 JSON) |
+| 로드맵 JSON | `{ as_of?, tracks: [{key, name}], items: [{id, track, parent, title, deps, status}] }`. 하위 항목은 상위의 `deps` 를 물려받음 |
+| `roadmap.statuses` | 상태 이름 바꾸기. 기본값 `done 완료 · doing 진행 · waiting 대기 · hold 보류 · decision 결정 필요` |
+| `roadmap.stageTracks` | "현재 단계"를 고를 트랙 키(비우면 전체). 진행 중인 상위 항목, 없으면 선행이 모두 끝난 첫 대기 항목 |
+| `decisions[].format` | `html-table`(`<tr><td>ID-n</td>…`) 또는 `md-table`(`\| ID-n \| … \|`). 행 경계 안에서만 매칭 |
+| `decisions[].kind` | `past` — 모든 행이 지난 결정 / `classify` — 상태 칸이 `decided` 정규식이면 현재 결정, `pending` 이면 앞으로 결정(둘 다 아니면 제외, `pending` 이 없으면 나머지 전부) |
+| `*Column` | 0 기반 칸 번호(ID = 0). 음수는 뒤에서부터. 기본 `topic 1 · detail -1 · status -1` |
+| `glossary` | `{ term, meaning, match[] }`. 영문 표기는 단어 경계·대소문자 무시, 한글은 포함 여부로 찾음. 같은 `term` 은 기본 용어를 덮어씀 |
+
+설정이 잘못되면 패널 위에 어느 키가 잘못됐는지 빨간 줄로, 파일이 없으면 노란 줄로 알립니다.
 
 ---
 
