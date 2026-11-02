@@ -1,6 +1,6 @@
 // 프로젝트 문서(HTML·Markdown·JSON)에서 패널 데이터를 뽑는 순수 함수 모음.
 // 무엇을 어디서 읽을지는 프로젝트의 .claude/project-board.json(BoardConfig)이 정한다.
-import type { BoardData, DecisionRow, StageRow, Term, TrackRow } from '../types'
+import type { BoardData, DecisionRow, ItemSnap, StageRow, Term, TrackRow } from '../types'
 
 // ---- 설정 ----
 
@@ -37,6 +37,18 @@ export type BoardConfig = {
   decisions?: DecisionSource[]
   glossary?: Term[]
   includeDefaultGlossary?: boolean
+}
+
+// 로컬 시각 'YYYY-MM-DD HH:mm' (toISOString 은 UTC 라 쓰지 않음)
+export function formatLocalTime(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+// /project-board 인자: '' 와 on = 열기, off = 닫기(대소문자·앞뒤 공백 허용), 그 밖은 null
+export function parseBoardCommand(args: string | undefined): 'on' | 'off' | null {
+  const a = (args ?? '').trim().toLowerCase()
+  return a === '' || a === 'on' ? 'on' : a === 'off' ? 'off' : null
 }
 
 export const kConfigPath = '.claude/project-board.json'
@@ -221,7 +233,8 @@ export function summarizeRoadmap(rm: Roadmap, src: Pick<RoadmapSource, 'statuses
   const currentStage = current
     ? `${current.id} ${current.status === st.doing ? '진행 중' : '착수 가능'} — ${clip(current.title, 60)}`
     : '착수 가능한 단계 없음'
-  return { asOf: rm.as_of ?? '-', tracks, stages, doing, nextUp, currentStage }
+  const items: ItemSnap[] = rm.items.map(i => ({ id: i.id, title: clip(i.title, 60), status: i.status, parent: i.parent ?? null }))
+  return { asOf: rm.as_of ?? '-', tracks, stages, doing, nextUp, currentStage, items }
 }
 
 // ---- 결정 표 ----
@@ -247,8 +260,8 @@ export function tableRows(text: string, src: Pick<DecisionSource, 'format' | 'id
   return out
 }
 
-export function parseDecisions(text: string, src: DecisionSource): { decided: DecisionRow[]; pending: DecisionRow[]; past: DecisionRow[] } {
-  const res = { decided: [] as DecisionRow[], pending: [] as DecisionRow[], past: [] as DecisionRow[] }
+export function parseDecisions(text: string, src: DecisionSource): { decided: DecisionRow[]; pending: DecisionRow[]; past: DecisionRow[]; other: DecisionRow[] } {
+  const res = { decided: [] as DecisionRow[], pending: [] as DecisionRow[], past: [] as DecisionRow[], other: [] as DecisionRow[] }
   const toText = (s: string) => (src.format === 'html-table' ? plainText(s) : s.replace(/\*\*/g, ''))
   const decided = src.decided ? new RegExp(src.decided) : null
   const pending = src.pending ? new RegExp(src.pending) : null
@@ -258,6 +271,7 @@ export function parseDecisions(text: string, src: DecisionSource): { decided: De
       topic: clip(toText(pick(cells, src.topicColumn ?? 1) ?? ''), 90),
       detail: clip(toText(pick(cells, src.detailColumn ?? -1) ?? '')),
       source: src.label,
+      sig: cells.map(toText).join('\u0000'),
     }
     if (src.kind === 'past') {
       res.past.push(row)
@@ -268,6 +282,8 @@ export function parseDecisions(text: string, src: DecisionSource): { decided: De
       res.decided.push(row)
     } else if (pending ? pending.test(status) : true) {
       res.pending.push(row)
+    } else {
+      res.other.push(row)
     }
   }
   return res
@@ -302,10 +318,13 @@ export async function buildBoard(
     recent: [],
     past: [],
     pending: [],
+    unclassified: [],
     glossary: mergeGlossary(config.includeDefaultGlossary === false ? [] : defaults, config.glossary ?? []),
     sources: [],
     loadedAt,
     warnings,
+    items: [],
+    sourceRows: {},
   }
   const cache = new Map<string, string | null>()
   const load = async (file: string) => {
@@ -325,6 +344,7 @@ export async function buildBoard(
     if (text !== null) {
       try {
         Object.assign(board, summarizeRoadmap(parseRoadmap(text, config.roadmap), config.roadmap))
+        board.sourceRows[`로드맵 ${config.roadmap.file}`] = board.items.length
       } catch (err) {
         warnings.push(err instanceof Error ? err.message : String(err))
       }
@@ -339,6 +359,8 @@ export async function buildBoard(
     board.recent.push(...d.decided)
     board.pending.push(...d.pending)
     board.past.push(...d.past)
+    board.unclassified.push(...d.other)
+    board.sourceRows[`${src.label} (${src.file})`] = d.decided.length + d.pending.length + d.past.length + d.other.length
   }
   return board
 }

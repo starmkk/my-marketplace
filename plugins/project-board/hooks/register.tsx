@@ -1,9 +1,11 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { BoardData, BoardTab, DecisionRow, Term } from '../types'
+import type { Baseline, BoardData, BoardTab, DecisionRow, GitNow, GitSnap, Term } from '../types'
+import { changesMarkdown, readGit, takeBaseline } from './changes'
+import type { GitRun } from './changes'
 import { kDefaultGlossary, findTerms, mergeSeen } from './glossary'
-import { buildBoard, cell, folderTitle, kConfigPath, kDefaultTitle, validateConfig } from './parse'
+import { buildBoard, cell, folderTitle, formatLocalTime, kConfigPath, kDefaultTitle, parseBoardCommand, validateConfig } from './parse'
 import type { BoardConfig } from './parse'
 
 const kPane = 'project-board'
@@ -11,6 +13,14 @@ const kPane = 'project-board'
 const tab = atom({ plugin: 'project-board', key: 'tab' } as const, 'status' as BoardTab)
 const data = atom({ plugin: 'project-board', key: 'data' } as const, null as BoardData | null)
 const seenTerms = atom({ plugin: 'project-board', key: 'seenTerms' } as const, [] as string[])
+// 대화 시작 기준 — 한 번 잡으면 session.start 가 다시 불려도 바꾸지 않음. /clear·세션 안 재개는 새 대화이고 session.start 가 불리지 않으며
+// atom 도 비워지므로 classic.SessionStart(source clear·resume)에서 새로 잡음
+const baseline = atom({ plugin: 'project-board', key: 'baseline' } as const, null as Baseline | null)
+const gitNow = atom({ plugin: 'project-board', key: 'git' } as const, null as GitNow | null)
+// /project-board off 로 닫은 상태 — 이번 세션만(다시 열기 전까지 자동으로 열지 않음)
+const isOff = atom({ plugin: 'project-board', key: 'isOff' } as const, false)
+
+const kUsage = '사용법: /project-board [on|off] — 인자 없이 또는 on 이면 다시 읽고 패널 열기, off 면 패널 닫기(이번 세션만)'
 
 const kSetupGuide = [
   `### 설정 파일이 없음`,
@@ -30,8 +40,9 @@ const kSetupGuide = [
   '로드맵 JSON 은 `{ tracks: [{key,name}], items: [{id, track, parent, title, deps, status}] }` 형식(상태 기본값 완료·진행·대기·보류·결정 필요).',
 ].join('\n')
 
-function now(): string {
-  return new Date().toISOString().slice(0, 16).replace('T', ' ')
+// 엔진 시계($.clock)를 로컬 시각 문자열로 — 시험에서 mock.clock 으로 고정할 수 있음
+async function now($: EngineInterface): Promise<string> {
+  return formatLocalTime(new Date(await $.clock.now()))
 }
 
 async function readOrNull($: EngineInterface, path: string): Promise<string | null> {
@@ -42,8 +53,7 @@ async function readOrNull($: EngineInterface, path: string): Promise<string | nu
   }
 }
 
-async function reload($: EngineInterface): Promise<void> {
-  const loadedAt = now()
+async function reloadBoard($: EngineInterface, loadedAt: string): Promise<void> {
   try {
     const raw = await readOrNull($, kConfigPath)
     if (raw === null) {
@@ -64,10 +74,36 @@ async function reload($: EngineInterface): Promise<void> {
   }
 }
 
+async function reloadGit($: EngineInterface): Promise<void> {
+  const run: GitRun = async argv => $.process.run(argv, { env: { LC_ALL: 'C' }, timeoutMs: 20000 })
+  const base = await read($, baseline)
+  const since = base?.git.kind === 'ok' ? { head: base.git.head } : null
+  const now = await readGit(run, since)
+  await update($, gitNow, () => now)
+}
+
+async function reload($: EngineInterface): Promise<void> {
+  await reloadBoard($, await now($))
+  // 이 플러그인은 전역 활성이라 설정 파일이 없는 저장소와 패널을 끈 상태에서는 git 을 실행하지 않음.
+  // 끈 동안의 커밋은 다시 열 때 기준 HEAD 와 비교해 읽으므로 변경 탭에서 빠지지 않음
+  if ((await read($, data)) !== null && !(await read($, isOff))) {
+    await reloadGit($)
+  }
+}
+
+// 세션 시작 기준 — 이미 있으면 그대로 둠
+async function captureBaseline($: EngineInterface): Promise<void> {
+  const board = await read($, data)
+  const git = await read($, gitNow)
+  const at = await now($)
+  const unread: GitSnap = { kind: 'error', message: 'git 을 읽지 않음(설정 파일이 없거나 패널을 끈 상태)' }
+  await update($, baseline, prev => prev ?? takeBaseline(board, git?.snap ?? unread, at))
+}
+
 function emptyBoard(loadedAt: string): BoardData {
   return {
     title: kDefaultTitle, asOf: '-', currentStage: '-', tracks: [], stages: [], doing: [], nextUp: [],
-    recent: [], past: [], pending: [], glossary: [], sources: [], loadedAt, warnings: [],
+    recent: [], past: [], pending: [], unclassified: [], glossary: [], sources: [], loadedAt, warnings: [], items: [], sourceRows: {},
   }
 }
 
@@ -133,17 +169,46 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'project-board',
-      description: '프로젝트 현황판(개발 현황·용어·결정) 패널 열기',
+      description: '프로젝트 현황판(개발 현황·용어·결정·변경) 패널 열기/닫기',
+      argumentHint: '[on|off]',
     })
     await reload($)
-    // 설정 파일이 있는 프로젝트에서만 저절로 연다
-    if (await read($, data)) {
+    await captureBaseline($)
+    // 설정 파일이 있는 프로젝트에서만 저절로 연다. off 로 닫았으면 플러그인이 다시 로드돼도 열지 않음
+    if ((await read($, data)) && !(await read($, isOff))) {
       void openPane($)
     }
     return next(e)
   })
 
-  on('command.run', { command: 'project-board' }, async $ => {
+  // /clear 와 세션 안 재개는 같은 프로세스에서 새 대화가 시작됨: session.start 는 불리지 않고 atom 은 비워짐
+  // (기준·용어가 사라지고 설정 파일도 없는 것처럼 보임). 새 대화 시작 시점을 기준으로 다시 잡음.
+  // 패널이 열려 있었는지는 UI 가 들고 있어 건드리지 않음(끈 상태도 그대로 닫힌 채)
+  on('classic.SessionStart', async ($, e, next) => {
+    if (e.source === 'clear' || e.source === 'resume') {
+      await update($, baseline, () => null)
+      await update($, seenTerms, () => [])
+      await reload($)
+      await captureBaseline($)
+    }
+    return next(e)
+  })
+
+  on('command.run', { command: 'project-board' }, async ($, e) => {
+    const action = parseBoardCommand(e.args)
+    if (action === null) {
+      return { text: kUsage }
+    }
+    if (action === 'off') {
+      await update($, isOff, () => true)
+      try {
+        await $.ui.close({ id: kPane })
+      } catch (err) {
+        return { text: `패널을 닫지 못했습니다: ${err instanceof Error ? err.message : String(err)}` }
+      }
+      return { text: '패널을 닫았습니다. 이번 세션에서는 /project-board 로 다시 열 수 있고, 다음 세션에서는 자동으로 열립니다.' }
+    }
+    await update($, isOff, () => false)
     await reload($)
     await openPane($)
     const board = await read($, data)
@@ -173,9 +238,12 @@ export const register: Register = on => {
       { key: 'status', label: '개발 현황', hotkey: '1' },
       { key: 'terms', label: '용어', hotkey: '2' },
       { key: 'decisions', label: '결정', hotkey: '3' },
+      { key: 'changes', label: '변경', hotkey: '4' },
     ]
     let body = kSetupGuide
-    if (board) {
+    if (current === 'changes') {
+      body = changesMarkdown(await read($, baseline), board, await read($, gitNow))
+    } else if (board) {
       if (current === 'status') {
         body = statusMarkdown(board)
       } else if (current === 'terms') {
