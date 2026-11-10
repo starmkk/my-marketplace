@@ -55,6 +55,8 @@ declare module 'claude-code' {
       baseline: Baseline | null
       git: GitNow | null
       isOff: boolean
+      stamps: Record<string, string> | null
+      noticeRef: BoardData | null
     }
   }
 }

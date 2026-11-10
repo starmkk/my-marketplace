@@ -2,11 +2,13 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { Baseline, BoardData, BoardTab, DecisionRow, GitNow, GitSnap, Term } from '../types'
-import { changesMarkdown, readGit, takeBaseline } from './changes'
+import { advanceNotices, changesMarkdown, readGit, takeBaseline } from './changes'
 import type { GitRun } from './changes'
+import { sameStamps, stampOf } from './freshness'
 import { kDefaultGlossary, findTerms, mergeSeen } from './glossary'
-import { buildBoard, cell, folderTitle, formatLocalTime, kConfigPath, kDefaultTitle, parseBoardCommand, validateConfig } from './parse'
+import { buildBoard, cell, folderTitle, formatLocalTime, isClosedByPerson, kConfigPath, kDefaultTitle, parseBoardCommand, validateConfig } from './parse'
 import type { BoardConfig } from './parse'
+import { bandLine, footerLabel } from './summary'
 
 const kPane = 'project-board'
 
@@ -19,6 +21,10 @@ const baseline = atom({ plugin: 'project-board', key: 'baseline' } as const, nul
 const gitNow = atom({ plugin: 'project-board', key: 'git' } as const, null as GitNow | null)
 // /project-board off 로 닫은 상태 — 이번 세션만(다시 열기 전까지 자동으로 열지 않음)
 const isOff = atom({ plugin: 'project-board', key: 'isOff' } as const, false)
+// 마지막으로 읽은 소스 파일 지문(경로 → 'mtime:size') — 같으면 다시 파싱하지 않음
+const stamps = atom({ plugin: 'project-board', key: 'stamps' } as const, null as Record<string, string> | null)
+// 변화 알림(toast)의 비교 기준 — 비교할 수 있는 마지막 현황
+const noticeRef = atom({ plugin: 'project-board', key: 'noticeRef' } as const, null as BoardData | null)
 
 const kUsage = '사용법: /project-board [on|off] — 인자 없이 또는 on 이면 다시 읽고 패널 열기, off 면 패널 닫기(이번 세션만)'
 
@@ -53,9 +59,40 @@ async function readOrNull($: EngineInterface, path: string): Promise<string | nu
   }
 }
 
-async function reloadBoard($: EngineInterface, loadedAt: string): Promise<void> {
+// 경로마다 지문을 읽기 '전에' 찍고 읽음 — buildBoard 가 실제로 요청한 경로가 곧 지문 목록(읽는 파일 목록을 따로 적지 않음)
+function stampedReader($: EngineInterface, seen: Record<string, string>) {
+  return async (path: string): Promise<string | null> => {
+    seen[path] = await stampOf(p => $.fs.stat(p), path)
+    return readOrNull($, path)
+  }
+}
+
+// 이전에 읽은 파일이 하나도 바뀌지 않았으면 true — 갱신 시각만 바꿈
+async function isUnchanged($: EngineInterface, loadedAt: string): Promise<boolean> {
+  const prevStamps = await read($, stamps)
+  const prev = await read($, data)
+  if (prevStamps === null || prev === null || prev.error) {
+    return false
+  }
+  const nowStamps: Record<string, string> = {}
+  for (const path of Object.keys(prevStamps)) {
+    nowStamps[path] = await stampOf(p => $.fs.stat(p), path)
+  }
+  if (!sameStamps(prevStamps, nowStamps)) {
+    return false
+  }
+  await update($, data, b => (b ? { ...b, loadedAt } : b))
+  return true
+}
+
+async function reloadBoard($: EngineInterface, loadedAt: string, force: boolean): Promise<void> {
+  if (!force && (await isUnchanged($, loadedAt))) {
+    return
+  }
+  const seen: Record<string, string> = {}
+  const readFile = stampedReader($, seen)
   try {
-    const raw = await readOrNull($, kConfigPath)
+    const raw = await readFile(kConfigPath)
     if (raw === null) {
       await update($, data, () => null)
       return
@@ -66,11 +103,24 @@ async function reloadBoard($: EngineInterface, loadedAt: string): Promise<void> 
       throw new Error(`${kConfigPath}: ${errors.join('; ')}`)
     }
     const title = folderTitle(await $.session.cwd())
-    const board = await buildBoard(config as BoardConfig, p => readOrNull($, p), kDefaultGlossary, loadedAt, title)
+    const board = await buildBoard(config as BoardConfig, readFile, kDefaultGlossary, loadedAt, title)
+    const last = await read($, data)
     await update($, data, () => board)
+    await notifyChanges($, board, last)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     await update($, data, prev => ({ ...(prev ?? emptyBoard(loadedAt)), loadedAt, error: message }))
+  } finally {
+    await update($, stamps, () => seen)
+  }
+}
+
+// 직전 비교 기준 대비 로드맵 상태 변경·결정 필요·결정됨을 toast 로 알림
+async function notifyChanges($: EngineInterface, board: BoardData, last: BoardData | null): Promise<void> {
+  const step = advanceNotices(await read($, noticeRef), board, last)
+  await update($, noticeRef, () => step.ref)
+  for (const line of step.lines) {
+    $.ui.toast(line)
   }
 }
 
@@ -82,8 +132,9 @@ async function reloadGit($: EngineInterface): Promise<void> {
   await update($, gitNow, () => now)
 }
 
-async function reload($: EngineInterface): Promise<void> {
-  await reloadBoard($, await now($))
+// force: 지문이 같아도 다시 읽음(새로고침·명령·세션 시작). 답변 끝(turn.complete)만 지문으로 건너뜀
+async function reload($: EngineInterface, force = false): Promise<void> {
+  await reloadBoard($, await now($), force)
   // 이 플러그인은 전역 활성이라 설정 파일이 없는 저장소와 패널을 끈 상태에서는 git 을 실행하지 않음.
   // 끈 동안의 커밋은 다시 열 때 기준 HEAD 와 비교해 읽으므로 변경 탭에서 빠지지 않음
   if ((await read($, data)) !== null && !(await read($, isOff))) {
@@ -172,7 +223,7 @@ export const register: Register = on => {
       description: '프로젝트 현황판(개발 현황·용어·결정·변경) 패널 열기/닫기',
       argumentHint: '[on|off]',
     })
-    await reload($)
+    await reload($, true)
     await captureBaseline($)
     // 설정 파일이 있는 프로젝트에서만 저절로 연다. off 로 닫았으면 플러그인이 다시 로드돼도 열지 않음
     if ((await read($, data)) && !(await read($, isOff))) {
@@ -188,10 +239,25 @@ export const register: Register = on => {
     if (e.source === 'clear' || e.source === 'resume') {
       await update($, baseline, () => null)
       await update($, seenTerms, () => [])
-      await reload($)
+      // 새 대화의 첫 읽기는 알리지 않음(알림 기준도 새로 잡음)
+      await update($, noticeRef, () => null)
+      // atom 이 비워져 isOff 가 false 로 돌아가지만 패널은 닫힌 채일 수 있음 — 엔진의 실제 패널 상태로 다시 맞춤
+      const isOpen = (await $.ui.panes()).some(p => p.id === kPane)
+      await update($, isOff, () => !isOpen)
+      await reload($, true)
       await captureBaseline($)
     }
     return next(e)
+  })
+
+  // 사람이 패널을 닫으면(닫기 표시·키) off 와 같게 취급: 이번 세션 자동으로 열지 않고 git 도 읽지 않음, 프롬프트 위 한 줄 표시.
+  // off 명령 자신(plugin)과 엔진의 정리(unload)는 그대로 둠. next(e) 를 돌려줘야 패널이 실제로 닫힘
+  on('ui.close', async ($, e, next) => {
+    const result = await next(e)
+    if (isClosedByPerson(e, kPane)) {
+      await update($, isOff, () => true)
+    }
+    return result
   })
 
   on('command.run', { command: 'project-board' }, async ($, e) => {
@@ -209,7 +275,7 @@ export const register: Register = on => {
       return { text: '패널을 닫았습니다. 이번 세션에서는 /project-board 로 다시 열 수 있고, 다음 세션에서는 자동으로 열립니다.' }
     }
     await update($, isOff, () => false)
-    await reload($)
+    await reload($, true)
     await openPane($)
     const board = await read($, data)
     return { text: board ? `${board.title} 패널을 열었습니다.` : `${kConfigPath} 가 없어 설정 안내를 표시했습니다.` }
@@ -227,6 +293,34 @@ export const register: Register = on => {
       }
     }
     return result
+  })
+
+  // footer — 보드가 있으면 늘 표시(패널을 닫아도 보임)
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    const label = footerLabel(await read($, data))
+    if (label === null) {
+      return next(e)
+    }
+    return next({ ...e, props: { ...e.props, modes: [...e.props.modes, label] } })
+  })
+
+  // 프롬프트 위 한 줄 — 패널을 닫은 상태에서만. 설문이 띠를 쓰는 동안은 양보
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const below = await next(e)
+    if (e.props.hasSurvey || !(await read($, isOff))) {
+      return below
+    }
+    const line = bandLine(await read($, data))
+    if (line === null) {
+      return below
+    }
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        <Text key="project-board-band" dimColor wrap="truncate-end">{line}</Text>
+        {below}
+      </Box>
+    )
   })
 
   on('ui.render', { component: 'Pane', requestId: kPane }, async ($, e) => {
@@ -264,7 +358,7 @@ export const register: Register = on => {
               onPress={() => update($, tab, () => t.key)}
             />
           ))}
-          <Button key="refresh" label="새로고침" hotkey="r" onPress={() => reload($)} />
+          <Button key="refresh" label="새로고침" hotkey="r" onPress={() => reload($, true)} />
         </Box>
         {board?.error && <Text color="red">읽기 실패: {board.error}</Text>}
         {(board?.warnings ?? []).map(w => (

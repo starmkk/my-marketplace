@@ -51,6 +51,11 @@ export function parseBoardCommand(args: string | undefined): 'on' | 'off' | null
   return a === '' || a === 'on' ? 'on' : a === 'off' ? 'off' : null
 }
 
+// 패널 닫힘이 off 와 같은지 — 사람이 닫기 표시·키로 닫은 경우만. off 명령 자신(plugin)·엔진 정리(unload)는 아님
+export function isClosedByPerson(e: { id: string; origin: { kind: string } }, paneId: string): boolean {
+  return e.id === paneId && e.origin.kind === 'person'
+}
+
 export const kConfigPath = '.claude/project-board.json'
 export const kDefaultTitle = 'Project Board'
 

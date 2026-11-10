@@ -3,7 +3,7 @@ import type { Engine } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
 import { findTerms, kDefaultGlossary, mergeSeen } from '../hooks/glossary'
-import { buildBoard, folderTitle, formatLocalTime, mergeGlossary, parseBoardCommand, parseDecisions, plainText, tableRows, validateConfig } from '../hooks/parse'
+import { buildBoard, folderTitle, formatLocalTime, isClosedByPerson, mergeGlossary, parseBoardCommand, parseDecisions, plainText, tableRows, validateConfig } from '../hooks/parse'
 import type { BoardConfig, DecisionSource } from '../hooks/parse'
 
 const kRoadmap = {
@@ -222,18 +222,48 @@ describe('명령 인자', () => {
 
 const kCfg = JSON.stringify({ title: '통합', roadmap: { file: 'design.html', format: 'html-script', id: 'roadmap-data' } })
 
-function world(on: On, opts: { nowMs?: number; closeError?: string; files?: Record<string, string>; git?: (argv: readonly string[]) => { exitCode?: number; stdout?: string; stderr?: string } } = {}) {
-  const log = { opens: [] as string[], closes: [] as string[], gitCalls: [] as string[], gitInits: [] as unknown[] }
-  mock.clock(on, { now: opts.nowMs ?? Date.now() })
+function world(on: On, opts: { nowMs?: number; closeError?: string; statError?: boolean; panes?: string[]; afterStat?: (path: string, files: Record<string, string>) => void; files?: Record<string, string>; git?: (argv: readonly string[]) => { exitCode?: number; stdout?: string; stderr?: string } } = {}) {
+  const log = { opens: [] as string[], closes: [] as string[], gitCalls: [] as string[], gitInits: [] as unknown[], reads: [] as string[], toasts: [] as string[] }
+  const clock = mock.clock(on, { now: opts.nowMs ?? Date.now() })
   const files: Record<string, string> = { '.claude/project-board.json': kCfg, 'design.html': kHtml, ...opts.files }
   on('session.cwd', async () => ({ value: '/work/demo' }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('classic.SessionStart', async () => ({}))
   on('turn.complete', async () => ({ text: '' }))
   on('command.register', async () => ({ value: { name: 'project-board' } }) as never)
+  const fileOf = (path: string) => Object.keys(files).find(k => path.endsWith(`/${k}`) || path === k)
+  on('fs.stat', async (_$, e) => {
+    const name = fileOf(e.path)
+    const text = name === undefined ? undefined : files[name]
+    if (opts.statError || text === undefined) {
+      return { deny: `ENOENT ${e.path}` } as never
+    }
+    // 내용이 바뀌면 지문도 바뀌게 — 길이가 같은 수정('대기'→'완료')도 잡도록 내용 해시를 mtime 으로 씀
+    let hash = 0
+    for (const ch of text) {
+      hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
+    }
+    opts.afterStat?.(e.path, files)
+    return { value: { kind: 'file', size: text.length, mtimeMs: hash, isLink: false } } as never
+  })
+  // 엔진 자리의 그리기: footer 는 받은 modes 를 그대로, 밴드는 엔진 몫 한 줄
+  on('ui.render', { component: 'SessionMode' }, async ($$, e) => {
+    const { Text } = $$.ui.resolve(e)
+    return <Text key="modes">{e.props.modes.join(' | ')}</Text>
+  })
+  on('ui.render', { component: 'AbovePrompt' }, async ($$, e) => {
+    const { Text } = $$.ui.resolve(e)
+    return <Text key="engine-band">engine</Text>
+  })
+  on('ui.panes', async () => ({ value: (opts.panes ?? []).map(id => ({ id, title: id, isShown: true, isFocused: false, isPlaced: true })) }) as never)
+  on('ui.toast', async (_$, e) => {
+    log.toasts.push(e.text)
+    return { value: undefined } as never
+  })
   on('fs.read', async (_$, e) => {
+    log.reads.push(e.path)
     // 엔진이 상대 경로를 절대 경로로 풀어 넘김
-    const name = Object.keys(files).find(k => e.path.endsWith(`/${k}`))
+    const name = fileOf(e.path)
     const text = name === undefined ? undefined : files[name]
     if (text === undefined) {
       return { deny: `ENOENT ${e.path}` } as never
@@ -254,7 +284,7 @@ function world(on: On, opts: { nowMs?: number; closeError?: string; files?: Reco
     const r = opts.git ? opts.git(e.argv) : { exitCode: 128, stderr: 'fatal: not a git repository' }
     return { value: { exitCode: 0, stdout: '', stderr: '', ...r } } as never
   })
-  return { log, files }
+  return { log, files, clock }
 }
 const kStart = { cwd: '/work/demo', surface: 'terminal', isInteractive: true } as const
 const run = ($: Engine, args = '') =>
@@ -332,7 +362,7 @@ describe('엔진 통합', () => {
   test('git 저장소가 아니면 변경 탭에 해당 없음, 변경 탭 갱신 중 git 실패는 오류로 보임', async ($, on) => {
     let broken = false
     const w = world(on, {
-      git: argv => {
+      git: () => {
         if (broken) {
           return { exitCode: 1, stderr: 'fatal: boom' }
         }
@@ -511,5 +541,173 @@ describe('엔진 통합', () => {
     await ui.press({ key: 'tab-changes' })
     expect((await ui.find({ type: 'Markdown' }))?.text).toContain('off 중 커밋')
     await ui.unmount()
+  })
+})
+
+// ---- 1.0.3: 패널 밖 요약·사람이 닫기·변경 감지 생략·변화 알림 ----
+
+describe('패널 밖 요약과 닫기 추적', () => {
+  const footer = async ($: Engine) => {
+    const ui = await $.ui.mount({ plugin: 'project-board', surface: 'terminal', component: 'SessionMode', props: { modes: ['plan'] } })
+    const text = (await ui.find({ type: 'Text', text: /^plan/ }))?.text ?? ''
+    await ui.unmount()
+    return text
+  }
+  const kBandProps = { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 10 }, view: {} }
+  const band = async ($: Engine, props: Record<string, unknown> = {}) => {
+    const ui = await $.ui.mount({ plugin: 'project-board', surface: 'terminal', component: 'AbovePrompt', props: { ...kBandProps, ...props } as never })
+    const mine = (await ui.find({ type: 'Text', text: /^▦ / }))?.text
+    const engine = (await ui.find({ type: 'Text', text: /^engine$/ }))?.text
+    await ui.unmount()
+    return { mine, engine }
+  }
+
+  test('사람이 닫은 것만 off 로 봄(plugin·unload·다른 패널은 아님)', () => {
+    expect(isClosedByPerson({ id: 'project-board', origin: { kind: 'person' } }, 'project-board')).toBe(true)
+    expect(isClosedByPerson({ id: 'project-board', origin: { kind: 'plugin' } }, 'project-board')).toBe(false)
+    expect(isClosedByPerson({ id: 'project-board', origin: { kind: 'unload' } }, 'project-board')).toBe(false)
+    expect(isClosedByPerson({ id: 'other', origin: { kind: 'person' } }, 'project-board')).toBe(false)
+  })
+  test('footer 는 엔진의 모드 뒤에 보드 요약을 붙임', async ($, on) => {
+    world(on)
+    await $.session.start(kStart)
+    expect(await footer($)).toMatch(/^plan \| ▦ /)
+  })
+  test('설정 파일이 없으면 footer 에 아무것도 붙이지 않음', async ($, on) => {
+    world(on, { files: { '.claude/project-board.json': undefined as never } })
+    await $.session.start(kStart)
+    expect(await footer($)).toBe('plan')
+  })
+  test('패널이 열려 있으면 밴드 없음(엔진 몫은 그대로), off 면 밴드가 엔진 몫 위에 보임', async ($, on) => {
+    world(on)
+    await $.session.start(kStart)
+    expect(await band($)).toEqual({ mine: undefined, engine: 'engine' })
+    await run($, 'off')
+    const b = await band($)
+    expect(b.mine).toContain('/project-board 로 열기')
+    expect(b.engine).toBe('engine')
+  })
+  test('설문이 띠를 쓰는 동안은 양보', async ($, on) => {
+    world(on)
+    await $.session.start(kStart)
+    await run($, 'off')
+    expect((await band($, { hasSurvey: true })).mine).toBeUndefined()
+  })
+  test('off 뒤 /project-board 로 열면 밴드가 사라짐', async ($, on) => {
+    world(on)
+    await $.session.start(kStart)
+    await run($, 'off')
+    await run($)
+    expect((await band($)).mine).toBeUndefined()
+  })
+  test('/clear 뒤 off 상태는 엔진의 실제 패널 상태로 다시 맞춤(닫혀 있으면 밴드)', async ($, on) => {
+    world(on, { panes: [] })
+    await $.session.start(kStart)
+    await $.classic.SessionStart({ source: 'clear' })
+    expect((await band($)).mine).toContain('/project-board 로 열기')
+  })
+  test('/clear 뒤 패널이 열려 있으면 밴드 없음', async ($, on) => {
+    world(on, { panes: ['project-board'] })
+    await $.session.start(kStart)
+    await $.classic.SessionStart({ source: 'clear' })
+    expect((await band($)).mine).toBeUndefined()
+  })
+})
+
+describe('변경 감지 생략과 변화 알림', () => {
+  const designReads = (w: ReturnType<typeof world>) => w.log.reads.filter(p => p.endsWith('design.html')).length
+  const withStatus = (status: string) => {
+    const roadmap = JSON.parse(kHtml.match(/>(\{.*\})<\/script>/)![1]!)
+    roadmap.items[1].status = status
+    return kHtml.replace(/>\{.*\}<\/script>/, `>${JSON.stringify(roadmap)}</script>`)
+  }
+  const header = async ($: Engine) => {
+    const ui = await $.ui.mount({ plugin: 'project-board', surface: 'terminal', component: 'Pane', requestId: 'project-board', props: { title: 't', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 20 }, view: {} } as never })
+    const text = (await ui.findAll({ type: 'Text', text: /갱신/ }))[0]?.text ?? ''
+    return { ui, text }
+  }
+
+  test('파일이 그대로면 답변 끝에 다시 읽지 않고 갱신 시각만 바꿈', async ($, on) => {
+    const w = world(on, { nowMs: new Date('2026-11-10T01:00:00Z').getTime() })
+    await $.session.start(kStart)
+    const reads = designReads(w)
+    await w.clock.advance(90 * 60000)
+    await $.turn.complete({ ...kDone })
+    expect(designReads(w)).toBe(reads)
+    const { ui, text } = await header($)
+    expect(text).toContain(`갱신 ${formatLocalTime(new Date('2026-11-10T02:30:00Z'))}`)
+    await ui.unmount()
+  })
+  test('파일이 바뀌면 다시 읽음(길이가 같은 수정 포함)', async ($, on) => {
+    const w = world(on)
+    await $.session.start(kStart)
+    const reads = designReads(w)
+    w.files['design.html'] = withStatus('완료')
+    await $.turn.complete({ ...kDone })
+    expect(designReads(w)).toBe(reads + 1)
+  })
+  test('stat 이 실패하면 매번 다시 읽음(옛 값에 고착하지 않음)', async ($, on) => {
+    const w = world(on, { statError: true })
+    await $.session.start(kStart)
+    const reads = designReads(w)
+    await $.turn.complete({ ...kDone })
+    expect(designReads(w)).toBe(reads + 1)
+  })
+  test('새로고침 버튼은 파일이 그대로여도 다시 읽음', async ($, on) => {
+    const w = world(on)
+    await $.session.start(kStart)
+    const reads = designReads(w)
+    const { ui } = await header($)
+    await ui.press({ key: 'refresh' })
+    expect(designReads(w)).toBe(reads + 1)
+    await ui.unmount()
+  })
+  test('설정에 소스가 추가되면 새 소스도 읽음', async ($, on) => {
+    const w = world(on, { files: { 'plan.md': '| U-1 | 질문 | 영향 | 결정 필요 |' } })
+    await $.session.start(kStart)
+    w.files['.claude/project-board.json'] = JSON.stringify({
+      ...JSON.parse(kCfg),
+      decisions: [{ file: 'plan.md', label: '계획', format: 'md-table', idPrefix: 'U', kind: 'classify', pending: '결정 필요' }],
+    })
+    await $.turn.complete({ ...kDone })
+    expect(w.log.reads.some(p => p.endsWith('plan.md'))).toBe(true)
+  })
+  test('처음 읽을 때는 알리지 않고, 로드맵 상태가 바뀌면 toast', async ($, on) => {
+    const w = world(on)
+    await $.session.start(kStart)
+    expect(w.log.toasts).toEqual([])
+    w.files['design.html'] = withStatus('완료')
+    await $.turn.complete({ ...kDone })
+    expect(w.log.toasts).toEqual(['로드맵 C-B: 대기 → 완료'])
+  })
+  test('지문을 찍은 뒤 읽기 전에 파일이 바뀌면 다음 답변 끝에 다시 읽음', async ($, on) => {
+    let isDone = false
+    const w = world(on, {
+      afterStat: (path, files) => {
+        if (!isDone && path.endsWith('design.html')) {
+          isDone = true
+          files['design.html'] = withStatus('완료')
+        }
+      },
+    })
+    await $.session.start(kStart)
+    const reads = designReads(w)
+    await $.turn.complete({ ...kDone })
+    expect(designReads(w)).toBe(reads + 1)
+  })
+  test('/clear 뒤 첫 읽기는 바뀐 것이 있어도 알리지 않음', async ($, on) => {
+    const w = world(on)
+    await $.session.start(kStart)
+    w.files['design.html'] = withStatus('완료')
+    await $.classic.SessionStart({ source: 'clear' })
+    expect(w.log.toasts).toEqual([])
+  })
+  test('파일이 그대로면 toast 가 반복되지 않음', async ($, on) => {
+    const w = world(on)
+    await $.session.start(kStart)
+    w.files['design.html'] = withStatus('완료')
+    await $.turn.complete({ ...kDone })
+    await $.turn.complete({ ...kDone })
+    expect(w.log.toasts.length).toBe(1)
   })
 })

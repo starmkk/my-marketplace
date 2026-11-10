@@ -1,7 +1,7 @@
 // '변경' 탭 — 세션 시작 대비 현황(로드맵·결정)·파일(git) 변화를 비교하는 함수 모음.
 // 비교는 순수 함수이고, git 실행만 호출하는 쪽이 넘기는 run 으로 한다.
 import type { Baseline, BoardData, DecisionKind, DecisionSnap, GitNow, GitSnap, ItemSnap } from '../types'
-import { cell, kConfigPath } from './parse'
+import { cell, clip, kConfigPath } from './parse'
 
 const kMaxRows = 20
 const kKindLabel: Record<DecisionKind, string> = { recent: '현재 결정', pending: '앞으로 결정', past: '지난 결정', other: '분류 밖(목록에 안 나옴)' }
@@ -79,13 +79,28 @@ function unreadableReason(board: BoardData | null): string | null {
   return null
 }
 
-// 소스 구성이 바뀌었거나 행이 있던 소스가 비었으면 항목이 '삭제'로 보이므로 비교하지 않음(경고 없이 비는 경우를 막음)
-function sourceShapeProblem(before: Record<string, number>, after: Record<string, number>): string | null {
+// 소스 구성(이름 집합)이 바뀜 — 설정 변경·이름 변경
+function sourceSetChanged(before: Record<string, number>, after: Record<string, number>): boolean {
   const names = (r: Record<string, number>) => Object.keys(r).sort().join('\u0000')
-  if (names(before) !== names(after)) {
+  return names(before) !== names(after)
+}
+
+// 행이 있던 소스가 0행이 됨 — 경고 없이 비는 경우(편집기가 파일을 비운 뒤 다시 쓰는 순간 등)
+function emptiedSources(before: Record<string, number>, after: Record<string, number>): string[] {
+  return Object.keys(before).filter(k => (before[k] ?? 0) > 0 && (after[k] ?? 0) === 0)
+}
+
+// 두 현황을 비교해도 되는지 — 안 되면 사유, 되면 null. 빈 항목이 '삭제'로, 돌아온 항목이 '추가'로 보이는 오판을 막음.
+// 변경 탭(diffBoard)과 변화 알림(boardNotices·advanceNotices)이 같은 규칙을 씀
+export function comparableReason(before: Pick<BoardData, 'sourceRows'>, after: BoardData | null): string | null {
+  const reason = unreadableReason(after)
+  if (after === null || reason !== null) {
+    return `지금 현황을 읽지 못함 — ${reason}`
+  }
+  if (sourceSetChanged(before.sourceRows, after.sourceRows)) {
     return '읽는 소스 구성이 세션 중에 바뀜(설정 변경·이름 변경)'
   }
-  const emptied = Object.keys(before).filter(k => (before[k] ?? 0) > 0 && (after[k] ?? 0) === 0)
+  const emptied = emptiedSources(before.sourceRows, after.sourceRows)
   return emptied.length ? `세션 시작 때 행이 있던 소스가 비었음: ${emptied.join(', ')}` : null
 }
 
@@ -108,19 +123,67 @@ export function diffBoard(baseline: Baseline | null, board: BoardData | null): B
   if (baseline.board === null) {
     return { kind: 'unavailable', reason: `세션 시작 때 현황을 읽지 못함 — ${baseline.boardReason}` }
   }
-  const reason = unreadableReason(board)
+  const reason = comparableReason(baseline.board, board)
   if (board === null || reason !== null) {
-    return { kind: 'unavailable', reason: `지금 현황을 읽지 못함 — ${reason}` }
-  }
-  const shape = sourceShapeProblem(baseline.board.sourceRows, board.sourceRows)
-  if (shape !== null) {
-    return { kind: 'unavailable', reason: shape }
+    return { kind: 'unavailable', reason: reason ?? '' }
   }
   return {
     kind: 'ok',
     roadmap: diffRoadmap(baseline.board.items, board.items),
     decisions: diffDecisions(baseline.board.decisions, snapshotDecisions(board)),
   }
+}
+
+// ---- 변화 알림(toast) ----
+
+const kMaxNotices = 3
+const kMaxNoticeLength = 60
+
+// 직전 현황 대비 알릴 만한 변화: 로드맵 상태 변경, 결정 필요(추가·이동), 결정됨(결정 필요 → 현재 결정).
+// 비교할 수 없으면 빈 목록. 최대 3줄이고 넘치면 마지막 줄을 '외 N건' 으로 줄임
+export function boardNotices(prev: BoardData, next: BoardData): string[] {
+  if (unreadableReason(prev) !== null || comparableReason(prev, next) !== null) {
+    return []
+  }
+  const changed = diffRoadmap(prev.items, next.items).statusChanged
+  const roadmap = changed.length <= 2
+    ? changed.map(c => `로드맵 ${c.id}: ${c.from} → ${c.to}`)
+    : [`로드맵 상태 변경 ${changed.length}건 — 변경 탭 참고`]
+  const d = diffDecisions(snapshotDecisions(prev), snapshotDecisions(next))
+  const line = (label: string, r: DecisionSnap) => clip(`${label}: ${r.id} ${r.topic}`, kMaxNoticeLength)
+  const pending = [...d.added.filter(r => r.kind === 'pending'), ...d.moved.filter(m => m.to === 'pending').map(m => m.row)]
+  const decided = d.moved.filter(m => m.from === 'pending' && m.to === 'recent').map(m => m.row)
+  const all = [...roadmap, ...pending.map(r => line('결정 필요', r)), ...decided.map(r => line('결정됨', r))]
+  if (all.length <= kMaxNotices) {
+    return all
+  }
+  return [...all.slice(0, kMaxNotices - 1), `외 ${all.length - (kMaxNotices - 1)}건 — 변경 탭 참고`]
+}
+
+// 알림 기준(ref)을 다음 현황으로 옮길지 정하고 알릴 줄을 돌려줌. last 는 직전에 읽은 현황(기준과 다를 수 있음).
+// - 기준이 없으면: 읽은 현황이 기준이 되고 알리지 않음
+// - 읽지 못했으면: 기준을 그대로 둠
+// - 소스 구성이 바뀌었으면(설정 변경): 새 현황이 기준이 되고 알리지 않음(옛 기준에 고착하지 않음)
+// - 행이 있던 소스가 비었으면: 처음 한 번은 기준을 그대로 둠(편집 중 잠깐 빈 것이 돌아왔을 때 전부 '추가' 로 알리지 않음).
+//   직전 현황도 같은 소스가 비어 있었으면 정말로 비운 것 — 직전 대비 변화를 알리고 기준을 옮김(알림이 조용히 멈추지 않음)
+export function advanceNotices(
+  ref: BoardData | null,
+  next: BoardData | null,
+  last: BoardData | null = null,
+): { ref: BoardData | null; lines: string[] } {
+  if (next === null || unreadableReason(next) !== null) {
+    return { ref, lines: [] }
+  }
+  if (ref === null || sourceSetChanged(ref.sourceRows, next.sourceRows)) {
+    return { ref: next, lines: [] }
+  }
+  const emptied = emptiedSources(ref.sourceRows, next.sourceRows)
+  if (emptied.length) {
+    const stillEmpty = last !== null && unreadableReason(last) === null && !sourceSetChanged(last.sourceRows, next.sourceRows)
+      && emptied.every(k => (last.sourceRows[k] ?? 0) === 0)
+    return stillEmpty ? { ref: next, lines: boardNotices(last, next) } : { ref, lines: [] }
+  }
+  return { ref: next, lines: boardNotices(ref, next) }
 }
 
 // ---- git ----
