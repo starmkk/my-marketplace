@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.4 | 스킬 3종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 |
+| `dev-helper-plugin` | 1.0.6 | 스킬 4종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 |
 | `on-device-ai-plugin` | 1.1.8 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.2 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.5 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
@@ -24,7 +24,7 @@
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 3종을 제공합니다.
+개발 워크플로우 자동화 스킬 4종을 제공합니다.
 
 ### 설치
 
@@ -39,6 +39,7 @@
 | `github-commit` | Conventional Commits + emoji 형식의 한국어 커밋 자동화 |
 | `pytorch-harness` | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
 | `project-handoff` | 토픽별 자기완결 세션 인계(handoff) 문서 작성 — cross-repo / Claude Design 시안 변형 지원 |
+| `model-profile` | 서브에이전트 모델 배정을 세션 단위로 opus 위주(fable 은 에스컬레이션 전용)로 전환 — `/dev-helper-plugin:model-profile [opus\|fable]` |
 
 ---
 
