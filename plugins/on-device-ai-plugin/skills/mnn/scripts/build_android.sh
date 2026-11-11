@@ -19,8 +19,8 @@
 #   --output <path>       Output directory (default: ./build_android)
 #
 # Examples:
-#   ./build_android.sh --mnn-source ~/.claude/repo/MNN@3.5.0 --abi arm64-v8a --gpu
-#   ./build_android.sh --mnn-source ~/.claude/repo/MNN@3.5.0 --abi both --llm --gpu
+#   ./build_android.sh --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0 --abi arm64-v8a --gpu
+#   ./build_android.sh --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0 --abi both --llm --gpu
 ##
 
 set -e
@@ -86,7 +86,7 @@ done
 if [ -z "$MNN_DIR" ]; then
     echo "Error: --mnn-source is required"
     echo "Usage: $0 --mnn-source /path/to/MNN [options]"
-    echo "Example: $0 --mnn-source ~/.claude/repo/MNN@3.5.0 --abi arm64-v8a"
+    echo "Example: $0 --mnn-source ${CLAUDE_CODE_TMPDIR:-$HOME/.claude}/repo/MNN@3.5.0 --abi arm64-v8a"
     exit 1
 fi
 

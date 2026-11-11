@@ -25,8 +25,8 @@ import torch
 # ---------- 환경 ----------
 
 def get_ckpt_dir() -> Path:
-    """~/.claude/repo/OpenVoice@*/checkpoints_v2 를 검색."""
-    repo_base = Path.home() / ".claude" / "repo"
+    """$CLAUDE_CODE_TMPDIR/repo/OpenVoice@*/checkpoints_v2 를 검색."""
+    repo_base = Path(os.environ.get("CLAUDE_CODE_TMPDIR") or Path.home() / ".claude") / "repo"
     if repo_base.exists():
         candidates = sorted(repo_base.glob("OpenVoice@*/checkpoints_v2"))
         if candidates:
@@ -34,7 +34,7 @@ def get_ckpt_dir() -> Path:
     raise RuntimeError(
         "OpenVoice checkpoints를 찾을 수 없습니다.\n"
         "Claude Code에게 'OpenVoice 소스 다운로드해줘'라고 요청하세요.\n"
-        "기대 경로: ~/.claude/repo/OpenVoice@<version>/checkpoints_v2"
+        "기대 경로: $CLAUDE_CODE_TMPDIR/repo/OpenVoice@<version>/checkpoints_v2"
     )
 
 

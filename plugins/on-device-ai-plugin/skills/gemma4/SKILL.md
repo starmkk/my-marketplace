@@ -19,7 +19,9 @@ description: |
 
 # Gemma 4 공식 사용법 레퍼런스
 
-## 모델 관리 (~/.claude/repo)
+## 모델 관리 ($CLAUDE_CODE_TMPDIR/repo)
+
+> `CLAUDE_CODE_TMPDIR` 미설정 시 `~/.claude` 사용
 
 모델이 필요한 작업(예: ASR, 추론, 파인튜닝 등)이 생기면
 **반드시 먼저 사용자에게 확인**한다:
@@ -31,7 +33,7 @@ Step 1. 사용자에게 묻기:
 
 Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
 
-Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+Step 2b. 사용자가 없다고 하면 → $CLAUDE_CODE_TMPDIR/repo에 자동 다운로드 후 안내
 ```
 
 ### 모델 저장 경로
@@ -39,7 +41,7 @@ Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드
 | 항목 | 값 |
 |------|-----|
 | HuggingFace | `google/gemma-4-E2B-it`, `google/gemma-4-E4B-it` 등 |
-| 폴더 패턴 | `~/.claude/repo/gemma-4-<variant>` |
+| 폴더 패턴 | `$CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>` |
 
 ### 다운로드 방법
 
@@ -48,18 +50,18 @@ pip install huggingface_hub
 
 # E2B-it (128K, 오디오/이미지/비디오 지원)
 huggingface-cli download google/gemma-4-E2B-it \
-  --local-dir ~/.claude/repo/gemma-4-E2B-it
+  --local-dir $CLAUDE_CODE_TMPDIR/repo/gemma-4-E2B-it
 
 # E4B-it
 huggingface-cli download google/gemma-4-E4B-it \
-  --local-dir ~/.claude/repo/gemma-4-E4B-it
+  --local-dir $CLAUDE_CODE_TMPDIR/repo/gemma-4-E4B-it
 
 # 12B-it (256K, 오디오/이미지/비디오 지원, Unified encoder-free)
 huggingface-cli download google/gemma-4-12B-it \
-  --local-dir ~/.claude/repo/gemma-4-12B-it
+  --local-dir $CLAUDE_CODE_TMPDIR/repo/gemma-4-12B-it
 ```
 
-이미 `~/.claude/repo/gemma-4-<variant>`이 존재하면 재다운로드 없이 재사용한다.
+이미 `$CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>`이 존재하면 재다운로드 없이 재사용한다.
 다운로드 후 사용자에게 경로 안내.
 
 ---
@@ -454,7 +456,7 @@ Gemma 4 E2B-it의 ASR 기능을 활용해 TTS 합성 wav를 전사하고 원본 
 
 ### 모델 경로
 
-`~/.claude/repo/gemma-4-<variant>` 경로 또는 사용자 제공 경로를 사용한다 (`scripts/_asr.py` 참고).
+`$CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>` 경로 또는 사용자 제공 경로를 사용한다 (`scripts/_asr.py` 참고).
 
 ### 주요 스크립트 (scripts/)
 

@@ -7,6 +7,7 @@ Gemma 4 E2B-it ASR 공통 모듈 (싱글톤 캐시).
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -18,10 +19,10 @@ import torch
 
 def get_model_path() -> Path:
     """
-    ~/.claude/repo/gemma-4-* 디렉토리를 검색해 모델 경로를 반환한다.
+    $CLAUDE_CODE_TMPDIR/repo/gemma-4-* 디렉토리를 검색해 모델 경로를 반환한다.
     사용자가 직접 경로를 지정한 경우 해당 경로를 우선 사용한다.
     """
-    repo_base = Path.home() / ".claude" / "repo"
+    repo_base = Path(os.environ.get("CLAUDE_CODE_TMPDIR") or Path.home() / ".claude") / "repo"
     if repo_base.exists():
         candidates = sorted(repo_base.glob("gemma-4-*"))
         if candidates:
@@ -30,7 +31,7 @@ def get_model_path() -> Path:
         "Gemma 4 모델을 찾을 수 없습니다.\n"
         "Claude Code에게 'Gemma 4 모델 다운로드해줘'라고 요청하거나,\n"
         "모델 경로를 직접 이 함수에 전달하세요.\n"
-        "기대 경로: ~/.claude/repo/gemma-4-<variant>"
+        "기대 경로: $CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>"
     )
 
 
@@ -176,8 +177,6 @@ def transcribe_audio(
 
 
 # ---------- 텍스트 정규화 (CER/WER 계산용) ----------
-
-import re
 
 _ZW = re.compile(r"[\u200B-\u200F\uFEFF]")          # zero-width
 _PUNCT = re.compile(r"[^\w\s가-힣]")                  # 영숫자/한글/공백 외 제거

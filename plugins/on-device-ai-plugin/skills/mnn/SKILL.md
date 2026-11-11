@@ -21,7 +21,9 @@ description: |
 
 # MNN Development Skill
 
-## 소스 코드 관리 (~/.claude/repo)
+## 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
+
+> `CLAUDE_CODE_TMPDIR` 미설정 시 `~/.claude` 사용
 
 소스코드가 필요한 작업(예: MNN 빌드, LLM 변환, MNNConvert 바이너리 사용 등)이
 생기면 **반드시 먼저 사용자에게 확인**한다:
@@ -33,7 +35,7 @@ Step 1. 사용자에게 묻기:
 
 Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용 (스크립트에 --mnn-source 인자로 전달)
 
-Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+Step 2b. 사용자가 없다고 하면 → $CLAUDE_CODE_TMPDIR/repo에 자동 다운로드 후 안내
 ```
 
 ### 참조 repo
@@ -41,7 +43,7 @@ Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드
 | 항목 | 값 |
 |------|-----|
 | GitHub | https://github.com/alibaba/MNN.git |
-| 폴더 패턴 | `~/.claude/repo/MNN@<version>` |
+| 폴더 패턴 | `$CLAUDE_CODE_TMPDIR/repo/MNN@<version>` |
 
 ### 다운로드 방법
 
@@ -53,15 +55,15 @@ LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/alibaba
 # 최신 버전 clone (버전 미명시 시)
 git clone --branch "$LATEST" --depth 1 \
   https://github.com/alibaba/MNN.git \
-  ~/.claude/repo/MNN@"$LATEST"
+  $CLAUDE_CODE_TMPDIR/repo/MNN@"$LATEST"
 
 # 특정 버전 clone (예: 3.5.0)
 git clone --branch 3.5.0 --depth 1 \
   https://github.com/alibaba/MNN.git \
-  ~/.claude/repo/MNN@3.5.0
+  $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0
 ```
 
-이미 `~/.claude/repo/MNN@<version>`이 존재하면 재다운로드 없이 재사용한다.
+이미 `$CLAUDE_CODE_TMPDIR/repo/MNN@<version>`이 존재하면 재다운로드 없이 재사용한다.
 다운로드 후 사용자에게 경로 안내.
 
 ### 스크립트 사용 시 --mnn-source 인자
@@ -70,10 +72,10 @@ scripts/ 내 스크립트는 MNN 소스 경로가 필요할 때 `--mnn-source` �
 
 ```bash
 python scripts/export_llm.py --model Qwen/Qwen2.5-7B \
-  --mnn-source ~/.claude/repo/MNN@3.5.0
+  --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0
 
 ./scripts/build_android.sh --abi arm64-v8a --gpu \
-  --mnn-source ~/.claude/repo/MNN@3.5.0
+  --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0
 ```
 
 ---

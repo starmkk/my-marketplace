@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # MeloTTS-KWS 환경 구축 스크립트
 #
-# MeloTTS 소스코드는 ~/.claude/repo/MeloTTS@<version>에서 관리됩니다.
+# MeloTTS 소스코드는 $CLAUDE_CODE_TMPDIR/repo/MeloTTS@<version>에서 관리됩니다.
 # 소스가 없다면 Claude Code에게 "MeloTTS 소스 다운로드해줘"라고 요청하세요.
 
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-ENV_DIR="$HOME/.claude/venvs/melotts"
+ENV_DIR="${CLAUDE_CODE_TMPDIR:-$HOME/.claude}/venvs/melotts"
 
 echo ""
 echo "================================================================="
@@ -17,8 +17,8 @@ echo ""
 echo "MeloTTS 소스 위치 확인:"
 
 SRC_DIR=""
-if [ -d "$HOME/.claude/repo" ]; then
-  MELO_DIRS=$(find "$HOME/.claude/repo" -maxdepth 1 -name "MeloTTS@*" -type d 2>/dev/null || true)
+if [ -d "${CLAUDE_CODE_TMPDIR:-$HOME/.claude}/repo" ]; then
+  MELO_DIRS=$(find "${CLAUDE_CODE_TMPDIR:-$HOME/.claude}/repo" -maxdepth 1 -name "MeloTTS@*" -type d 2>/dev/null || true)
   if [ -n "$MELO_DIRS" ]; then
     echo ""
     echo "  발견된 MeloTTS 소스:"
@@ -27,12 +27,12 @@ if [ -d "$HOME/.claude/repo" ]; then
     done
     SRC_DIR=$(echo "$MELO_DIRS" | head -1)
   else
-    echo "  ~/.claude/repo에 MeloTTS 소스가 없습니다."
+    echo "  ${CLAUDE_CODE_TMPDIR:-$HOME/.claude}/repo에 MeloTTS 소스가 없습니다."
     echo "  Claude Code에게 'MeloTTS 소스 다운로드해줘'라고 요청하세요."
     exit 0
   fi
 else
-  echo "  ~/.claude/repo 디렉토리가 없습니다."
+  echo "  ${CLAUDE_CODE_TMPDIR:-$HOME/.claude}/repo 디렉토리가 없습니다."
   echo "  Claude Code에게 'MeloTTS 소스 다운로드해줘'라고 요청하세요."
   exit 0
 fi

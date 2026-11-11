@@ -1,7 +1,7 @@
 """
 gallery 환경변수 게이트 (레거시 호환).
 GALLERY_SOURCE_PATH 요구사항이 제거되었습니다.
-소스코드는 ~/.claude/repo/gallery@<version>에서 관리됩니다.
+소스코드는 $CLAUDE_CODE_TMPDIR/repo/gallery@<version>에서 관리됩니다.
 """
 
 from __future__ import annotations

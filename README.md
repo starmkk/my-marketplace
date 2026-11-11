@@ -13,8 +13,8 @@
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
 | `dev-helper-plugin` | 1.0.6 | 스킬 4종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 |
-| `on-device-ai-plugin` | 1.1.8 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
-| `kws-speech-plugin` | 1.0.2 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
+| `on-device-ai-plugin` | 1.1.10 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
+| `kws-speech-plugin` | 1.0.3 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.5 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.7 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
@@ -177,7 +177,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 
 `precision`/`memory`/`backend_type` 등 MNN 런타임 동작이나 llmexport 옵션의 의미가 불확실할 때, MNN 관련 오동작을 진단할 때 호출합니다. 추측 대신 소스로 확정하는 것이 목적입니다.
 
-누적 조사 결과는 `~/.claude/agent-memory/mnn-source-inspector/` 에 사용자 전역으로 저장되며 MNN 을 쓰는 저장소들이 공유합니다.
+누적 조사 결과는 `$CLAUDE_CODE_TMPDIR/agent-memory/mnn-source-inspector/` 에 사용자 전역으로 저장되며 MNN 을 쓰는 저장소들이 공유합니다.
 
 ---
 
@@ -185,13 +185,13 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 
 Google Gemma 4 멀티모달 모델 공식 사용법 레퍼런스. 모델 로드/추론/파인튜닝, `apply_chat_template` 입력 구성, 오디오 ASR·이미지·비디오 멀티모달 태스크 구현, Thinking 모드·Function Calling, vLLM/llama.cpp/MLX 서빙을 다룹니다.
 
-### 모델 관리 (~/.claude/repo)
+### 모델 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-모델이 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/gemma-4-<variant>`에 자동 다운로드합니다.
+모델이 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>`에 자동 다운로드합니다.
 
 **모델 다운로드:**
 ```shell
-huggingface-cli download google/gemma-4-E2B-it --local-dir ~/.claude/repo/gemma-4-E2B-it
+huggingface-cli download google/gemma-4-E2B-it --local-dir $CLAUDE_CODE_TMPDIR/repo/gemma-4-E2B-it
 ```
 
 **환경 설치:**
@@ -231,9 +231,9 @@ Alibaba Cloud Qwen 2.5/3.x 멀티모달 모델 개발 레퍼런스. 텍스트/�
 | Qwen3 (텍스트) | 0.6B~32B / 30B-A3B / 235B-A22B | dense + MoE | thinking·non-thinking 듀얼 모드, 2507 변형은 256K(최대 1M) |
 | Qwen3-Omni | 30B-A3B (Instruct/Thinking/Captioner) | MoE | 멀티모달 + 음성, voice에 Aiden 추가, 텍스트 119/음성이해 19/음성생성 10개 언어 |
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/Qwen@<version>`에 자동 다운로드합니다.
+소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/Qwen@<version>`에 자동 다운로드합니다.
 
 **환경 설치:**
 ```shell
@@ -255,9 +255,9 @@ bash skills/qwen/scripts/install.sh
 
 Google LiteRT(구 TensorFlow Lite) 온디바이스 ML 추론 프레임워크 레퍼런스. `.tflite` 모델 로딩/컴파일/실행, `CompiledModel`/`Environment`/`TensorBuffer` API, GPU/NPU delegate, dispatch API, CMake/Bazel 빌드를 다룹니다.
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/LiteRT@<version>`에 자동 다운로드합니다.
+소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/LiteRT@<version>`에 자동 다운로드합니다.
 
 **환경 설치:**
 ```shell
@@ -278,9 +278,9 @@ bash skills/litert/scripts/install.sh
 
 Google LiteRT-LM 온디바이스 LLM 추론 프레임워크 레퍼런스. `.litertlm` 모델 로딩/실행, Engine/Conversation/Session API, Gemma·Qwen 등의 온디바이스 실행, function calling/tool use, 멀티모달(vision/audio) 추론을 다룹니다.
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/LiteRT-LM@<version>`에 자동 다운로드합니다.
+소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@<version>`에 자동 다운로드합니다.
 
 **환경 설치:**
 ```shell
@@ -316,9 +316,9 @@ TensorFlow v2.21.0-rc0 및 TFLite 핵심 API 레퍼런스. TFLite C/C++/Python A
 
 Alibaba MNN(Mobile Neural Network) 경량 딥러닝 프레임워크 개발 레퍼런스. TensorFlow/Caffe/ONNX/PyTorch → MNN 변환, Android/iOS 통합, MNN-LLM 모바일 LLM 배포, FP16/Int8/Int4 양자화, CPU/GPU/NPU 백엔드 설정, MNN C++/Python API를 다룹니다.
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/MNN@<version>`에 자동 다운로드합니다.
+소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/MNN@<version>`에 자동 다운로드합니다.
 
 **환경 설치:**
 ```shell
@@ -329,15 +329,15 @@ bash skills/mnn/scripts/install.sh
 ```shell
 # 모델 변환 (ONNX → MNN)
 python skills/mnn/scripts/convert_model.py --input model.onnx --output model.mnn \
-  --mnn-source ~/.claude/repo/MNN@3.5.0
+  --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0
 
 # LLM 모델 MNN 변환 및 내보내기
 python skills/mnn/scripts/export_llm.py --model Qwen/Qwen2.5-7B \
-  --mnn-source ~/.claude/repo/MNN@3.5.0
+  --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0
 
 # Android 빌드
 bash skills/mnn/scripts/build_android.sh --abi arm64-v8a --gpu \
-  --mnn-source ~/.claude/repo/MNN@3.5.0
+  --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0
 ```
 
 **트리거 표현:**
@@ -354,9 +354,9 @@ bash skills/mnn/scripts/build_android.sh --abi arm64-v8a --gpu \
 
 Google AI Edge Gallery — 온디바이스 LLM Android/iOS 레퍼런스 앱. 모델 다운로드/관리, LLM 채팅 UI, Agent Skills 시스템 확장, CustomTask 추가, `model_allowlist.json` 수정, Jetpack Compose UI 작업을 다룹니다. 추론 백엔드로 LiteRT-LM을 사용합니다.
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/gallery@<version>`에 자동 다운로드합니다.
+소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/gallery@<version>`에 자동 다운로드합니다.
 
 **환경 설치:**
 ```shell
@@ -414,9 +414,9 @@ KWS 학습용 한국어 합성 데이터 생성 파이프라인 스킬 3종을 �
 
 MeloTTS(MyShell.ai) 한국어 단화자 TTS로 KWS 학습/평가용 합성 음성 데이터를 대량 생성하고, speed/pitch/noise/RIR augmentation과 wekws 호환 manifest를 함께 만드는 스킬.
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-MeloTTS 소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/MeloTTS@<version>`에 자동 다운로드합니다. venv는 `~/.claude/venvs/melotts`에 생성됩니다.
+MeloTTS 소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/MeloTTS@<version>`에 자동 다운로드합니다. venv는 `$CLAUDE_CODE_TMPDIR/venvs/melotts`에 생성됩니다.
 
 **환경 설치:**
 ```shell
@@ -478,9 +478,9 @@ OpenVoice V2(MyShell.ai) + MeloTTS-Korean을 결합해 AIHub 등 다화자 refer
                         [cloned wav (다화자)]
 ```
 
-### 소스 코드 관리 (~/.claude/repo)
+### 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
 
-OpenVoice 소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `~/.claude/repo/OpenVoice@<version>`에 자동 다운로드합니다. 체크포인트는 `checkpoints_v2/`, venv는 `~/.claude/venvs/openvoice`에 생성됩니다.
+OpenVoice 소스코드가 필요한 작업이 생기면 사용자에게 먼저 확인합니다. 없다면 `$CLAUDE_CODE_TMPDIR/repo/OpenVoice@<version>`에 자동 다운로드합니다. 체크포인트는 `checkpoints_v2/`, venv는 `$CLAUDE_CODE_TMPDIR/venvs/openvoice`에 생성됩니다.
 
 **환경 설치:**
 ```shell
@@ -926,23 +926,24 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 
 각 스킬이 요구하는 환경변수를 한눈에 정리합니다.
 
-> **참고:** 모든 소스코드와 모델은 환경변수 대신 `~/.claude/repo/` 방식으로 관리됩니다.
+> **참고:** 모든 소스코드와 모델은 환경변수 대신 `$CLAUDE_CODE_TMPDIR/repo/` 방식으로 관리됩니다.
+> `CLAUDE_CODE_TMPDIR` 미설정 시 `~/.claude` 사용
 > Claude Code에게 소스나 모델이 필요하다고 하면 자동으로 다운로드해줍니다.
 > 추가로 설정해야 할 환경변수는 없습니다.
 
 | 경로 | 스킬 | 설명 |
 |---|---|---|
-| `~/.claude/repo/gemma-4-<variant>` | `gemma4` | Gemma 4 모델 (HuggingFace) |
-| `~/.claude/repo/MeloTTS@<version>` | `melotts-kws` | MeloTTS 소스 |
-| `~/.claude/repo/OpenVoice@<version>` | `openvoice-v2-kws` | OpenVoice V2 소스 + 체크포인트 |
-| `~/.claude/repo/wekws@<version>` | `wekws` | wekws 소스 |
-| `~/.claude/repo/MNN@<version>` | `mnn` | MNN 소스 |
-| `~/.claude/repo/LiteRT@<version>` | `litert` | LiteRT 소스 |
-| `~/.claude/repo/LiteRT-LM@<version>` | `litert-lm` | LiteRT-LM 소스 |
-| `~/.claude/repo/gallery@<version>` | `gallery` | AI Edge Gallery 소스 |
-| `~/.claude/venvs/melotts` | `melotts-kws` | MeloTTS Python venv |
-| `~/.claude/venvs/openvoice` | `openvoice-v2-kws` | OpenVoice Python venv |
-| `~/.claude/agent-memory/mnn-source-inspector/` | `mnn-source-inspector` | MNN 조사 결과 누적 메모리 (사용자 전역, 저장소 간 공유) |
+| `$CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>` | `gemma4` | Gemma 4 모델 (HuggingFace) |
+| `$CLAUDE_CODE_TMPDIR/repo/MeloTTS@<version>` | `melotts-kws` | MeloTTS 소스 |
+| `$CLAUDE_CODE_TMPDIR/repo/OpenVoice@<version>` | `openvoice-v2-kws` | OpenVoice V2 소스 + 체크포인트 |
+| `$CLAUDE_CODE_TMPDIR/repo/wekws@<version>` | `wekws` | wekws 소스 |
+| `$CLAUDE_CODE_TMPDIR/repo/MNN@<version>` | `mnn` | MNN 소스 |
+| `$CLAUDE_CODE_TMPDIR/repo/LiteRT@<version>` | `litert` | LiteRT 소스 |
+| `$CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@<version>` | `litert-lm` | LiteRT-LM 소스 |
+| `$CLAUDE_CODE_TMPDIR/repo/gallery@<version>` | `gallery` | AI Edge Gallery 소스 |
+| `$CLAUDE_CODE_TMPDIR/venvs/melotts` | `melotts-kws` | MeloTTS Python venv |
+| `$CLAUDE_CODE_TMPDIR/venvs/openvoice` | `openvoice-v2-kws` | OpenVoice Python venv |
+| `$CLAUDE_CODE_TMPDIR/agent-memory/mnn-source-inspector/` | `mnn-source-inspector` | MNN 조사 결과 누적 메모리 (사용자 전역, 저장소 간 공유) |
 
 ---
 

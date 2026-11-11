@@ -21,7 +21,9 @@ description: |
 
 # LiteRT-LM 레퍼런스 스킬
 
-## 소스 코드 관리 (~/.claude/repo)
+## 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
+
+> `CLAUDE_CODE_TMPDIR` 미설정 시 `~/.claude` 사용
 
 소스코드가 필요한 작업(예: LiteRT-LM 소스 탐색, 빌드, API 확인 등)이 생기면
 **반드시 먼저 사용자에게 확인**한다:
@@ -33,7 +35,7 @@ Step 1. 사용자에게 묻기:
 
 Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
 
-Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+Step 2b. 사용자가 없다고 하면 → $CLAUDE_CODE_TMPDIR/repo에 자동 다운로드 후 안내
 ```
 
 ### 참조 repo
@@ -41,7 +43,7 @@ Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드
 | 항목 | 값 |
 |------|-----|
 | GitHub | https://github.com/google-ai-edge/LiteRT-LM |
-| 폴더 패턴 | `~/.claude/repo/LiteRT-LM@<version>` |
+| 폴더 패턴 | `$CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@<version>` |
 
 ### 다운로드 방법
 
@@ -53,15 +55,15 @@ LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/google-
 # 최신 버전 clone (버전 미명시 시)
 git clone --branch "$LATEST" --depth 1 \
   https://github.com/google-ai-edge/LiteRT-LM \
-  ~/.claude/repo/LiteRT-LM@"$LATEST"
+  $CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@"$LATEST"
 
 # 특정 버전 clone (예: v0.10.0)
 git clone --branch v0.10.0 --depth 1 \
   https://github.com/google-ai-edge/LiteRT-LM \
-  ~/.claude/repo/LiteRT-LM@v0.10.0
+  $CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@v0.10.0
 ```
 
-이미 `~/.claude/repo/LiteRT-LM@<version>`이 존재하면 재다운로드 없이 재사용한다.
+이미 `$CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@<version>`이 존재하면 재다운로드 없이 재사용한다.
 다운로드 후 사용자에게 경로 안내.
 
 ---

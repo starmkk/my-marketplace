@@ -111,7 +111,7 @@ def export_llm(args):
         print("Error: MNN source path required.")
         print("  --mnn-source /path/to/MNN  또는")
         print("  MNN_SOURCE_PATH 환경변수를 설정하세요.")
-        print("  예: --mnn-source ~/.claude/repo/MNN@3.5.0")
+        print("  예: --mnn-source $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0")
         sys.exit(1)
     mnn_root = Path(_mnn_source).expanduser().resolve()
     llm_dir = mnn_root / 'transformers' / 'llm'
@@ -193,7 +193,7 @@ Supported models:
     parser.add_argument(
         '--mnn-source',
         default=None,
-        help='MNN source directory (e.g. ~/.claude/repo/MNN@3.5.0). '
+        help='MNN source directory (e.g. $CLAUDE_CODE_TMPDIR/repo/MNN@3.5.0). '
              'Also checks MNN_SOURCE_PATH env var as fallback.',
     )
     parser.add_argument('--quant', type=int, choices=[2, 3, 4, 5, 6, 7, 8],

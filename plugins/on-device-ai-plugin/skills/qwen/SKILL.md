@@ -22,7 +22,9 @@ description: |
 
 # Qwen2.5-Omni Development Skill
 
-## 소스 코드 관리 (~/.claude/repo)
+## 소스 코드 관리 ($CLAUDE_CODE_TMPDIR/repo)
+
+> `CLAUDE_CODE_TMPDIR` 미설정 시 `~/.claude` 사용
 
 소스코드가 필요한 작업(예: MNN 변환 스크립트 참조, 예제 실행 등)이 생기면
 **반드시 먼저 사용자에게 확인**한다:
@@ -34,7 +36,7 @@ Step 1. 사용자에게 묻기:
 
 Step 2a. 사용자가 경로 제공 → 해당 경로 그대로 사용
 
-Step 2b. 사용자가 없다고 하면 → ~/.claude/repo에 자동 다운로드 후 안내
+Step 2b. 사용자가 없다고 하면 → $CLAUDE_CODE_TMPDIR/repo에 자동 다운로드 후 안내
 ```
 
 ### 버전별 참조 repo
@@ -55,16 +57,16 @@ LATEST=$(git ls-remote --tags --sort=-version:refname https://github.com/QwenLM/
 # 최신 버전 clone (버전 미명시 시)
 git clone --branch "$LATEST" --depth 1 \
   https://github.com/QwenLM/Qwen3.git \
-  ~/.claude/repo/Qwen3@"$LATEST"
+  $CLAUDE_CODE_TMPDIR/repo/Qwen3@"$LATEST"
 
 # 특정 버전 clone (버전 명시 시, 예: v3.0.0)
 git clone --branch v3.0.0 --depth 1 \
   https://github.com/QwenLM/Qwen3.git \
-  ~/.claude/repo/Qwen3@v3.0.0
+  $CLAUDE_CODE_TMPDIR/repo/Qwen3@v3.0.0
 ```
 
-이미 `~/.claude/repo/<RepoName>@<version>`이 존재하면 재다운로드 없이 재사용한다.
-다운로드 후 사용자에게 "~/.claude/repo/Qwen3@<tag>에 소스를 다운로드했습니다." 안내.
+이미 `$CLAUDE_CODE_TMPDIR/repo/<RepoName>@<version>`이 존재하면 재다운로드 없이 재사용한다.
+다운로드 후 사용자에게 "$CLAUDE_CODE_TMPDIR/repo/Qwen3@<tag>에 소스를 다운로드했습니다." 안내.
 
 ### MNN 모바일 배포
 
