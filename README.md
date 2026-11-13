@@ -141,7 +141,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
     docs/handoffs/2026-07-22-my-topic-handoff.md
 ```
 
-**결합 스킬:** `dev-helper-plugin:github-commit` (작성 후 커밋 — 직접 `git commit` 금지), `superpowers:verification-before-completion` (커밋 직전 실측 검증), `superpowers:systematic-debugging` (§7 함정 행), `superpowers:writing-plans` (§5가 신규 마일스톤일 때)
+**결합 스킬:** `dev-helper-plugin:github-commit` (작성 후 커밋 — 직접 `git commit` 금지) · 커밋 직전 실측 검증과 계획서 직접 작성은 전역 CLAUDE.md 규칙을 따름
 
 **사용하지 말아야 할 때:** 단순 typo/1~2줄 패치, 작업 진행 중(TDD step 1~4), `RESUME.md` 복원 요청
 

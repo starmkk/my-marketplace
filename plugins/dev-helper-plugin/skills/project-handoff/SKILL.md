@@ -83,11 +83,11 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 | Plugin / Skill | 결합 시점 | 어떻게 |
 |---|---|---|
 | **`dev-helper-plugin:github-commit`** | handoff 작성 후 (§2 step 4) | `docs(handoff): 📋 <topic> 인계 — <1 줄>` 별도 commit. 직접 `git commit` 금지 (CLAUDE.md §5.1) |
-| **`superpowers:verification-before-completion`** | commit 직전 (§2 step 5) | §1 commit chain / 회귀 수치 / cold-load 가 실측과 정합한지 evidence 기반 검증 |
-| **`superpowers:systematic-debugging`** | §7 함정 행 추가 시 | root cause 까지 도달한 디버깅만 증상/원인/fix 로 압축 |
+| **실측 검증 (CLAUDE.md Testing & QA)** | commit 직전 (§2 step 5) | §1 commit chain / 회귀 수치 / cold-load 가 실측과 정합한지 evidence 기반 검증 |
+| **root cause 분석 (opus 위임 가능)** | §7 함정 행 추가 시 | root cause 까지 도달한 디버깅만 증상/원인/fix 로 압축 |
 | **`kotlin-audio-architect`** | Kotlin 작업 handoff 의 §8 참조 채울 때 | 협의 결과 `docs/superpowers/architect-reviews/<id>.md` 를 §8 에 인덱싱 (CLAUDE.md §1.4) |
-| **`superpowers:writing-plans`** | §5 다음 작업이 신규 마일스톤일 때 | plan 을 `docs/superpowers/plans/<date>-<topic>.md` 에 저장 → §8 인덱싱 |
-| **`superpowers:test-driven-development`** | §2 완료 작업의 회귀 카운트 | 회귀 수치는 실측값 (손 카운트 stale 위험) |
+| **계획서 직접 작성 (메인 세션 또는 fable, CLAUDE.md Plans 규칙)** | §5 다음 작업이 신규 마일스톤일 때 | plan 을 `docs/superpowers/plans/<date>-<topic>.md` 에 저장 → §8 인덱싱 |
+| **TDD (CLAUDE.md Testing & QA)** | §2 완료 작업의 회귀 카운트 | 회귀 수치는 실측값 (손 카운트 stale 위험) |
 
 ---
 
@@ -125,4 +125,4 @@ commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재�
 - 스크립트·asset 경로는 `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/...` 로 해석
 - 갱신: `/plugin marketplace update vibe-coding-tools` → `/plugin update dev-helper-plugin`
 
-진화 시 `superpowers:writing-skills` 로 본 SKILL.md 또는 references 수정 → `dev-helper-plugin:github-commit`.
+진화 시 본 SKILL.md 또는 references 를 직접 수정 → `dev-helper-plugin:github-commit`.

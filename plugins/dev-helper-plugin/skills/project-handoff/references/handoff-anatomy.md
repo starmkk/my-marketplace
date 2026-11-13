@@ -211,7 +211,7 @@ speechlm.v4_gemma_mnn 재개발을 이어서 진행한다. use AgentTool
 
 작업 지침(~/.claude/CLAUDE.md 준수):
 1. 실행 위치는 사용자 체크아웃 /MyCode/share/SpeechLM.asset/speechlm.v4_gemma_mnn (main, HEAD 01a9100). 워크트리 만들지 말 것.
-2. Plan E 계획서 docs/superpowers/plans/2026-09-04-plan-e-bootstrap-convert-sh.md 를 superpowers:subagent-driven-development 로 E0 → E5 순서 실행(말미 "메인 세션 검수 보완" 우선).
+2. Plan E 계획서 docs/superpowers/plans/2026-09-04-plan-e-bootstrap-convert-sh.md 를 Task 단위 서브에이전트 위임으로 E0 → E5 순서 실행(말미 "메인 세션 검수 보완" 우선).
    - 구현 sonnet, Task 마다 diff 를 strategic-code-reviewer(opus) 로 리뷰 → High 반영 → lint(ruff·mypy·shellcheck 무경고) → 테스트 → 커밋(dev-helper-plugin:github-commit 스킬, Co-Authored-By 없음, push 금지).
 3. Plan E 완료 → Plan F(…plan-f-batch-eval-v3-50.md, 말미 "설계 검토 판정" 절 우선). 새 갈림길만 AskUserQuestion.
 4. 중간 마일스톤마다 docs/dev-logs/dev-log-<오늘날짜>.md 에 append(실측 수치 + 재현 커맨드).

@@ -125,7 +125,7 @@ cd <repo>
 
 작업 지침(~/.claude/CLAUDE.md 준수):
 1. 실행 위치는 <절대경로> (<branch>, HEAD <hash>). <워크트리 만들지 말 것 / 만들 것>.
-2. <primary 계획서 경로>를 <실행 스킬: superpowers:subagent-driven-development 등>로 <Task 범위> 순서 실행.
+2. <primary 계획서 경로>를 <실행 방식: 메인 세션 직접 실행 / Task 단위 서브에이전트 위임 등>로 <Task 범위> 순서 실행.
    - <계획서 우선순위 규칙: 말미 절이 본문보다 우선 등>
    - <동결 결정 목록·재협의 금지>
    - 구현 <모델>, Task 마다 diff 를 <리뷰어>로 리뷰 → High 반영 → lint(<도구> 무경고) → 테스트 → 커밋(<커밋 스킬>).
