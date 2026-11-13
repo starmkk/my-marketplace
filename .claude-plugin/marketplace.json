@@ -40,6 +40,11 @@
       "name": "project-board",
       "source": "./plugins/project-board",
       "description": "프로젝트 현황판 mod — 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경을 표시(/project-board on|off). 프로젝트별 설정 .claude/project-board.json"
+    },
+    {
+      "name": "workflow-policy-plugin",
+      "source": "./plugins/workflow-policy-plugin",
+      "description": "작업 절차 정책 상세 — 서브에이전트 위임·토큰 비용, 코드 작성 전후 리뷰어 협의, 문서 저장·분할·dev-log, AskUserQuestion 사용, macOS 파일 함정(AppleDouble·NFD/NFC) 스킬 5종 제공 (전역 CLAUDE.md 의 상세판)"
     }
   ]
 }

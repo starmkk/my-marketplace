@@ -1,0 +1,5 @@
+{
+  "name": "workflow-policy-plugin",
+  "description": "작업 절차 정책 상세 — 서브에이전트 위임·토큰 비용, 코드 작성 전후 리뷰어 협의, 문서 저장·분할·dev-log, AskUserQuestion 사용, macOS 파일 함정(AppleDouble·NFD/NFC) 스킬 5종 제공 (전역 CLAUDE.md 의 상세판)",
+  "version": "1.0.0"
+}

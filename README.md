@@ -19,6 +19,7 @@
 | `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.7 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
+| `workflow-policy-plugin` | 1.0.0 | 스킬 5종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
 
 ---
 
@@ -919,6 +920,31 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 | `glossary` | `{ term, meaning, match[] }`. 영문 표기는 단어 경계·대소문자 무시, 한글은 포함 여부로 찾음. 같은 `term` 은 기본 용어를 덮어씀 |
 
 설정이 잘못되면 패널 위에 어느 키가 잘못됐는지 빨간 줄로, 파일이 없으면 노란 줄로 알립니다.
+
+---
+
+## workflow-policy-plugin
+
+작업 절차 정책의 상세 스킬 5종을 제공합니다. 전역 `~/.claude/CLAUDE.md` 에는 매 턴 지켜야 할 핵심 규칙과 트리거 한 줄만 두고, 절차·예시·수치 등 상세 원문은 이 스킬들을 진실 원천으로 삼습니다.
+
+### 설치
+
+```shell
+/plugin install workflow-policy-plugin@vibe-coding-tools
+```
+
+### 스킬 한눈에 보기
+
+| 스킬 | 사용 시점 | 한 줄 설명 |
+|---|---|---|
+| `subagent-delegation` | 서브에이전트·워크플로우를 띄우기 전 | 위임 여부 판단, 검증 묶음, 난이도별 모델 배정(haiku·sonnet·opus·fable), 프롬프트·보고 길이, 파일 경유 결과 전달 |
+| `code-authoring-review` | 구현 전후, 리뷰 지적 판단 시 | `strategic-code-reviewer` 설계 협의·구현 리뷰 절차, YAGNI 오적용 금지, 리뷰 결과 수용·기각 기준 |
+| `docs-policy` | `docs/` 문서·계획서·dev-log 작성 시 | `docs/` 하위폴더 저장 절차, 메인(≤500줄)+상세 분할, 계획서 계약 기술, 일일 dev-log |
+| `ask-user-question` | `AskUserQuestion` 호출 전 | 설명 먼저 출력 후 같은 응답에서 호출, 항목별 설명 4요소, 한 번에 묶어 묻기 |
+| `macos-file-pitfalls` | 파일 순회·glob·한글 경로 처리 시 | AppleDouble(`._*`) 제외 코드 조각, NFD→NFC 정규화 |
+
+- 각 스킬 본문은 전역 CLAUDE.md 의 해당 절 원문을 그대로 옮긴 것입니다. 전역 요약과 어긋나면 스킬이 기준입니다.
+- 6원칙 판정 기준 자체는 `code-quality-plugin` 의 `strategic-code-reviewer` 스킬에 있습니다.
 
 ---
 
