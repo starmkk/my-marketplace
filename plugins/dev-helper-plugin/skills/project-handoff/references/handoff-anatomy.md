@@ -1,6 +1,6 @@
 # handoff-anatomy — 표준 골격 상세
 
-본 문서는 project-handoff SKILL.md §3 이 위임하는 상세 골격이다. `docs/superpowers/handoffs/` 의 실사용 파일 5+ 종에서 추출한 공통 구조를 정의한다. 새 handoff 는 본 골격과 정합해야 한다.
+본 문서는 project-handoff SKILL.md §3 이 위임하는 상세 골격이다. `docs/handoffs/` 의 실사용 파일 5+ 종에서 추출한 공통 구조를 정의한다. 새 handoff 는 본 골격과 정합해야 한다.
 
 **근거 파일 (읽어서 실제 톤·밀도 확인):**
 - `2026-07-02-live-speechlm-streaming-handoff.md` — multi-repo(3 repo) 대형(182 라인). §1~§10 풀셋
@@ -201,12 +201,12 @@ next-turn 이 순서대로 실행. 진입 site 는 §5 항목과 1:1.
 - 경로·hash·커맨드는 §1/§6 과 **문자 그대로 동일**해야 한다(verify-handoff-integrity.sh 가 파일 경로·HEAD 존재를 검사). handoff 작성 후 커밋이 더 생기면 HEAD 를 함께 갱신.
 - 길이 15~30줄. 넘치면 규칙을 CLAUDE.md/메모리로 옮기고 참조만 남긴다.
 
-**실사용 예** (`docs/superpowers/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md` §10 축약):
+**실사용 예** (`docs/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md` §10 축약):
 ```text
 speechlm.v4_gemma_mnn 재개발을 이어서 진행한다. use AgentTool
 
 먼저 handoff 를 읽고 그 순서대로 진행해라:
-- docs/superpowers/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md
+- docs/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md
   (§9 의 1번 환경 확인 → 2번 갈림길 확정 → 3번 Plan E 착수)
 
 작업 지침(~/.claude/CLAUDE.md 준수):

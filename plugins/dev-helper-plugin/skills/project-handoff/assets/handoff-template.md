@@ -120,7 +120,7 @@ cd <repo>
 <프로젝트> <작업>을 이어서 진행한다. <위임 허용 키워드: use AgentTool>
 
 먼저 handoff 를 읽고 그 순서대로 진행해라:
-- docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md
+- docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md
   (§9 의 <N>번 <이미 끝난 스텝>은 완료됨. <N+1>번 <스텝> → <N+2>번 <primary 착수>부터 시작)
 
 작업 지침(~/.claude/CLAUDE.md 준수):

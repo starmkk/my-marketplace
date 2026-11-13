@@ -104,7 +104,7 @@
 
 ### project-handoff
 
-세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계하기 위한 **토픽별 자기완결 handoff 문서**를 작성합니다. `docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 파일 1개가 산출물이며, next-turn Claude가 이 파일만 읽고 즉시 작업을 이어갈 수 있어야 함이 설계 기준입니다.
+세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계하기 위한 **토픽별 자기완결 handoff 문서**를 작성합니다. `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 파일 1개가 산출물이며, next-turn Claude가 이 파일만 읽고 즉시 작업을 이어갈 수 있어야 함이 설계 기준입니다.
 
 > 구 `resume-handoff` / `enhanced-handoff` 대체 — `RESUME.md` 단일 누적 방식(1164 라인/214KB로 비대화)은 폐기하고, 토픽별 파일이 SoT입니다. 오래된 handoff는 그 자리에 남아 timeline archive 역할을 합니다.
 
@@ -138,7 +138,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh
 
 # self-review — 문서의 HEAD anchor 가 실제 git log 와 일치하는지 검증 (불일치 시 exit 1)
 bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" \
-    docs/superpowers/handoffs/2026-07-22-my-topic-handoff.md
+    docs/handoffs/2026-07-22-my-topic-handoff.md
 ```
 
 **결합 스킬:** `dev-helper-plugin:github-commit` (작성 후 커밋 — 직접 `git commit` 금지), `superpowers:verification-before-completion` (커밋 직전 실측 검증), `superpowers:systematic-debugging` (§7 함정 행), `superpowers:writing-plans` (§5가 신규 마일스톤일 때)

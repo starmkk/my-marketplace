@@ -1,13 +1,15 @@
 ---
 name: project-handoff
-description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계할 때, 여러 repo 에 걸친 변경을 넘길 때, Claude Design 시안이 도착했을 때 — `docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 토픽 handoff 파일을 작성한다. 사용자가 '핸드오프 / 진행상황 정리 / 다음 세션 인계 / `/clear` 전에 정리 / handoff 작성 / cross-repo 인계 / 시안 도착' 을 발화하거나, 마일스톤 PASS 직후 · 큰 결정 동결 직후에 사용. 구 resume-handoff / enhanced-handoff 를 대체 — RESUME.md 누적 방식은 폐기하고 토픽별 자기완결 handoff 파일이 SoT."
+description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계할 때, 여러 repo 에 걸친 변경을 넘길 때, Claude Design 시안이 도착했을 때 — `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 토픽 handoff 파일을 작성한다. 사용자가 '핸드오프 / 진행상황 정리 / 다음 세션 인계 / `/clear` 전에 정리 / handoff 작성 / cross-repo 인계 / 시안 도착' 을 발화하거나, 마일스톤 PASS 직후 · 큰 결정 동결 직후에 사용. 구 resume-handoff / enhanced-handoff 를 대체 — RESUME.md 누적 방식은 폐기하고 토픽별 자기완결 handoff 파일이 SoT."
 ---
 
 # project-handoff — 토픽별 세션 인계 문서 작성
 
 ## 0. 무엇을 만드는가 (그리고 RESUME.md 를 왜 안 쓰는가)
 
-**단일 산출물:** `docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` — 자기완결 토픽 handoff 파일 1 개. next-turn Claude (다른 conversation / `/clear` 직후 / 다른 작업자) 가 **이 파일 하나만 읽고 즉시 이어서 작업**할 수 있어야 한다.
+**단일 산출물:** `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` — 자기완결 토픽 handoff 파일 1 개. next-turn Claude (다른 conversation / `/clear` 직후 / 다른 작업자) 가 **이 파일 하나만 읽고 즉시 이어서 작업**할 수 있어야 한다.
+
+> **경로 규약:** 신규 handoff 는 항상 `docs/handoffs/` 에 쓴다. 구 경로 `docs/superpowers/handoffs/` 는 구 프로젝트용 **읽기 전용 fallback** (기존 handoff 조회·목록·검증 시에만 확인) 이며 절대 쓰지 않는다. 파일 이전(migration) 은 하지 않는다.
 
 **RESUME.md 누적 방식 폐기 (구 resume-handoff / enhanced-handoff 대비 핵심 변경):**
 - 구 스킬은 `docs/superpowers/RESUME.md` 단일 파일에 모든 마일스톤을 누적하고 sliding window 로 archive 분리했다.
@@ -17,11 +19,11 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 **SoT 구성 (둘 다 next-turn 이 읽음):**
 | SoT | 위치 | 성격 |
 |---|---|---|
-| 토픽 handoff 파일 | `docs/superpowers/handoffs/<date>-<topic>-handoff.md` | git tracked, 공유 SoT, 본 스킬 산출물 |
+| 토픽 handoff 파일 | `docs/handoffs/<date>-<topic>-handoff.md` | git tracked, 공유 SoT, 본 스킬 산출물 |
 | SDD ledger | `.superpowers/sdd/progress.md` | repo-local, gitignored, 진행/커밋/carry-forward 상세 (있으면 handoff 헤더에 cross-link) |
 
 **reference 실사용 파일** (골격의 근거 — 새 handoff 는 이들과 정합해야 함):
-`docs/superpowers/handoffs/2026-07-02-live-speechlm-streaming-handoff.md` (multi-repo·대형) / `2026-06-24-m-slm6-imported-realtime-remaining-handoff.md` (단일 repo·중형) / `2026-06-25-mnn-3.6.0-upgrade-handoff.md` (인프라 업그레이드형).
+`docs/handoffs/2026-07-02-live-speechlm-streaming-handoff.md` (multi-repo·대형) / `2026-06-24-m-slm6-imported-realtime-remaining-handoff.md` (단일 repo·중형) / `2026-06-25-mnn-3.6.0-upgrade-handoff.md` (인프라 업그레이드형).
 
 ---
 
@@ -41,7 +43,7 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 
 ## 2. 작성 절차 (5 step)
 
-1. **토픽·범위 확정 + 파일명 결정** — `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/superpowers/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md`. 날짜는 `date +%Y-%m-%d` 로 확정 (추정 금지).
+1. **토픽·범위 확정 + 파일명 결정** — `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md`. 날짜는 `date +%Y-%m-%d` 로 확정 (추정 금지).
 2. **git 상태 캡처** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" [repo2 repo3 ...]` 실행 → §1 스냅샷 표에 붙일 HEAD / branch / 직전 10 commit chain markdown 출력. multi-repo 는 인자로 sibling repo 경로 추가.
 3. **표준 골격 채우기(§10 시작 프롬프트 포함)** — `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/assets/handoff-template.md` 골격을 복사 후 placeholder 치환. 필수/선택 섹션 상세는 `references/handoff-anatomy.md` 위임. cross-repo / design-mockup 변형은 해당 reference 의 추가 절차 병행.
 4. **commit** — CLAUDE.md §5.1 정책: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조.

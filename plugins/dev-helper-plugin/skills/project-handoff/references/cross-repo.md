@@ -4,7 +4,7 @@
 
 기본 절차는 SKILL.md §2 (5 step) 와 동일하고, 아래 3 가지가 추가된다: (1) §1 스냅샷을 multi-repo 표로, (2) commit 요약을 repo별로, (3) 외부 의존·재현 절차를 명시.
 
-**실사용 reference:** `docs/superpowers/handoffs/2026-07-02-live-speechlm-streaming-handoff.md` (3 repo) / `2026-05-30-soundai-lite-mnn-3.5.0-handoff.md` / `2026-05-30-libzipformer-kor-sharing-handoff.md` / `2026-06-25-mnn-3.6.0-upgrade-handoff.md`.
+**실사용 reference:** `docs/handoffs/2026-07-02-live-speechlm-streaming-handoff.md` (3 repo) / `2026-05-30-soundai-lite-mnn-3.5.0-handoff.md` / `2026-05-30-libzipformer-kor-sharing-handoff.md` / `2026-06-25-mnn-3.6.0-upgrade-handoff.md`.
 
 ---
 
@@ -85,6 +85,6 @@ next-turn 이 그대로 재현 가능한 명령 셋 — env prefix + 단말 연�
 
 ## §7. Commit
 
-`dev-helper-plugin:github-commit` 위임. stage 대상: `docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` (신규). 메시지: `docs(handoff): 📤 <topic> cross-repo 인계 — <source> ↔ <target>`.
+`dev-helper-plugin:github-commit` 위임. stage 대상: `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` (신규). 메시지: `docs(handoff): 📤 <topic> cross-repo 인계 — <source> ↔ <target>`.
 
 **주의** — handoff 파일은 본 repo 에만 commit. sibling repo 에는 각자의 코드 commit 만 (지정 파일 명시 add). handoff 문서를 sibling repo 에 중복 두지 않는다.

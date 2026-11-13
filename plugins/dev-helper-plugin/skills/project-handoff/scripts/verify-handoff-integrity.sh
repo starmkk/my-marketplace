@@ -6,21 +6,23 @@
 # 불일치 시 exit 1 + 정정 권유.
 #
 # 사용:
-#   $ bash verify-handoff-integrity.sh docs/superpowers/handoffs/<YYYY-MM-DD>-<topic>-handoff.md
-#   (인자 생략 시 handoffs/ 의 가장 최근 mtime 파일 자동 선택)
+#   $ bash verify-handoff-integrity.sh docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md
+#   (인자 생략 시 docs/handoffs/ 와 legacy docs/superpowers/handoffs/ (읽기 전용 fallback) 중
+#    가장 최근 mtime 파일 자동 선택)
 
 set -euo pipefail
 
 HANDOFF="${1:-}"
-HANDOFF_DIR="docs/superpowers/handoffs"
+HANDOFF_DIR="docs/handoffs"
+LEGACY_HANDOFF_DIR="docs/superpowers/handoffs"  # 읽기 전용 fallback — 쓰기 금지
 
 if [[ -z "$HANDOFF" ]]; then
   # 가장 최근 handoff 자동 선택 (archive 제외)
   # shellcheck disable=SC2012  # handoff 파일명은 <YYYY-MM-DD>-<kebab-topic>-handoff.md 로 특수문자 없음.
   #                              find -printf 는 GNU 전용이라 macOS(BSD find) 호환을 위해 ls -t 유지.
-  HANDOFF=$(ls -t "$HANDOFF_DIR"/*-handoff.md 2>/dev/null | head -1 || true)
+  HANDOFF=$(ls -t "$HANDOFF_DIR"/*-handoff.md "$LEGACY_HANDOFF_DIR"/*-handoff.md 2>/dev/null | head -1 || true)
   if [[ -z "$HANDOFF" ]]; then
-    echo "[SKIP] $HANDOFF_DIR 에 handoff 파일 없음 — 검증 대상 없음"; exit 0
+    echo "[SKIP] $HANDOFF_DIR (및 legacy $LEGACY_HANDOFF_DIR) 에 handoff 파일 없음 — 검증 대상 없음"; exit 0
   fi
   echo "[info] 인자 생략 → 최근 파일 검증: $HANDOFF"
 fi
