@@ -10,7 +10,8 @@ argument-hint: "[opus|fable]"
 
 # 모델 프로필 전환
 
-전역 CLAUDE.md `Model by difficulty` 의 모델별 배정만 세션 단위로 교체함. 그 외 규칙(위임 기준,
+전역 CLAUDE.md Work Execution 절의 모델 배정(상세: `workflow-policy-plugin:subagent-delegation` 의
+`Model by difficulty`)만 세션 단위로 교체함. 그 외 규칙(위임 기준,
 번들링, `model` 명시, 조용히 통과하는 실수 = 핵심 로직, effort, 보고 형식)은 그대로 적용.
 
 ## 인자
@@ -30,6 +31,7 @@ argument-hint: "[opus|fable]"
 | `fable` | opus 결과가 불신·상충이거나 오판 비용이 매우 클 때의 에스컬레이션 전용 |
 
 - 핵심 로직의 반박 검토는 구현 에이전트와 다른 새 opus 에이전트가 수행
+- 계획서 작성 주체(전역 CLAUDE.md·docs-policy 의 "agent tier assigned to plans")도 이 표를 따름 → opus
 
 ## 적용 절차
 

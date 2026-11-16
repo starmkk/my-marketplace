@@ -7,6 +7,7 @@ description: >
   반드시 이 스킬을 사용하라.
 context: fork
 agent: general-purpose
+model: sonnet
 allowed-tools:
   - Bash
   - Read
