@@ -68,7 +68,7 @@ raw thread 보다 modern C++17 비동기 패턴을 우선함.
 | `namespace` | `namespace gemma4 {` |
 | `struct` | `struct ManifestReadResult {` |
 | `class` | `class LiteRtLmEngine {` |
-| 함수 (C/C++) | `bool LiteRtLmEngine::reset_conversation() {` |
+| 함수 (C/C++) | `bool LiteRtLmEngine::resetConversation() {` (메서드) · `bool read_manifest() {` (자유 함수) |
 | `if` / `else` | `if (condition) {` / `} else {` |
 | `for` | `for (int i = 0; i < n; ++i) {` |
 | `while` | `while (condition) {` |
