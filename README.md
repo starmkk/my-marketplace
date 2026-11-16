@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.9 | 스킬 4종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 |
+| `dev-helper-plugin` | 1.0.10 | 스킬 5종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 + 작업 리포트 열람 |
 | `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.8 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
@@ -25,7 +25,7 @@
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 4종을 제공합니다.
+개발 워크플로우 자동화 스킬 5종을 제공합니다.
 
 ### 설치
 
@@ -41,6 +41,7 @@
 | `pytorch-harness` | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
 | `project-handoff` | 토픽별 자기완결 세션 인계(handoff) 문서 작성 — cross-repo / Claude Design 시안 변형 지원 |
 | `model-profile` | 서브에이전트 모델 배정을 세션 단위로 opus 위주(fable 은 에스컬레이션 전용)로 전환 — `/dev-helper-plugin:model-profile [opus\|fable]` |
+| `daily-report` | claude-insights 일일 리포트·주간 /insights 요약 열람과 제안 적용 보조 — `/dev-helper-plugin:daily-report [YYYY-MM-DD\|어제\|weekly]` |
 
 ---
 
@@ -145,6 +146,26 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 **결합 스킬:** `dev-helper-plugin:github-commit` (작성 후 커밋 — 직접 `git commit` 금지) · 커밋 직전 실측 검증과 계획서 직접 작성은 전역 CLAUDE.md 규칙을 따름
 
 **사용하지 말아야 할 때:** 단순 typo/1~2줄 패치, 작업 진행 중(TDD step 1~4), `RESUME.md` 복원 요청
+
+---
+
+### daily-report
+
+claude-insights 저장소가 생성한 Claude Code 작업 리포트를 열람합니다. 리포트 생성은 호스트 cron 이 담당하고(매일 06:00 일일 리포트, 매주 월 05:30 `/insights` 주간 요약, Gmail 발송 포함), 이 스킬은 열람과 제안 적용 보조만 합니다.
+
+**사용:**
+```shell
+/dev-helper-plugin:daily-report            # 최신 일일 리포트
+/dev-helper-plugin:daily-report 어제        # 날짜 지정 (YYYY-MM-DD 도 가능)
+/dev-helper-plugin:daily-report weekly     # 최신 주간 요약
+```
+
+**저장소 탐색 순서:** `$CLAUDE_INSIGHTS_DIR` → `/workspace/work/claude/claude-insights`(컨테이너) → `~/work/claude/claude-insights`(호스트). 리포트가 없는 머신에서는 안내 후 종료합니다.
+
+**트리거 표현:**
+- "일일 리포트", "어제 리포트", "주간 요약", "insights 요약", "리포트 제안 적용"
+
+**주의:** 컨테이너 안에서는 리포트를 재생성하지 않고 호스트 재실행 명령만 안내합니다(컨테이너 실행 기록이 분석 대상에 섞이는 것을 방지). 제안 적용은 diff 제시 후 사용자 확인을 받은 뒤에만 수행합니다.
 
 ---
 
