@@ -12,14 +12,14 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.6 | 스킬 4종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 |
-| `on-device-ai-plugin` | 1.1.10 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
-| `kws-speech-plugin` | 1.0.3 | 스킬 3종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
-| `code-quality-plugin` | 1.0.5 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
-| `research-plugin` | 1.0.0 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
-| `secure-coding-plugin` | 1.0.7 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
+| `dev-helper-plugin` | 1.0.9 | 스킬 4종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 |
+| `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
+| `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
+| `code-quality-plugin` | 1.0.8 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
+| `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
+| `secure-coding-plugin` | 1.0.8 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
-| `workflow-policy-plugin` | 1.0.0 | 스킬 5종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
+| `workflow-policy-plugin` | 1.0.1 | 스킬 5종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
 
 ---
 
@@ -376,7 +376,7 @@ bash skills/gallery/scripts/install.sh
 
 ## kws-speech-plugin
 
-KWS 학습용 한국어 합성 데이터 생성 파이프라인 스킬 3종을 제공합니다. MeloTTS 단화자 합성부터 OpenVoice V2 다화자 클로닝, wekws E2E KWS 학습까지 한 묶음으로 다룹니다.
+KWS 학습용 한국어 합성 데이터 생성 파이프라인 스킬 2종을 제공합니다. MeloTTS 단화자 합성부터 OpenVoice V2 다화자 클로닝까지 다루며, 결과물은 wekws 학습용 manifest 로 이어집니다.
 
 ### 설치
 
@@ -390,7 +390,6 @@ KWS 학습용 한국어 합성 데이터 생성 파이프라인 스킬 3종을 �
 |---|---|---|
 | `melotts-kws` | 합성 | MeloTTS 한국어 단화자 합성 + speed/pitch augmentation + wekws manifest 생성 |
 | `openvoice-v2-kws` | 합성 | OpenVoice V2 tone color cloning으로 다화자 한국어 합성 |
-| `wekws` | 학습/추론 | WeKws E2E KWS 모델 학습·ONNX 변환·C++ 스트리밍 디코더 레퍼런스 |
 
 ### 전체 파이프라인 흐름
 
@@ -457,7 +456,7 @@ python skills/melotts-kws/scripts/make_wekws_manifest.py \
 - "KWS 합성 데이터", "키워드 음성 생성", "wakeword 음성 합성"
 - "wekws 학습 데이터 만들기", "키워드 데이터셋 합성"
 
-**관련 스킬:** `openvoice-v2-kws` (다화자 확장), `wekws` (KWS 학습)
+**관련 스킬:** `openvoice-v2-kws` (다화자 확장)
 
 > **주의:** MeloTTS 한국어 모델은 단 1명의 화자(`speaker_ids['KR']`)만 지원합니다. 화자 다양성이 필요하면 `openvoice-v2-kws`를 함께 사용하세요.
 
@@ -517,20 +516,7 @@ python skills/openvoice-v2-kws/scripts/batch_multispk_synthesize.py \
 - "voice cloning", "음성 복제", "화자 복제"
 - "multi-speaker 한국어 합성", "다화자 KWS 데이터"
 
-**관련 스킬:** `melotts-kws` (base wav 생성), `wekws` (KWS 학습)
-
----
-
-### wekws
-
-WeKws(wenet-e2e/wekws) Production First End-to-End KWS 툴킷 레퍼런스. MDTC/TCN/RNN 모델 학습, PyTorch → ONNX 변환, C++ 스트리밍 디코더 개발, Android/ARM 온디바이스 배포를 다룹니다.
-
-**트리거 표현:**
-- "wekws", "keyword spotting", "KWS", "wake word", "웨이크워드"
-- "MDTC", "streaming decoder", "ONNX runtime"
-- "on-device inference", "causal convolution"
-
-**관련 스킬:** `melotts-kws` (학습 데이터 합성), `openvoice-v2-kws` (다화자 학습 데이터)
+**관련 스킬:** `melotts-kws` (base wav 생성)
 
 ---
 ## code-quality-plugin
@@ -616,7 +602,7 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 - "llama.cpp 는 어떻게 하는지" 가 궁금하면 → `reference-impl-comparator`
 - MNN **내부** 구조 조사는 이 플러그인이 아니라 `on-device-ai-plugin` 의 `mnn-source-inspector` 를 씁니다
 
-세 에이전트 모두 보고 시 `SendMessage` 로 보고서 전문을 전달합니다. 백그라운드 실행 시 평문 출력은 호출자에게 전달되지 않기 때문입니다.
+세 에이전트 모두 보고서 전문을 최종 응답으로 돌려줍니다. 백그라운드 실행 시에는 결론 한 줄을 `SendMessage({to: "main"})` 로 먼저 보내 메인 대화가 종료를 모른 채 대기하지 않게 하고, agent teams 팀원으로 실행될 때는 `SendMessage({to: "team-lead"})` 로 전문을 보냅니다.
 
 ---
 
@@ -648,7 +634,7 @@ serena 인덱스 밖(외부 저장소, `site-packages`)이거나 비코드 파�
 |---|---|---|
 | `secure-coding-reviewer` | 진단 / 오탐 판정 / 조치 검토 | SW 보안약점 진단원 관점에서 코드를 진단하고 기준번호·CWE·원문 페이지를 병기해 보고서 기재 가능한 판정을 돌려줌 |
 
-보안약점 진단, 정적분석 결과의 오탐/정탐 판정, 보완조치가 착시 조치(반려 대상)인지 확인이 필요할 때 호출합니다. 허브 `secure-coding-kr` 의 라우터 표에 따라 언어·맥락별 판정 기준 스킬을 로드해 쓰며, 코드를 대신 수정하지 않고 `SendMessage` 로 보고서 전문을 전달합니다. **대상 언어는 Java/JSP/Android 와 C/C++ 양쪽입니다** — C/C++ 는 `secure-coding-c` 를 로드해 메모리 버퍼 오버플로우·포맷 스트링·해제 후 사용·취약한 API 를 다루며, NDK 네이티브 모듈도 범위입니다. 다만 보고서 기재값(기준번호·공식 약점명·CWE)의 정본은 49개 기준이고, **C 가이드 58개 체계의 CWE 는 보고서 기재용이 아닙니다** — 두 체계는 번호·명칭·CWE 가 모두 별개입니다. 오탐 판정이 판단 결정적 작업이므로 실행 모델은 `model: opus` 로 고정되어 있습니다(v1.0.2).
+보안약점 진단, 정적분석 결과의 오탐/정탐 판정, 보완조치가 착시 조치(반려 대상)인지 확인이 필요할 때 호출합니다. 허브 `secure-coding-kr` 의 라우터 표에 따라 언어·맥락별 판정 기준 스킬을 로드해 쓰며, 코드를 대신 수정하지 않고 보고서 전문을 최종 응답으로 돌려줍니다. **대상 언어는 Java/JSP/Android 와 C/C++ 양쪽입니다** — C/C++ 는 `secure-coding-c` 를 로드해 메모리 버퍼 오버플로우·포맷 스트링·해제 후 사용·취약한 API 를 다루며, NDK 네이티브 모듈도 범위입니다. 다만 보고서 기재값(기준번호·공식 약점명·CWE)의 정본은 49개 기준이고, **C 가이드 58개 체계의 CWE 는 보고서 기재용이 아닙니다** — 두 체계는 번호·명칭·CWE 가 모두 별개입니다. 오탐 판정이 판단 결정적 작업이므로 실행 모델은 `model: opus` 로 고정되어 있습니다(v1.0.2).
 
 국내 기준번호·CWE 기재가 필요 없는 일반 보안 리뷰는 `/security-review`, 버그 탐지는 `/code-review`, 구조 품질 리뷰는 `code-quality-plugin` 의 `strategic-code-reviewer` 를 씁니다.
 
@@ -962,7 +948,6 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 | `$CLAUDE_CODE_TMPDIR/repo/gemma-4-<variant>` | `gemma4` | Gemma 4 모델 (HuggingFace) |
 | `$CLAUDE_CODE_TMPDIR/repo/MeloTTS@<version>` | `melotts-kws` | MeloTTS 소스 |
 | `$CLAUDE_CODE_TMPDIR/repo/OpenVoice@<version>` | `openvoice-v2-kws` | OpenVoice V2 소스 + 체크포인트 |
-| `$CLAUDE_CODE_TMPDIR/repo/wekws@<version>` | `wekws` | wekws 소스 |
 | `$CLAUDE_CODE_TMPDIR/repo/MNN@<version>` | `mnn` | MNN 소스 |
 | `$CLAUDE_CODE_TMPDIR/repo/LiteRT@<version>` | `litert` | LiteRT 소스 |
 | `$CLAUDE_CODE_TMPDIR/repo/LiteRT-LM@<version>` | `litert-lm` | LiteRT-LM 소스 |
