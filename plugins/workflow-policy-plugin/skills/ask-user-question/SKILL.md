@@ -20,7 +20,8 @@ description: >
 Goal: remove the extra round-trip where the user has to ask what each question means.
 
 - **Print the explanation first, then call `AskUserQuestion` in the same response** — never end the
-  turn with the explanation alone
+  turn with the explanation alone. The dialog can hide that text, so each question also names its
+  item and key trade-off itself
 - **For each item, explain**: what is being decided (plain language, no assumed background) · why it
   must be decided now (what it blocks) · what each option changes (files, cost/time, reversibility) ·
   the recommendation and why

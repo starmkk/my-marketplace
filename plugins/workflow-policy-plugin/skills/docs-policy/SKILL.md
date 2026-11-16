@@ -47,7 +47,8 @@ Specs, designs, and plans (`.md`) keep a **main file ≤ 500 lines**; anything l
   requires complete code in plans. Converting an existing
   code-heavy plan is not a split: extract embedded decisions into contracts first, then drop the
   code (git keeps the original)
-- **Plans are written directly** by the main session or a `fable` agent — no plan-writing skill.
+- **Plans are written directly** by the main session or the agent tier assigned to plans
+  (`fable` by default) — no plan-writing skill.
   Multi-phase development: `<YYYY-MM-DD>-<topic>-plan.md` in the project's plan folder
   (`docs/dev-plans/<category>/`, else `docs/plans/`). Single task or measurement:
   `experiments/<YYYY-MM-DD>-<topic>/PLAN.md`, results in `report.md` of the same folder

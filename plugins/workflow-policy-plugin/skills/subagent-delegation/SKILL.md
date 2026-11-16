@@ -65,8 +65,8 @@ anything. (Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read
 - **Pass results through files, not prompts**: a stage writes `experiments/<date>-<topic>/`
   (`PLAN.md`, `report.md`); the next stage gets the path plus a few summary lines. In workflow
   scripts, interpolate a full prior result only in the final fix stage that must judge it
-- **Short reports**: conclusion / verified / not verified / artifact paths, ≤ 30 lines; details in
-  files. Use `schema` in workflows
+- **Short reports**: conclusion / verified / not verified / artifact paths; details in files (a
+  detail file past 500 lines is split per Document Size). Use `schema` in workflows
 - **Long runs**: for GPU sweeps or long device measurements, the agent prepares a small smoke run and
   the command; the main session launches the real run in the background. Agents never poll
 - **The main session decides what is correct.** A subagent report is evidence; confirm its numbers
