@@ -6,7 +6,7 @@ description: >
   "/github:commit", "커밋 메시지 작성" 등의 표현을 사용하거나 코드 변경 후 저장을 요청할 때
   반드시 이 스킬을 사용하라.
 context: fork
-agent: general-purpose
+agent: workflow-policy-plugin:wf-worker
 model: sonnet
 allowed-tools:
   - Bash
