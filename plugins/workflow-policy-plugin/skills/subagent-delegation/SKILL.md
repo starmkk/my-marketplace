@@ -20,8 +20,11 @@ description: >
 ## Work Execution — Subagents & Token Cost (IMPORTANT)
 
 Cost comes from **agent count × fixed context** and **long agent conversations**, not from output.
-Each new agent loads CLAUDE.md, the skill list, and MCP tool schemas (~34k–50k tokens) before doing
-anything. (Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read tokens to produce
+Each new agent loads CLAUDE.md, the skill list, and MCP tool schemas before doing anything.
+Measured first-request size (median, 2026-11-10~17): Agent-tool `general-purpose` 46.6k (N=61) ·
+`workflow-subagent` 48.3k · `Explore` 26.6k · `strategic-code-reviewer` 32.7k ·
+`wf-worker` 16.5k · `wf-reader` 9.9k~13.3k · `web-fetch` 3.8k.
+(Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read tokens to produce
 ~6k output tokens and no files; one 34-turn reviewer used half of it. Details:
 `Nemotron3.dir/docs/references/2026-10-13-agent-token-cost-measurement.md`)
 
@@ -35,9 +38,14 @@ anything. (Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read
   adversarial verification 2 perspectives → fix 1
 - **Workflow size**: 4–6 agents per phase. Before running more than 10 agents in total, consider
   bundling or direct handling first. Re-run an interrupted workflow with `resumeFromRunId`
-- **Choose the cheapest agent type**: `Explore` for locating files/symbols; `general-purpose` only
-  when editing or executing. Do not `fork` in a long session (it inherits the whole conversation).
-  Continue an existing agent with `SendMessage` for follow-up work in the same context
+- **Agent tool: always pass `subagent_type`** (an omitted one is denied by this plugin's
+  `agent_type_guard.py` hook) and choose the cheapest type that can do the work
+  - edit/execute → `workflow-policy-plugin:wf-worker`; read/review/verify/locate files or
+    symbols → `workflow-policy-plugin:wf-reader` (`Explore` costs 2.0–2.7x as much); URL →
+    `web-fetch`; a specialist agent where its rules are the point
+  - `general-purpose` only when the task needs MCP, WebSearch, or Skill tools
+  - Do not `fork` in a long session (it inherits the whole conversation). Continue an existing
+    agent with `SendMessage` for follow-up work in the same context
 - **Workflow stages: always pass `agentType`.** Omitted = `workflow-subagent`, which loads every tool
   definition plus the whole skill list (~48k tokens before the task; measured 2026-11-17: 468 agents,
   326M input-equivalent tokens in 30 days, ~80% fixed overhead — `claude-insights`

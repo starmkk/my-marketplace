@@ -1,0 +1,17 @@
+{
+  "description": "workflow-policy-plugin — Agent 도구 subagent_type 누락 차단 훅",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/agent_type_guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
