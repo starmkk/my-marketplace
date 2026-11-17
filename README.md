@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.12 | 스킬 5종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 + 작업 리포트 열람 |
+| `dev-helper-plugin` | 1.0.13 | 스킬 6종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 + 작업 리포트 열람 + Notion 이슈 등록 |
 | `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.8 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
@@ -25,7 +25,7 @@
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 5종을 제공합니다.
+개발 워크플로우 자동화 스킬 6종을 제공합니다.
 
 ### 설치
 
@@ -42,6 +42,7 @@
 | `project-handoff` | 토픽별 자기완결 세션 인계(handoff) 문서 작성 — cross-repo / Claude Design 시안 변형 지원 |
 | `model-profile` | 서브에이전트 모델 배정을 세션 단위로 opus 위주(fable 은 에스컬레이션 전용)로 전환 — `/dev-helper-plugin:model-profile [opus\|fable]` |
 | `daily-report` | claude-insights 일일 리포트·주간 /insights 요약 열람과 제안 적용 보조 — `/dev-helper-plugin:daily-report [YYYY-MM-DD\|어제\|weekly]` |
+| `notion-issue` | 요청한 이슈를 Notion 「Claude Code 리포트」 이슈 DB 에 배경·근거·완료 조건과 함께 등록하고, 작업 시 상태(백로그·진행중·보류·완료)·진행 기록 갱신 — "이슈 등록해줘: …" 또는 `/dev-helper-plugin:notion-issue` |
 
 ---
 
