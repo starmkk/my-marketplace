@@ -41,13 +41,14 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 
 ---
 
-## 2. 작성 절차 (5 step)
+## 2. 작성 절차 (6 step)
 
 1. **토픽·범위 확정 + 파일명 결정** — `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md`. 날짜는 `date +%Y-%m-%d` 로 확정 (추정 금지).
 2. **git 상태 캡처** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" [repo2 repo3 ...]` 실행 → §1 스냅샷 표에 붙일 HEAD / branch / 직전 10 commit chain markdown 출력. multi-repo 는 인자로 sibling repo 경로 추가.
 3. **표준 골격 채우기(§10 시작 프롬프트 포함)** — `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/assets/handoff-template.md` 골격을 복사 후 placeholder 치환. 필수/선택 섹션 상세는 `references/handoff-anatomy.md` 위임. cross-repo / design-mockup 변형은 해당 reference 의 추가 절차 병행.
-4. **commit** — CLAUDE.md §5.1 정책: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조.
-5. **self-review** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` 실행 → 문서의 HEAD anchor 가 실제 `git log` 와 일치하는지 검증. 불일치 시 정정 후 재검증.
+4. **실행 중 작업 정리** — 이 세션이 띄운 백그라운드 서브에이전트·워크플로·백그라운드 명령을 확인한다(`ListAgents`, 백그라운드 작업 목록). 남아 있으면 항목별로 종료할지 AskUserQuestion 1회로 묻고, 종료한 것은 종료하고 남기는 것은 handoff §1 에 `실행 중: <이름·목적·결과 경로>` 로 적는다. 다음 세션이 같은 빌드 디렉터리·단말을 쓰다 충돌하는 것을 막기 위함(관측: 새 세션 시작 뒤에도 이전 세션의 리뷰 에이전트 2개가 계속 실행)
+5. **commit** — CLAUDE.md §5.1 정책: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조.
+6. **self-review** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` 실행 → 문서의 HEAD anchor 가 실제 `git log` 와 일치하는지 검증. 불일치 시 정정 후 재검증.
 
 ---
 
@@ -82,8 +83,8 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 
 | Plugin / Skill | 결합 시점 | 어떻게 |
 |---|---|---|
-| **`dev-helper-plugin:github-commit`** | handoff 작성 후 (§2 step 4) | `docs(handoff): 📋 <topic> 인계 — <1 줄>` 별도 commit. 직접 `git commit` 금지 (CLAUDE.md §5.1) |
-| **실측 검증 (CLAUDE.md Testing & QA)** | commit 직전 (§2 step 5) | §1 commit chain / 회귀 수치 / cold-load 가 실측과 정합한지 evidence 기반 검증 |
+| **`dev-helper-plugin:github-commit`** | handoff 작성 후 (§2 step 5) | `docs(handoff): 📋 <topic> 인계 — <1 줄>` 별도 commit. 직접 `git commit` 금지 (CLAUDE.md §5.1) |
+| **실측 검증 (CLAUDE.md Testing & QA)** | commit 직전 (§2 step 6) | §1 commit chain / 회귀 수치 / cold-load 가 실측과 정합한지 evidence 기반 검증 |
 | **root cause 분석 (opus 위임 가능)** | §7 함정 행 추가 시 | root cause 까지 도달한 디버깅만 증상/원인/fix 로 압축 |
 | **`kotlin-audio-architect`** | Kotlin 작업 handoff 의 §8 참조 채울 때 | 협의 결과 `docs/superpowers/architect-reviews/<id>.md` 를 §8 에 인덱싱 (CLAUDE.md §1.4) |
 | **계획서 직접 작성 (메인 세션 또는 fable, CLAUDE.md Plans 규칙)** | §5 다음 작업이 신규 마일스톤일 때 | plan 을 `docs/superpowers/plans/<date>-<topic>.md` 에 저장 → §8 인덱싱 |
@@ -96,6 +97,7 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재검증.
 
 - [ ] **파일명 날짜** — `date +%Y-%m-%d` 실측값. 추정한 날짜 아님
+- [ ] **실행 중 작업** — 백그라운드 에이전트·워크플로·명령을 종료했거나 §1 에 `실행 중` 으로 기록했는가
 - [ ] **§1 HEAD / commit chain** — `git log --oneline -10` 과 정합 (verify-handoff-integrity.sh PASS)
 - [ ] **§1 회귀 / cold-load** — 실측값 (`./gradlew :app:testDebugUnitTest` / `am start -W` 결과)
 - [ ] **§8 참조 경로** — 모든 링크가 `ls <path>` 로 존재 확인 (spec / plan / architect-review / ledger)
