@@ -48,4 +48,5 @@ allowed-tools:
    - 단위 명령: `git add -- <files> && git commit -F - -- <files> <<'MSG' … MSG` — 경로 한정으로 미리 stage 돼 있던 다른 파일을 섞지 않음
    - 마지막에 `git log --format='%h %s' -n <커밋 수>` 로 확인. hook 실패 시 뒤 단위는 실행되지 않으므로 실패 단위와 출력을 보고
    - `--no-verify`·push·히스토리 재작성(amend·rebase·reset)은 하지 않음 — 요청에 명시된 경우만 예외
+   - 마일스톤 체크포인트 커밋 요청이면 그 단계에서 바꾼 파일만 묶고 제목에 단계명(예: `P6`)을 넣음 — 다른 세션의 변경 파일은 스테이징하지 않음
 3. Report a summary of all commits made — 커밋 해시·제목, 중단했다면 사유

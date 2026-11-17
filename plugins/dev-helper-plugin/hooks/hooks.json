@@ -1,0 +1,16 @@
+{
+  "description": "dev-helper-plugin — claude-insights 미해결 알림(재로그인·컨테이너 중지) 세션 시작 경고",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/insights_alert.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

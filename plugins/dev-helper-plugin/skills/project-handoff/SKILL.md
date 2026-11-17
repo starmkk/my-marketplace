@@ -1,6 +1,6 @@
 ---
 name: project-handoff
-description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계할 때, 여러 repo 에 걸친 변경을 넘길 때, Claude Design 시안이 도착했을 때 — `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 토픽 handoff 파일을 작성한다. 사용자가 '핸드오프 / 진행상황 정리 / 다음 세션 인계 / `/clear` 전에 정리 / handoff 작성 / cross-repo 인계 / 시안 도착' 을 발화하거나, 마일스톤 PASS 직후 · 큰 결정 동결 직후에 사용. 구 resume-handoff / enhanced-handoff 를 대체 — RESUME.md 누적 방식은 폐기하고 토픽별 자기완결 handoff 파일이 SoT."
+description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계할 때, 여러 repo 에 걸친 변경을 넘길 때, Claude Design 시안이 도착했을 때 — `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 토픽 handoff 파일을 작성한다. 사용자가 '핸드오프 / 진행상황 정리 / 다음 세션 인계 / `/clear` 전에 정리 / handoff 작성 / cross-repo 인계 / 시안 도착' 을 발화하거나, 마일스톤 PASS 직후 · 큰 결정 동결 직후에 사용. 'handoff 읽고 이어서 / 작업 재개' 로 handoff 를 읽고 시작할 때는 §8 재개 모드(동기화 점검)를 따른다. 구 resume-handoff / enhanced-handoff 를 대체 — RESUME.md 누적 방식은 폐기하고 토픽별 자기완결 handoff 파일이 SoT."
 ---
 
 # project-handoff — 토픽별 세션 인계 문서 작성
@@ -114,6 +114,24 @@ commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재�
 - **작업 진행 중 (TDD step 1~4)** — Step 5 commit 후에만
 - **RESUME.md 를 되살리려는 요청** — 폐기된 방식. 토픽 handoff 로 안내
 - **사용자가 "handoff 는 건드리지 마" 발화** — 별도 작업 우선
+
+---
+
+## 8. 재개 모드 — handoff 를 읽고 세션을 시작할 때
+
+handoff 를 읽고 이어서 작업하라는 요청(예: "handoff 를 읽고 이어간다")이면 첫 작업 전에 아래를 Bash 1회로 확인하고 결과를 3줄 이내로 보고한다.
+
+1. **동기화**: `git status -sb`(브랜치·ahead/behind) · `git log --oneline -1` 을 handoff §1 HEAD 와 비교 · 원격이 있으면 `git fetch -q` 후 behind 수
+   - HEAD 가 handoff 보다 뒤 → `git pull --ff-only` 가능 여부를 보고하고 사용자 확인 후 실행
+   - HEAD 가 앞섬 → 그 사이 커밋 제목을 보여 주고 §5 다음 작업이 이미 끝났는지 대조
+2. **이전 세션의 미커밋 변경**: `git status --porcelain` 이 비어 있지 않으면 파일 목록을 보여 주고, 체크포인트 커밋 후 시작할지 묻는다(새 작업과 섞지 않음)
+3. **진입**: §10 시작 프롬프트의 규칙(실행 위치·위임 모델·리뷰·커밋)을 이번 세션 규칙으로 따르고 §9 의 지정 스텝부터 시작
+
+### 체크포인트 커밋 규칙
+
+- 게이트(lint·test·실측)를 통과한 마일스톤마다 그 단계에서 바꾼 파일만 `dev-helper-plugin:github-commit` 으로 커밋한 뒤 다음 단계로 넘어간다
+- 세션을 끝내거나 handoff 를 쓰기 전에 미커밋 변경이 남지 않게 한다. 남겨야 하면 handoff §1 에 파일과 이유를 적는다
+- 다른 세션이 같은 저장소를 쓰는 중이면(`git status` 에 내 작업이 아닌 변경) 그 파일은 스테이징하지 않는다
 
 ---
 
