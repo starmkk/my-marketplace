@@ -12,14 +12,14 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.16 | 스킬 7종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 |
+| `dev-helper-plugin` | 1.0.17 | 스킬 7종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 |
 | `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
-| `code-quality-plugin` | 1.0.9 | 스킬 4종 + 에이전트 1종 + 훅 2종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 |
+| `code-quality-plugin` | 1.0.10 | 스킬 4종 + 에이전트 1종 + 훅 2종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 |
 | `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.8 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
-| `workflow-policy-plugin` | 1.0.3 | 스킬 5종 + 에이전트 2종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
+| `workflow-policy-plugin` | 1.0.4 | 스킬 5종 + 에이전트 2종 + 훅 1종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 + Agent `subagent_type` 누락 차단 |
 
 ---
 
@@ -132,26 +132,33 @@
 
 | 섹션 | 핵심 |
 |---|---|
-| 헤더 | 작성일 / branch / "이 문서만 읽고 진입 가능" 선언 / 진입 순서 / SDD ledger cross-link |
-| §1 현재 상태 스냅샷 | branch / HEAD / commit 범위 / 빌드 상태 / plan·spec·architect refs |
+| 헤더 | 작성일 / branch / "이 문서만 읽고 진입 가능" 선언 / 진입 순서 / (있으면) 프로젝트 ledger cross-link |
+| §1 현재 상태 스냅샷 | branch / HEAD(현재 해시를 맨 앞에, 커밋 직전 HEAD 기준) / commit 범위 / 빌드 상태 / plan·spec refs |
 | §2 완료 작업 | 커밋·검증됨 — "건드리지 말 것" commit 표 + 근본원인 |
 | §5 다음 작업 ★ | 우선순위 순, 각 항목의 왜 / 어디(파일:라인) / 주의 — next-turn의 진입점 |
-| §6 빌드·실행 환경 | 매번 붙이는 env prefix + gradle/adb 명령 |
-| §8 참조 인덱스 | spec / plan / architect-review / ledger 경로 |
+| §6 빌드·실행 환경 | 매번 붙이는 프로젝트 빌드·실행 prefix + 명령 |
+| §8 참조 인덱스 | spec / plan / ledger 경로(존재 여부는 verify 스크립트가 검사) |
 | §9 재개 절차 | next-turn이 그대로 실행 가능한 번호 스텝 |
 
 선택 섹션: §0 한 줄 요약, §3 핵심 설계 결정(동결), §4 핵심 파일 인덱스, §7 함정(신규 발견).
 
-**포함 스크립트:**
+**포함 스크립트 (1.0.17~: 사실 확인 1회 + 검증 1회로 요청 수 축소):**
 ```shell
-# git 상태 캡처 → §1 스냅샷 표 markdown 출력 (인자로 sibling repo 추가 시 multi-repo 표)
+# 작성 전 사실 수집 1회 — 오늘 날짜·파일명 접두·§1 스냅샷(capture-repo-state.sh 위임)·미커밋 목록·최근 handoff
+bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/collect-handoff-facts.sh" \
+    /path/to/sibling-repo-1
+
+# git 상태 캡처만 → §1 스냅샷 표 markdown 출력 (인자로 sibling repo 추가 시 multi-repo 표)
 bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" \
     /path/to/sibling-repo-1 /path/to/sibling-repo-2
 
-# self-review — 문서의 HEAD anchor 가 실제 git log 와 일치하는지 검증 (불일치 시 exit 1)
+# self-review(커밋 전) — §1 HEAD anchor·§10 시작 프롬프트·§8 참조 경로 존재·파일명 날짜 검사 (FAIL 시 exit 1)
+# handoff 를 커밋한 뒤 다시 돌려도 HEAD^ = anchor 이고 HEAD 가 이 handoff 를 포함하면 OK
 bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" \
     docs/handoffs/2026-07-22-my-topic-handoff.md
 ```
+
+**작성 시점:** 마일스톤 경계(게이트 통과·커밋 직후). 인계 요청당 비용 ≈ 호출 시점 문맥 크기라 큰 문맥까지 미루지 않습니다(2026-11-17 실측: 30일 중앙 536k vs 표본 232k~256k)
 
 **결합 스킬:** `dev-helper-plugin:github-commit` (작성 후 커밋 — 직접 `git commit` 금지) · 커밋 직전 실측 검증과 계획서 직접 작성은 전역 CLAUDE.md 규칙을 따름
 
@@ -562,7 +569,7 @@ python skills/openvoice-v2-kws/scripts/batch_multispk_synthesize.py \
 
 | 구성요소 | 종류 | 한 줄 설명 |
 |---|---|---|
-| `strategic-code-reviewer` | 에이전트 | DRY·KISS·SRP·YAGNI·SoC·Naming 6원칙으로 배치·분해·중복·복잡도·네이밍을 판단 |
+| `strategic-code-reviewer` | 에이전트 | DRY·KISS·SRP·YAGNI·SoC·Naming 6원칙으로 배치·분해·중복·복잡도·네이밍을 판단 (1.0.10~: 스킬을 frontmatter `skills:` 로 미리 로드, Skill 도구 없음 — 스킬 목록 약 14k 토큰 절감) |
 | `strategic-code-reviewer` | 스킬 | 6원칙 판정 기준, 오탐 필터, 우선순위 등급, 보고 형식 |
 | `cpp-convention` | 스킬 | C++17 동시성 패턴, NDK r25 전제, include 순서, `compile_commands.json` |
 | `lint-test-policy` | 스킬 | 언어별 lint 도구, 테스트 케이스 요건, 세션 연속성 절차 |
@@ -963,17 +970,23 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 - 각 스킬 본문은 전역 CLAUDE.md 의 해당 절 원문을 그대로 옮긴 것입니다. 전역 요약과 어긋나면 스킬이 기준입니다.
 - 6원칙 판정 기준 자체는 `code-quality-plugin` 의 `strategic-code-reviewer` 스킬에 있습니다.
 
-### Workflow 단계용 경량 에이전트 (1.0.2~)
+### 경량 에이전트 — Workflow 단계·Agent 도구 위임 (1.0.2~)
 
 | 에이전트 | 도구 | 쓰는 단계 | 지정 |
 |---|---|---|---|
-| `wf-worker` | Bash · Read · Edit · Write | 구현·수정 | `agentType: 'workflow-policy-plugin:wf-worker'` |
-| `wf-reader` | Bash · Read | 검토·조사·검증(파일 수정 없음) | `agentType: 'workflow-policy-plugin:wf-reader'` |
+| `wf-worker` | Bash · Read · Edit · Write | 구현·수정·실행 | Workflow `agentType` / Agent `subagent_type`: `'workflow-policy-plugin:wf-worker'` |
+| `wf-reader` | Bash · Read | 검토·조사·검증·위치 찾기(파일 수정 없음) | Workflow `agentType` / Agent `subagent_type`: `'workflow-policy-plugin:wf-reader'` |
 
 - `agentType` 을 생략하면 범용 workflow-subagent(전 도구 정의 + 스킬 목록, 작업 전 약 48k 토큰)로 뜹니다. Workflow API 에는 호출별 도구 제한 옵션이 없어 이 정의가 유일한 수단입니다
-- plugin 접두를 반드시 붙입니다 — 접두 없는 이름은 경고 없이 범용으로 대체됩니다
+- plugin 접두를 반드시 붙입니다 — Workflow 에서 접두가 없거나 미등록이면 `agent type ... not found` 오류(플러그인 설치 전에 시작한 프로세스도 같음 — 재시작), 스킬 frontmatter `agent:` 에서는 조용히 범용으로 대체됩니다
 - 스킬이 필요한 단계는 프롬프트에 SKILL.md 경로를 주어 Read 하게 합니다. `schema` 단계도 동작합니다(하네스가 StructuredOutput 추가)
 - 근거: 2026-11-17 voiceguard 30일 workflow 에이전트 468건 분석(입력 환산 326M, 고정분 약 80%), 규칙 상세는 `subagent-delegation` 스킬
+
+### Agent `subagent_type` 누락 차단 훅 (1.0.4~)
+
+- `agent_type_guard.py`(`PreToolUse`, matcher `Agent|Task`): `subagent_type` 이 없거나 null·공백이면 거부하고 선택지를 안내합니다. 생략 시 기본값이 `general-purpose`(첫 요청 약 47k)라서입니다
+- 명시한 값은 무엇이든 통과합니다(`general-purpose`·`fork` 포함). 입력 해석 실패·예외는 통과(fail-open)
+- 선택 기준: 편집·실행 `wf-worker`, 읽기·검토·검증·위치 찾기 `wf-reader`(Explore 대비 약 2.0~2.7배 가벼움), URL `web-fetch`, 규칙이 핵심이면 전문 에이전트, `general-purpose` 는 MCP·WebSearch·Skill 도구가 필요할 때만
 
 ---
 
