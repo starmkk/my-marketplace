@@ -46,7 +46,9 @@ anything. (Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read
   - implement/fix stages → `workflow-policy-plugin:wf-worker` (Bash·Read·Edit·Write);
     review/investigate/verify stages → `workflow-policy-plugin:wf-reader` (Bash·Read); keep a
     specialist type (e.g. `code-quality-plugin:strategic-code-reviewer`) where its rules are the point
-  - Write the plugin prefix: an unprefixed or unknown `agentType` silently falls back to the full
+  - Write the plugin prefix. In a Workflow an unprefixed or unknown `agentType` fails with
+    `agent type ... not found` (seen 2026-11-17; a process started before the plugin install also
+    fails — restart it); in a skill's `agent:` frontmatter it silently falls back to the full
     toolset (seen with `mnn-source-inspector`)
   - A stage that needs a skill gets the SKILL.md path in its prompt and Reads it — giving the Skill
     tool brings the whole ~14k skill list. `schema` still works (the harness adds StructuredOutput)

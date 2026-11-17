@@ -12,14 +12,14 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.14 | 스킬 6종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 + 작업 리포트 열람 + Notion 이슈 등록 |
+| `dev-helper-plugin` | 1.0.15 | 스킬 7종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 |
 | `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
-| `code-quality-plugin` | 1.0.8 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
+| `code-quality-plugin` | 1.0.9 | 스킬 4종 + 에이전트 1종 + 훅 2종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 |
 | `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.8 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
-| `workflow-policy-plugin` | 1.0.2 | 스킬 5종 + 에이전트 2종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
+| `workflow-policy-plugin` | 1.0.3 | 스킬 5종 + 에이전트 2종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
 
 ---
 
@@ -41,7 +41,8 @@
 | `pytorch-harness` | Config-Driven + Factory Pattern 기반 PyTorch 프로젝트 하네스 스캐폴딩 |
 | `project-handoff` | 토픽별 자기완결 세션 인계(handoff) 문서 작성 — cross-repo / Claude Design 시안 변형 지원 |
 | `model-profile` | 서브에이전트 모델 배정을 세션 단위로 opus 위주(fable 은 에스컬레이션 전용)로 전환 — `/dev-helper-plugin:model-profile [opus\|fable]` |
-| `daily-report` | claude-insights 일일 리포트·주간 /insights 요약 열람과 제안 적용 보조 — `/dev-helper-plugin:daily-report [YYYY-MM-DD\|어제\|weekly]` |
+| `daily-report` | Notion 리포트 DB 의 미검토 리포트 조치 항목을 AskUserQuestion 으로 결정·적용하고 검토 상태 갱신 — `/dev-helper-plugin:daily-report [날짜\|시작~끝\|weekly\|monthly]` |
+| `device-settings` | Android 단말 테스트 전 설정(font_scale·애니메이션 배율 등) 기록과 종료 후 복원 — `scripts/device_settings.sh save\|diff\|restore` |
 | `notion-issue` | 요청한 이슈를 Notion 「Claude Code 리포트」 이슈 DB 에 배경·근거·완료 조건과 함께 등록하고, 작업 시 상태(백로그·진행중·보류·완료)·진행 기록 갱신 — "이슈 등록해줘: …" 또는 `/dev-helper-plugin:notion-issue` |
 
 ---
@@ -160,21 +161,19 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 
 ### daily-report
 
-claude-insights 저장소가 생성한 Claude Code 작업 리포트를 열람합니다. 리포트 생성은 호스트 cron 이 담당하고(매일 06:00 일일 리포트, 매주 월 05:30 `/insights` 주간 요약, Gmail 발송 포함), 이 스킬은 열람과 제안 적용 보조만 합니다.
+claude-insights(리포트 v3)가 Notion 「Claude Code 리포트」 DB 에 게시한 일일·주간·월간 리포트를 검토합니다. 생성·게시는 호스트 cron(`scripts/run_reports.py`)이 담당하고, 이 스킬은 미검토 리포트의 조치 항목을 AskUserQuestion 으로 결정(적용·보류·기각)해 적용하고 `decisions.jsonl` 기록과 Notion 검토 상태(🔴 검토필요 · 🟡 검토미정 · ✅ 검토완료)를 갱신합니다.
 
 **사용:**
 ```shell
-/dev-helper-plugin:daily-report            # 최신 일일 리포트
-/dev-helper-plugin:daily-report 어제        # 날짜 지정 (YYYY-MM-DD 도 가능)
-/dev-helper-plugin:daily-report weekly     # 최신 주간 요약
+/dev-helper-plugin:daily-report                      # 이 호스트의 미검토 리포트 최신 7건
+/dev-helper-plugin:daily-report 어제                  # 날짜 지정 (YYYY-MM-DD 도 가능)
+/dev-helper-plugin:daily-report 11/10~11/16          # 기간과 겹치는 미검토 리포트 일괄 인터뷰
+/dev-helper-plugin:daily-report weekly --host all    # 최신 주간, 모든 호스트
 ```
 
-**저장소 탐색 순서:** `$CLAUDE_INSIGHTS_DIR` → `/workspace/work/claude/claude-insights`(컨테이너) → `~/work/claude/claude-insights`(호스트). 리포트가 없는 머신에서는 안내 후 종료합니다.
+**세션 시작 훅:** claude-insights 의 미해결 알림(재로그인 필요·컨테이너 중지)이 있으면 세션 시작 때 한 줄로 표시합니다(`hooks/insights_alert.py`, 검증 `hooks/test_insights_alert.sh`).
 
-**트리거 표현:**
-- "일일 리포트", "어제 리포트", "주간 요약", "insights 요약", "리포트 제안 적용"
-
-**주의:** 컨테이너 안에서는 리포트를 재생성하지 않고 호스트 재실행 명령만 안내합니다(컨테이너 실행 기록이 분석 대상에 섞이는 것을 방지). 제안 적용은 diff 제시 후 사용자 확인을 받은 뒤에만 수행합니다.
+**주의:** 리포트 생성·재생성은 호스트에서만 하며 컨테이너에서는 명령만 안내합니다. CLAUDE.md 절 추가 조치는 묻지 않고 기각합니다(사용자 영구 결정).
 
 ---
 
@@ -551,7 +550,7 @@ python skills/openvoice-v2-kws/scripts/batch_multispk_synthesize.py \
 ---
 ## code-quality-plugin
 
-코드 구조 품질을 지키는 에이전트 1종·스킬 3종·훅 1종을 제공합니다. 작성 전 설계 협의와 작성 후 구조 리뷰를 한 묶음으로 다룹니다.
+코드 구조 품질을 지키는 에이전트 1종·스킬 4종·훅 2종을 제공합니다. 작성 전 설계 협의와 작성 후 구조 리뷰를 한 묶음으로 다룹니다.
 
 ### 설치
 
@@ -568,6 +567,8 @@ python skills/openvoice-v2-kws/scripts/batch_multispk_synthesize.py \
 | `cpp-convention` | 스킬 | C++17 동시성 패턴, NDK r25 전제, include 순서, `compile_commands.json` |
 | `lint-test-policy` | 스킬 | 언어별 lint 도구, 테스트 케이스 요건, 세션 연속성 절차 |
 | serena-first | 훅 | 재귀 `grep`/`rg` 실행 시 Serena 우선 안내를 사용자 화면·모델 컨텍스트 2채널로 전달 (`PreToolUse`) |
+| `review-diff` | 스킬 | diff 리뷰 보고 형식 — 심각도·file:line·근거, 테스트 단언 점검, 재리뷰 대조, 판정(GO·GO-with-fixes·BLOCK) |
+| venv-guard | 훅 | 프로젝트에 `.venv` 가 있는데 시스템 python 으로 pytest 실행 시 거부 (`PreToolUse`, 검증: `hooks/test_venv_guard.sh`) |
 
 ### 사용 흐름
 
