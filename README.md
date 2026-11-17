@@ -19,7 +19,7 @@
 | `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.8 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
-| `workflow-policy-plugin` | 1.0.1 | 스킬 5종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
+| `workflow-policy-plugin` | 1.0.2 | 스킬 5종 + 에이전트 2종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 |
 
 ---
 
@@ -958,6 +958,18 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 
 - 각 스킬 본문은 전역 CLAUDE.md 의 해당 절 원문을 그대로 옮긴 것입니다. 전역 요약과 어긋나면 스킬이 기준입니다.
 - 6원칙 판정 기준 자체는 `code-quality-plugin` 의 `strategic-code-reviewer` 스킬에 있습니다.
+
+### Workflow 단계용 경량 에이전트 (1.0.2~)
+
+| 에이전트 | 도구 | 쓰는 단계 | 지정 |
+|---|---|---|---|
+| `wf-worker` | Bash · Read · Edit · Write | 구현·수정 | `agentType: 'workflow-policy-plugin:wf-worker'` |
+| `wf-reader` | Bash · Read | 검토·조사·검증(파일 수정 없음) | `agentType: 'workflow-policy-plugin:wf-reader'` |
+
+- `agentType` 을 생략하면 범용 workflow-subagent(전 도구 정의 + 스킬 목록, 작업 전 약 48k 토큰)로 뜹니다. Workflow API 에는 호출별 도구 제한 옵션이 없어 이 정의가 유일한 수단입니다
+- plugin 접두를 반드시 붙입니다 — 접두 없는 이름은 경고 없이 범용으로 대체됩니다
+- 스킬이 필요한 단계는 프롬프트에 SKILL.md 경로를 주어 Read 하게 합니다. `schema` 단계도 동작합니다(하네스가 StructuredOutput 추가)
+- 근거: 2026-11-17 voiceguard 30일 workflow 에이전트 468건 분석(입력 환산 326M, 고정분 약 80%), 규칙 상세는 `subagent-delegation` 스킬
 
 ---
 

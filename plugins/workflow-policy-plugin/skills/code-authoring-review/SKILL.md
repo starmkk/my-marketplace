@@ -40,10 +40,14 @@ YAGNI covers features not yet needed, never checking that what was built is corr
   stateful/iterative pipelines also need continuous accumulation tests
 - Case: PyTorch→ONNX verified, ONNX→MNN deferred as "YAGNI" → MNN conversion faults went unseen
   (details: `strategic-code-reviewer` skill §4)
+- When told to skip a gate (GREEN run, lint, device test), end the report with a **Not verified**
+  list naming exactly which gates were skipped — never report that work as done. (Seen: several
+  implementations ended at "compile only" and were reported as mostly achieved)
 
 ### Reviewer Findings Are Evidence, Not Verdicts
 
-- For significant structural decisions, add a deliberately opposing review (e.g. `codex:rescue`) —
+- For significant structural decisions, add a deliberately opposing review (e.g. a separate opus
+  reviewer told to refute the design; `codex:rescue` only where the codex plugin is enabled) —
   skip it when the adversarial verification perspectives already cover the same question
 - Never accept or dismiss a review wholesale: state which findings are accepted or rejected, each
   with its reason

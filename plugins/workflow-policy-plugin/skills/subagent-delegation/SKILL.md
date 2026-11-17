@@ -38,6 +38,25 @@ anything. (Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read
 - **Choose the cheapest agent type**: `Explore` for locating files/symbols; `general-purpose` only
   when editing or executing. Do not `fork` in a long session (it inherits the whole conversation).
   Continue an existing agent with `SendMessage` for follow-up work in the same context
+- **Workflow stages: always pass `agentType`.** Omitted = `workflow-subagent`, which loads every tool
+  definition plus the whole skill list (~48k tokens before the task; measured 2026-11-17: 468 agents,
+  326M input-equivalent tokens in 30 days, ~80% fixed overhead — `claude-insights`
+  `experiments/2026-11-17-workflow-tokens/report.md`). The Workflow API has no per-call tool limit,
+  so a lean agent definition is the only lever
+  - implement/fix stages → `workflow-policy-plugin:wf-worker` (Bash·Read·Edit·Write);
+    review/investigate/verify stages → `workflow-policy-plugin:wf-reader` (Bash·Read); keep a
+    specialist type (e.g. `code-quality-plugin:strategic-code-reviewer`) where its rules are the point
+  - Write the plugin prefix: an unprefixed or unknown `agentType` silently falls back to the full
+    toolset (seen with `mnn-source-inspector`)
+  - A stage that needs a skill gets the SKILL.md path in its prompt and Reads it — giving the Skill
+    tool brings the whole ~14k skill list. `schema` still works (the harness adds StructuredOutput)
+- **Fewer, fuller requests** (cost grows with requests × context): 91% of workflow requests carried
+  one tool call and 56% of Bash calls were single-file reads — issue independent reads in one message
+  or one Bash that prints several files/ranges. Split work that would pass ~40 requests into stages
+  with a short file hand-off (agents over 40 requests were 20% of agents and 46% of cost)
+- **No command over 5 minutes inside an agent**: the prompt cache expires after 5 idle minutes and
+  the next request rewrites the whole context (128 misses, 7.3% of workflow cost). Long builds/tests
+  run from the main session in the background, or are split
 - **Model by difficulty** (default profile; the `dev-helper-plugin:model-profile` skill, invoked only
   on user request, replaces this assignment for the session) —
   `haiku`: mechanical substitution, file listing, format conversion ·
@@ -61,10 +80,17 @@ anything. (Measured 2026-10-13: a 17-agent review workflow used ~6.8M cache-read
     (e.g. "read only design §6.2 (lines 761-819) and `hf_runner.py:51-106`, answer Q1–Q3")
   - Reference large docs by section/line range, never whole
   - Subagents skip Serena `initial_instructions` and unlisted skills unless the task needs symbol
-    navigation or that skill
+    navigation or that skill. One that does need symbols calls `activate_project` with its
+    worktree path first (Serena failures in voiceguard were all "No active project"), and if that
+    fails, says so once and uses grep/Read
+  - In a worktree session, temp scripts and outputs go under that worktree's `experiments/` — the
+    original checkout's scratchpad path is outside the isolation boundary and is refused
 - **Pass results through files, not prompts**: a stage writes `experiments/<date>-<topic>/`
   (`PLAN.md`, `report.md`); the next stage gets the path plus a few summary lines. In workflow
   scripts, interpolate a full prior result only in the final fix stage that must judge it
+  - Name the exact output directory in the prompt. If the harness refuses a subagent's `.md` write
+    (seen 2026-11-17), the subagent writes `.json`/`.txt` or returns the text, and the main session
+    saves `report.md`
 - **Short reports**: conclusion / verified / not verified / artifact paths; details in files (a
   detail file past 500 lines is split per Document Size). Use `schema` in workflows
 - **Long runs**: for GPU sweeps or long device measurements, the agent prepares a small smoke run and
