@@ -38,6 +38,14 @@ allowed-tools:
 
 ## Steps
 
-1. Run `git status` and `git diff` to identify all changes
-2. Write commit messages following the rules above and apply
-3. Report a summary of all commits made
+1. Identify all changes — run the collector **once** (replaces separate `git status`/`git diff` calls):
+   `bash "${CLAUDE_PLUGIN_ROOT}/skills/github-commit/scripts/collect-changes.sh" [repo]`
+   - 출력: identity · status · 수집 시점 staged 목록 · log · diff --stat · untracked(바이트) · secret scan · diff 본문(최대 20,000바이트, 비밀 패턴 마스킹)
+   - secret scan 에 `SECRET` 행이 있으면 해당 파일을 Read 하지 말고 커밋 없이 위치만 보고(값은 옮기지 않음). 요청에 그 파일 허용이 명시된 경우만 진행
+   - identity 가 `(미설정)` 이면 요청에 `-c user.name=… -c user.email=…` 지시가 있을 때만 그 플래그로 진행. git config 는 바꾸지 않음
+   - diff 가 잘렸거나 신규 파일 내용이 필요할 때만 해당 파일을 Read
+2. Write commit messages following the rules above and apply — 커밋 단위 명령을 `&&` 로 이어 Bash **1회**로 실행
+   - 단위 명령: `git add -- <files> && git commit -F - -- <files> <<'MSG' … MSG` — 경로 한정으로 미리 stage 돼 있던 다른 파일을 섞지 않음
+   - 마지막에 `git log --format='%h %s' -n <커밋 수>` 로 확인. hook 실패 시 뒤 단위는 실행되지 않으므로 실패 단위와 출력을 보고
+   - `--no-verify`·push·히스토리 재작성(amend·rebase·reset)은 하지 않음 — 요청에 명시된 경우만 예외
+3. Report a summary of all commits made — 커밋 해시·제목, 중단했다면 사유

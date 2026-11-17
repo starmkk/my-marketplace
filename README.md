@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.10 | 스킬 5종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 + 작업 리포트 열람 |
+| `dev-helper-plugin` | 1.0.11 | 스킬 5종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서 + 모델 프로필 전환 + 작업 리포트 열람 |
 | `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.8 | 스킬 3종 + 에이전트 1종 + 훅 1종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + Serena 우선 검색 |
@@ -56,6 +56,12 @@
 
 **트리거 표현:**
 - "커밋해줘", "commit", "변경사항 저장", "git commit"
+
+**실행 절차(1.0.11~):** `scripts/collect-changes.sh` 1회 수집 → 커밋 1회 실행(Bash 2회)으로 끝냅니다.
+
+- 수집 스크립트가 diff 본문 출력을 20,000바이트로 제한하고, 비밀 패턴은 잘리기 전 전체 diff·신규 파일 본문에서 먼저 검사합니다(검출 시 diff 본문 생략·커밋 중단, 값은 출력하지 않고 위치만 보고)
+- 커밋은 경로를 한정(`git commit -- <files>`)해 미리 stage 돼 있던 다른 파일을 섞지 않습니다
+- 검증: `bash plugins/dev-helper-plugin/skills/github-commit/scripts/test-collect-changes.sh`
 
 **커밋 형식:**
 
