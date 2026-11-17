@@ -1,5 +1,5 @@
 {
   "name": "code-quality-plugin",
-  "description": "코드 품질 검토 도구 — DRY·KISS·SRP·YAGNI·SoC·Naming 6원칙 리뷰 에이전트, C++ 컨벤션·lint/테스트 정책 상세 스킬, Serena 우선 코드검색 훅 제공",
-  "version": "1.0.8"
+  "description": "코드 품질 검토 도구 — DRY·KISS·SRP·YAGNI·SoC·Naming 6원칙 리뷰 에이전트, C++ 컨벤션·lint/테스트 정책·diff 리뷰 보고 형식 스킬, Serena 우선 코드검색 훅·시스템 python pytest 차단 훅 제공",
+  "version": "1.0.9"
 }
