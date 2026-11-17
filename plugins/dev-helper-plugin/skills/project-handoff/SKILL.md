@@ -20,10 +20,12 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 | SoT | 위치 | 성격 |
 |---|---|---|
 | 토픽 handoff 파일 | `docs/handoffs/<date>-<topic>-handoff.md` | git tracked, 공유 SoT, 본 스킬 산출물 |
-| SDD ledger | `.superpowers/sdd/progress.md` | repo-local, gitignored, 진행/커밋/carry-forward 상세 (있으면 handoff 헤더에 cross-link) |
+| (있으면) 프로젝트 ledger | 프로젝트가 정한 경로 | 진행/커밋/carry-forward 상세 (있으면 handoff 헤더에 cross-link) |
 
 **reference 실사용 파일** (골격의 근거 — 새 handoff 는 이들과 정합해야 함):
 `docs/handoffs/2026-07-02-live-speechlm-streaming-handoff.md` (multi-repo·대형) / `2026-06-24-m-slm6-imported-realtime-remaining-handoff.md` (단일 repo·중형) / `2026-06-25-mnn-3.6.0-upgrade-handoff.md` (인프라 업그레이드형).
+
+**언제 쓰나 (시점):** 마일스톤 경계(게이트 통과·커밋 직후)에 쓴다. handoff 작성의 요청당 비용 ≈ 호출 시점 문맥 크기이므로 (실측: 30일 중앙 536k vs 2026-11-17 표본 232k~256k) 문맥이 커질 때까지 미루지 않는다.
 
 ---
 
@@ -41,14 +43,14 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 
 ---
 
-## 2. 작성 절차 (6 step)
+## 2. 작성 절차 (5 step)
 
-1. **토픽·범위 확정 + 파일명 결정** — `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md`. 날짜는 `date +%Y-%m-%d` 로 확정 (추정 금지).
-2. **git 상태 캡처** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" [repo2 repo3 ...]` 실행 → §1 스냅샷 표에 붙일 HEAD / branch / 직전 10 commit chain markdown 출력. multi-repo 는 인자로 sibling repo 경로 추가.
-3. **표준 골격 채우기(§10 시작 프롬프트 포함)** — `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/assets/handoff-template.md` 골격을 복사 후 placeholder 치환. 필수/선택 섹션 상세는 `references/handoff-anatomy.md` 위임. cross-repo / design-mockup 변형은 해당 reference 의 추가 절차 병행.
-4. **실행 중 작업 정리** — 이 세션이 띄운 백그라운드 서브에이전트·워크플로·백그라운드 명령을 확인한다(`ListAgents`, 백그라운드 작업 목록). 남아 있으면 항목별로 종료할지 AskUserQuestion 1회로 묻고, 종료한 것은 종료하고 남기는 것은 handoff §1 에 `실행 중: <이름·목적·결과 경로>` 로 적는다. 다음 세션이 같은 빌드 디렉터리·단말을 쓰다 충돌하는 것을 막기 위함(관측: 새 세션 시작 뒤에도 이전 세션의 리뷰 에이전트 2개가 계속 실행)
-5. **commit** — CLAUDE.md §5.1 정책: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조.
-6. **self-review** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` 실행 → 문서의 HEAD anchor 가 실제 `git log` 와 일치하는지 검증. 불일치 시 정정 후 재검증.
+1. **사실 수집 (Bash 1회) + 파일명 결정** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/collect-handoff-facts.sh" [repo2 repo3 ...]` 실행 → 오늘 날짜·파일명 접두, §1 스냅샷 표(HEAD / branch / 직전 10 commit chain markdown — `capture-repo-state.sh` 위임), 미커밋 변경, 최근 handoff 5개를 한 번에 출력. multi-repo 는 인자로 sibling repo 경로 추가. `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md` — 날짜는 스크립트 출력값 (추정 금지).
+   - **독립 사실 확인은 Bash 1회 또는 병렬 호출로 묶는다** — 순차 `grep`·`sed`·`cat`·`ls` 를 요청마다 하나씩 보내지 않는다 (근거: 30일 35회 handoff 작성의 요청 수 중앙 7, 10회 이상 12건이 9.2M IET — 초과 요청은 순차 grep·sed·cat·ls).
+2. **표준 골격 채우기(§10 시작 프롬프트 포함)** — `${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/assets/handoff-template.md` 골격을 복사 후 placeholder 치환. 필수/선택 섹션 상세는 `references/handoff-anatomy.md` 위임. cross-repo / design-mockup 변형은 해당 reference 의 추가 절차 병행. **§1·§10 의 HEAD = 작성 기준 HEAD = handoff 커밋 직전 HEAD** (handoff 커밋 자체의 해시는 적지 않는다).
+3. **실행 중 작업 정리** — 이 세션이 띄운 백그라운드 서브에이전트·워크플로·백그라운드 명령을 확인한다(`ListAgents`, 백그라운드 작업 목록). 남아 있으면 항목별로 종료할지 AskUserQuestion 1회로 묻고, 종료한 것은 종료하고 남기는 것은 handoff §1 에 `실행 중: <이름·목적·결과 경로>` 로 적는다. 다음 세션이 같은 빌드 디렉터리·단말을 쓰다 충돌하는 것을 막기 위함(관측: 새 세션 시작 뒤에도 이전 세션의 리뷰 에이전트 2개가 계속 실행)
+4. **self-review (commit 전)** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` 실행 → HEAD anchor(§1 스냅샷 ↔ `git HEAD`)·§10 시작 프롬프트·§8 참조 경로 존재·파일명 날짜를 검사. `[FAIL]` 이면 정정 후 재검증 (`[WARN]` 은 확인만).
+5. **commit** — 전역 CLAUDE.md Git Commit Rules: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조. 커밋 직후 verify 를 다시 돌려도 통과한다 (anchor = `HEAD^` 이고 HEAD 가 이 handoff 를 포함한 커밋 → `[OK](커밋 후 검증)`). 그 뒤 handoff 와 무관한 커밋이 생기면 FAIL — §1·§10 HEAD 를 정정.
 
 ---
 
@@ -58,16 +60,16 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 
 | 순서 | 섹션 | 필수? | 핵심 |
 |---|---|---|---|
-| 헤더 | 제목 + 작성일 + branch + 목적 1 줄 + "이 문서만 읽고 진입 가능" 선언 + 진입 순서 안내 + SDD ledger cross-link | **필수** | next-turn 이 어느 섹션부터 읽을지 명시 |
+| 헤더 | 제목 + 작성일 + branch + 목적 1 줄 + "이 문서만 읽고 진입 가능" 선언 + 진입 순서 안내 + (있으면) 프로젝트 ledger cross-link | **필수** | next-turn 이 어느 섹션부터 읽을지 명시 |
 | §0 | 한 줄 요약 | 선택 | 중·대형 handoff 권장 |
-| §1 | 현재 상태 스냅샷 (표: branch / HEAD / commit 범위 / 빌드 상태 / prefix / plan·spec·architect refs). multi-repo 면 repo 행 표 | **필수** | capture-repo-state.sh 출력 |
+| §1 | 현재 상태 스냅샷 (표: branch / HEAD / commit 범위 / 빌드 상태 / prefix / plan·spec refs). multi-repo 면 repo 행 표 | **필수** | collect-handoff-facts.sh 출력 |
 | §2 | 완료 작업 (커밋·검증됨 — "건드리지 말 것") — commit 표 + 근본원인 | **필수** | 무엇이 이미 done 인지 |
 | §3 | 핵심 설계 결정 (동결 — 재협의 금지) — D1/D2… 표 + 파일:라인 | 선택 | 대형 handoff. 재협의 낭비 차단 |
 | §4 | 핵심 파일 인덱스 | 선택 | 파일 많을 때 |
 | §5 | **다음 작업 ★** — 우선순위 순, 각 항목 왜 / 어디(파일:라인) / 주의 | **필수** | next-turn 의 진입점 |
-| §6 | 빌드·실행 환경 (매번 prefix) — env 4 변수 + gradle/adb 명령 + appops | **필수** | CLAUDE.md §7 정합 |
+| §6 | 빌드·실행 환경 (매번 prefix) — 프로젝트 빌드·실행 prefix + 빌드·테스트 명령 | **필수** | 프로젝트 CLAUDE.md 정합 |
 | §7 | 함정 (신규 발견) — 증상 / 원인 / fix 표 | 선택 | systematic-debugging 결과만 |
-| §8 | 참조 인덱스 — spec / plan / architect-review / ledger 경로 | **필수** | 깊이 파고들 링크 |
+| §8 | 참조 인덱스 — spec / plan / (있으면) 프로젝트 ledger 경로 (repo 루트 기준 또는 절대 경로) | **필수** | 깊이 파고들 링크 |
 | §9 | 재개 절차 (다음 세션) — 번호 스텝 | **필수** | "3. option 2 착수 = §5.1…" 형태 |
 | §10 | **다음 세션 시작 프롬프트** — 다음 사람이 assistant 의 **첫 입력으로 그대로 붙여넣는** 텍스트 블록 | **필수** | handoff 경로 + 진입 스텝 + 실행 위치/HEAD + 계획 순서 + 위임·리뷰·커밋 규칙 + 동결 결정 + 환경 확인 커맨드. 상세 `references/handoff-anatomy.md` §10 |
 
@@ -83,27 +85,26 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 
 | Plugin / Skill | 결합 시점 | 어떻게 |
 |---|---|---|
-| **`dev-helper-plugin:github-commit`** | handoff 작성 후 (§2 step 5) | `docs(handoff): 📋 <topic> 인계 — <1 줄>` 별도 commit. 직접 `git commit` 금지 (CLAUDE.md §5.1) |
-| **실측 검증 (CLAUDE.md Testing & QA)** | commit 직전 (§2 step 6) | §1 commit chain / 회귀 수치 / cold-load 가 실측과 정합한지 evidence 기반 검증 |
+| **`dev-helper-plugin:github-commit`** | handoff 작성 후 (§2 step 5) | `docs(handoff): 📋 <topic> 인계 — <1 줄>` 별도 commit. 직접 `git commit` 금지 (전역 CLAUDE.md Git Commit Rules) |
+| **실측 검증 (CLAUDE.md Testing & QA)** | commit 직전 (§2 step 4) | §1 commit chain / 회귀 수치 / cold-load 가 실측과 정합한지 evidence 기반 검증. §1 HEAD = 작성 기준 HEAD = 커밋 직전 HEAD |
 | **root cause 분석 (opus 위임 가능)** | §7 함정 행 추가 시 | root cause 까지 도달한 디버깅만 증상/원인/fix 로 압축 |
-| **`kotlin-audio-architect`** | Kotlin 작업 handoff 의 §8 참조 채울 때 | 협의 결과 `docs/superpowers/architect-reviews/<id>.md` 를 §8 에 인덱싱 (CLAUDE.md §1.4) |
-| **계획서 직접 작성 (메인 세션 또는 fable, CLAUDE.md Plans 규칙)** | §5 다음 작업이 신규 마일스톤일 때 | plan 을 `docs/superpowers/plans/<date>-<topic>.md` 에 저장 → §8 인덱싱 |
+| **계획서 직접 작성 (메인 세션 또는 fable, CLAUDE.md Plans 규칙)** | §5 다음 작업이 신규 마일스톤일 때 | plan 을 전역 CLAUDE.md 계획서 위치(`docs/dev-plans/<category>/`, 없으면 `docs/plans/`)의 `<date>-<topic>-plan.md` 에 저장 → §8 인덱싱 |
 | **TDD (CLAUDE.md Testing & QA)** | §2 완료 작업의 회귀 카운트 | 회귀 수치는 실측값 (손 카운트 stale 위험) |
 
 ---
 
 ## 5. 작성 후 검증 체크리스트
 
-commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재검증.
+commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재검증. **(스크립트)** 표기 항목은 `verify-handoff-integrity.sh` 가 검사하므로 손으로 다시 확인하지 않는다.
 
-- [ ] **파일명 날짜** — `date +%Y-%m-%d` 실측값. 추정한 날짜 아님
+- [ ] **파일명 날짜 (스크립트)** — `date +%Y-%m-%d` 실측값. 추정한 날짜 아님 (다르면 WARN)
 - [ ] **실행 중 작업** — 백그라운드 에이전트·워크플로·명령을 종료했거나 §1 에 `실행 중` 으로 기록했는가
-- [ ] **§1 HEAD / commit chain** — `git log --oneline -10` 과 정합 (verify-handoff-integrity.sh PASS)
-- [ ] **§1 회귀 / cold-load** — 실측값 (`./gradlew :app:testDebugUnitTest` / `am start -W` 결과)
-- [ ] **§8 참조 경로** — 모든 링크가 `ls <path>` 로 존재 확인 (spec / plan / architect-review / ledger)
+- [ ] **§1 HEAD (스크립트) / commit chain** — HEAD 는 커밋 직전 HEAD, chain 은 collect-handoff-facts.sh 출력 그대로
+- [ ] **§1 회귀 / cold-load** — 실측값 (`<회귀 시험 명령>` / `<단말 시험 명령>` 결과. 예: Android 는 `./gradlew :app:testDebugUnitTest` / `am start -W`)
+- [ ] **§8 참조 경로 (스크립트)** — 백틱·링크 경로가 실제로 있는가. repo 루트 기준 상대 경로 또는 절대 경로로 적는다 (모듈·sibling repo 기준 경로는 스크립트가 판정하지 못하거나 FAIL)
 - [ ] **§9 재개 절차** — next-turn 이 그대로 실행 가능한 명령 (진입 site 가 §5 항목과 1:1)
-- [ ] **§10 시작 프롬프트** — ```text 블록 1개. 자기 파일 경로·HEAD hash·`§9 의 N번부터` 진입 스텝·환경 확인 커맨드가 들어 있고, 사용자 규칙(실행 위치·워크트리 금지·위임 모델·리뷰·lint·커밋 스킬·push 금지·add 제외)을 빠짐없이 옮겼는가 (verify-handoff-integrity.sh 가 heading·경로·HEAD 존재를 검사)
-- [ ] **§6 prefix** — env 4 변수 (CLAUDE.md §7) 포함
+- [ ] **§10 시작 프롬프트 (heading·경로·HEAD 존재는 스크립트)** — ```text 블록 1개. 자기 파일 경로·HEAD hash·`§9 의 N번부터` 진입 스텝·환경 확인 커맨드가 들어 있고, 사용자 규칙(실행 위치·워크트리 금지·위임 모델·리뷰·lint·커밋 스킬·push 금지·add 제외)을 빠짐없이 옮겼는가 (verify-handoff-integrity.sh 가 heading·경로·HEAD 존재를 검사)
+- [ ] **§6 prefix** — 프로젝트 빌드·실행 prefix (프로젝트 CLAUDE.md) 포함
 - [ ] **자기완결성** — 이 파일만 읽고 진입 가능한가? RESUME.md 등 폐기된 외부 SoT 에 의존 안 함
 - [ ] **AppleDouble** — 외장 볼륨이면 `find . -name "._*" -type f -delete`
 - [ ] **`.gitignore` collateral** — 신규 경로 `git check-ignore -v <path>` 사전 확인
@@ -123,7 +124,9 @@ commit 직전 모두 확인. 하나라도 fail 이면 보류 → 정정 → 재�
 
 handoff 를 읽고 이어서 작업하라는 요청(예: "handoff 를 읽고 이어간다")이면 첫 작업 전에 아래를 Bash 1회로 확인하고 결과를 3줄 이내로 보고한다.
 
-1. **동기화**: `git status -sb`(브랜치·ahead/behind) · `git log --oneline -1` 을 handoff §1 HEAD 와 비교 · 원격이 있으면 `git fetch -q` 후 behind 수
+1. **동기화**: `git status -sb`(브랜치·ahead/behind) · `git log --oneline -1` 을 handoff §1 HEAD 와 비교 · `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` (작성 때와 같은 규칙으로 판정) · 원격이 있으면 `git fetch -q` 후 behind 수
+   - §1 HEAD = `HEAD^` 이고 HEAD 가 이 handoff 를 포함한 커밋이면 동기화 정상 (verify 의 `[OK](커밋 후 검증)`)
+   - 재개 모드에서 verify 의 `[FAIL]`·정정 안내는 **보고 항목**이다 — 지난 handoff 를 고치지 않는다(HEAD 가 앞섬·사라진 scratchpad/`experiments/` 경로는 흔한 정상 상태)
    - HEAD 가 handoff 보다 뒤 → `git pull --ff-only` 가능 여부를 보고하고 사용자 확인 후 실행
    - HEAD 가 앞섬 → 그 사이 커밋 제목을 보여 주고 §5 다음 작업이 이미 끝났는지 대조
 2. **이전 세션의 미커밋 변경**: `git status --porcelain` 이 비어 있지 않으면 파일 목록을 보여 주고, 체크포인트 커밋 후 시작할지 묻는다(새 작업과 섞지 않음)

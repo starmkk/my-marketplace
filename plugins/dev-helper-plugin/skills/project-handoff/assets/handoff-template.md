@@ -4,7 +4,7 @@
 - branch: `<branch>`
 - 목적: <이 handoff 가 인계하는 것 1~2 줄 — 완료 상태 + 다음 착수 대상>
 - 다음 세션 진입: **§10 의 시작 프롬프트를 첫 입력으로 붙여넣기** → §5(다음 작업) → §6(빌드/실행) → §4(핵심 파일) 순서로 읽고 바로 착수
-- SoT 보조: `.superpowers/sdd/progress.md` (SDD ledger, gitignored) + 본 문서 §8 참조 인덱스
+- SoT 보조: (있으면) 프로젝트 ledger `<경로>` + 본 문서 §8 참조 인덱스
 
 > **이 문서만 읽고 이어서 진행 가능하도록 작성됨.** RESUME.md 등 외부 SoT 에 의존하지 않는다.
 
@@ -23,12 +23,10 @@
 | 항목 | 값 |
 |---|---|
 | branch | `<branch>` |
-| HEAD | `<hash>` (`<msg>`) ← `<prev>` (`<msg>`) ← ... (직전 N commit chain) |
-| 빌드 | `assembleDebug` <GREEN/RED>. 단말 `<모델>` 연결. APK: `<경로>` |
-| 빌드 prefix(의무) | `JAVA_HOME=... COPYFILE_DISABLE=1 ./gradlew ...` |
-| ledger(SoT) | `.superpowers/sdd/progress.md` (`<해당 절>`) |
-| plan/spec | `docs/superpowers/plans/<...>.md` · `docs/superpowers/specs/<...>.md` |
-| architect | `docs/superpowers/architect-reviews/<...>.md` (`<권장 요약>`) |
+| HEAD | `<hash>` (`<msg>`) ← `<prev>` (`<msg>`) ← ... (직전 N commit chain — handoff 커밋 직전 HEAD) |
+| 빌드 | `<빌드 명령>` <GREEN/RED>. <단말·산출물 경로> |
+| 빌드·실행 prefix(프로젝트 CLAUDE.md) | `<env·명령 prefix>` |
+| plan/spec | `<경로>` |
 
 ---
 
@@ -70,15 +68,12 @@
 ## 6. 빌드 · 실행 환경 (매번 prefix)
 
 ```bash
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-export COPYFILE_DISABLE=1
-export PATH="$HOME/Library/Android/sdk/platform-tools:$PATH"
-export JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=$HOME/.gradle/kt-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
+<프로젝트 빌드·실행 prefix — 프로젝트 CLAUDE.md 의 env·경로 설정을 그대로>
 cd <repo>
 ```
 
-- JVM 테스트: `./gradlew :app:testDebugUnitTest --tests "<pattern>"` <!-- pre-existing baseline 실패 있으면 명시 -->
-- 단말 테스트: `./gradlew :app:assembleDebugAndroidTest` 후 `adb shell am instrument -w -e class <FQCN> ...` (connectedDebugAndroidTest flake 시 우회). appops `--uid` grant 필수
+- 테스트: `<프로젝트 테스트 명령>` <!-- pre-existing baseline 실패 있으면 명시 -->
+- 단말·실측: `<단말 테스트·측정 명령>` (`<전제: 권한·자산 배치>`)
 - AppleDouble: 빌드 실패 시 `find . -name "._*" -type f -delete`
 - 커밋: `dev-helper-plugin:github-commit` 의무. 무관 dirty 는 지정 파일만 add
 
@@ -94,20 +89,21 @@ cd <repo>
 
 ## 8. 참조 인덱스
 
-- 설계 spec: `docs/superpowers/specs/<...>.md`
-- Plan: `docs/superpowers/plans/<...>.md`
-- architect 협의: `docs/superpowers/architect-reviews/<...>.md`
-- 메트릭: `docs/superpowers/specs/<...>-results.md`
-- SDD ledger: `.superpowers/sdd/progress.md` (gitignored — repo-local)
+- 설계 spec: `<spec 경로>`
+- Plan: `docs/dev-plans/<category>/<date>-<topic>-plan.md` (없으면 docs/plans/ 아래)
+- 메트릭: `<결과 문서 경로>`
+- (있으면) 프로젝트 ledger: `<경로>`
+
+<!-- 경로는 repo 루트 기준 상대 경로 또는 절대 경로 — verify-handoff-integrity.sh 가 존재를 검사 -->
 
 ---
 
 ## 9. 재개 절차 (다음 세션)
 
 1. 본 문서 §1(상태) + §5(다음 작업) 읽기.
-2. `.superpowers/sdd/progress.md` carry-forward 블록 확인.
-3. `<primary>` 착수 = §5.1: `<file>` → `<변경>`. §6 env + 단말 자산/appops 확인.
-4. Kotlin 변경 시 `kotlin-audio-architect` 협의 (CLAUDE.md §1.4 — 테스트-only 는 면제 가능).
+2. (있으면) 프로젝트 ledger 의 carry-forward 블록 확인.
+3. `<primary>` 착수 = §5.1: `<file>` → `<변경>`. §6 prefix + 전제(단말·자산·권한) 확인.
+4. 구현 전후 `code-quality-plugin:strategic-code-reviewer` 협의 (전역 CLAUDE.md Code Authoring Procedure — 면제 조건 동일).
 5. 완료 시 `<results>.md` 메트릭 갱신 + 본 handoff §5 체크 + `dev-helper-plugin:github-commit`.
 
 ---

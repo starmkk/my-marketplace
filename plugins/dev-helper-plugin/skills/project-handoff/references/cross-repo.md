@@ -1,6 +1,6 @@
 # cross-repo — 여러 repo 걸친 변경 인계 변형
 
-본 문서는 project-handoff SKILL.md §1 의 **cross-repo 변형**이 위임하는 상세 절차다. 본 repo 와 sibling repo (예: SoundAI.Omni.TC ↔ SoundAI.Lite ↔ SpeechLM.cpp.v3 ↔ Zipformer-ASR.main) 사이 작업을 인계할 때, 양쪽 HEAD + commit chain + 후속 컨텍스트를 **하나의 handoff 파일**에 담는다.
+본 문서는 project-handoff SKILL.md §1 의 **cross-repo 변형**이 위임하는 상세 절차다. 본 repo 와 sibling repo (`<repo-a>` ↔ `<repo-b>`) 사이 작업을 인계할 때, 양쪽 HEAD + commit chain + 후속 컨텍스트를 **하나의 handoff 파일**에 담는다.
 
 기본 절차는 SKILL.md §2 (5 step) 와 동일하고, 아래 3 가지가 추가된다: (1) §1 스냅샷을 multi-repo 표로, (2) commit 요약을 repo별로, (3) 외부 의존·재현 절차를 명시.
 
@@ -18,11 +18,11 @@
 
 ## §2. 양쪽 repo HEAD 캡처
 
-`scripts/capture-repo-state.sh` 에 sibling repo 경로를 인자로 넘겨 한 번에 캡처:
+SKILL.md §2 step 1 의 `scripts/collect-handoff-facts.sh` 에 sibling repo 경로를 인자로 넘겨 한 번에 캡처 (§1 표는 `capture-repo-state.sh` 위임 — 표의 첫 행 = 현재 repo, verify 가 그 해시를 HEAD anchor 로 읽음):
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" \
-  /path/to/SoundAI.Lite /path/to/SpeechLM.cpp.v3
+bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/collect-handoff-facts.sh" \
+  /path/to/sibling-a /path/to/sibling-b
 ```
 
 출력을 handoff §1 의 multi-repo 표에 붙인다 (handoff-anatomy.md §1 multi-repo 형식):
@@ -65,9 +65,9 @@ parity / 정합 증명이 있으면 (네이티브 ↔ 앱 결과 일치 등) 그
 다음 4 항을 handoff §6 에 명시:
 
 1. **외부 의존** — source 가 target 의 어느 commit/모듈을 어떻게 쓰는가 (`includeBuild` / jniLibs vendor / 모델 자산 배치)
-2. **환경변수** — CLAUDE.md §7 의 4 변수 + 프로젝트별 `<PROJECT>_BUILD_ROOT`
+2. **환경변수** — 프로젝트 빌드·실행 prefix (프로젝트 CLAUDE.md) + 프로젝트별 `<PROJECT>_BUILD_ROOT`
 3. **빌드 명령** — 양쪽 repo 에서 검증된 명령 (native gtest 는 `cmake --build build --target <t> && ctest -R <t>` 등)
-4. **검증 절차** — `connectedDebugAndroidTest --tests <FQCN>` 또는 `am instrument` 우회 + 단말 시각 확인
+4. **검증 절차** — `<단말 시험 명령>` (예: Android 는 `connectedDebugAndroidTest --tests <FQCN>` 또는 `am instrument`) + 단말 시각 확인
 
 ---
 
@@ -79,12 +79,12 @@ parity / 정합 증명이 있으면 (네이티브 ↔ 앱 결과 일치 등) 그
 
 ## §6. 재현 절차 (§9 재개 절차)
 
-next-turn 이 그대로 재현 가능한 명령 셋 — env prefix + 단말 연결 + 빌드 + 회귀 + cold-load 측정 (CLAUDE.md §1.1 5번, base 대비 비교). handoff-anatomy.md §9 형식.
+next-turn 이 그대로 재현 가능한 명령 셋 — env prefix + 단말 연결 + 빌드 + 회귀 + cold-load 측정 (base 대비 비교). handoff-anatomy.md §9 형식.
 
 ---
 
 ## §7. Commit
 
-`dev-helper-plugin:github-commit` 위임. stage 대상: `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` (신규). 메시지: `docs(handoff): 📤 <topic> cross-repo 인계 — <source> ↔ <target>`.
+`verify-handoff-integrity.sh` 통과 후 (SKILL.md §2 step 4 → 5) `dev-helper-plugin:github-commit` 위임. stage 대상: `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` (신규). 메시지: `docs(handoff): 📤 <topic> cross-repo 인계 — <source> ↔ <target>`.
 
 **주의** — handoff 파일은 본 repo 에만 commit. sibling repo 에는 각자의 코드 commit 만 (지정 파일 명시 add). handoff 문서를 sibling repo 에 중복 두지 않는다.

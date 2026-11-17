@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # capture-repo-state.sh
-# project-handoff 스킬 §2 step 2 backbone.
+# project-handoff 스킬 §2 step 1 backbone (collect-handoff-facts.sh 가 위임 호출).
 # 현재 repo(+ 선택적 sibling repo)의 branch / HEAD / 직전 N commit chain 을
 # handoff §1 스냅샷 표에 붙일 markdown 으로 출력.
 #
 # 사용:
 #   $ bash capture-repo-state.sh                       # 현재 repo 단독
-#   $ bash capture-repo-state.sh /path/to/SoundAI.Lite /path/to/SpeechLM.cpp.v3
+#   $ bash capture-repo-state.sh /path/to/sibling-a /path/to/sibling-b
 #
 # 단일 repo → "항목|값" 표. 2+ repo → "repo|branch|HEAD|커밋범위|상태" 표.
 
@@ -38,11 +38,9 @@ if [[ "$#" -eq 0 ]]; then
   echo "|---|---|"
   echo "| branch | \`$(repo_branch "$R")\` |"
   echo "| HEAD | $(commit_chain_inline "$R") |"
-  echo "| 빌드 | \`assembleDebug\` <GREEN/RED>. 단말 \`<모델>\` 연결. APK: \`<경로>\` |"
-  echo "| 빌드 prefix(의무) | \`JAVA_HOME=... COPYFILE_DISABLE=1 ./gradlew ...\` |"
-  echo "| ledger(SoT) | \`.superpowers/sdd/progress.md\` (\`<해당 절>\`) |"
-  echo "| plan/spec | \`docs/superpowers/plans/<...>.md\` · \`docs/superpowers/specs/<...>.md\` |"
-  echo "| architect | \`docs/superpowers/architect-reviews/<...>.md\` (\`<권장 요약>\`) |"
+  echo "| 빌드 | \`<빌드 명령>\` <GREEN/RED>. <단말·산출물 경로> |"
+  echo "| 빌드·실행 prefix(프로젝트 CLAUDE.md) | \`<env·명령 prefix>\` |"
+  echo "| plan/spec | \`<경로>\` |"
 else
   # multi-repo — 현재 repo + 인자 repo들
   echo "## 1. 현재 상태 스냅샷 ($(($# + 1)) repo)"
@@ -60,5 +58,5 @@ else
   done
   echo
   echo "> ⚠️ sibling repo 는 무관 in-flight 변경 보유 가능 — 후속 작업 시 지정 파일만 명시 add."
-  echo "> merge/PR 미실행 (git-policy §5.2 — 명시 요청 시만)."
+  echo "> merge/PR 미실행 (명시 요청 시만)."
 fi

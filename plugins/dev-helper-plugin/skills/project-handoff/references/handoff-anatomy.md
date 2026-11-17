@@ -20,7 +20,7 @@
 - branch: `<branch>`
 - 목적: <이 handoff 가 무엇을 인계하는가 1~2 줄. 완료 상태 + 다음 착수 대상>
 - 다음 세션 진입: **§10 의 시작 프롬프트를 첫 입력으로 붙여넣기** → §5(다음 작업) → §6(빌드/실행) → §4(핵심 파일) 순서로 읽고 바로 착수
-- SoT 보조: `.superpowers/sdd/progress.md` (SDD ledger, gitignored) + 본 문서 §8 참조 인덱스
+- SoT 보조: (있으면) 프로젝트 ledger `<경로>` + 본 문서 §8 참조 인덱스
 ```
 
 **핵심:** "이 문서만 읽고 이어서 진행 가능하도록 작성" 을 명시 + 읽는 순서 지정. next-turn 이 헤매지 않게 하는 것이 handoff 의 전부다.
@@ -39,20 +39,20 @@ Live Recording 중 Zipformer 자막 + SpeechLM 위험도 배너 = Plan A(네이�
 
 ## §1. 현재 상태 스냅샷 (필수)
 
-`scripts/capture-repo-state.sh` 출력을 붙인다.
+`scripts/collect-handoff-facts.sh` 출력의 §1 스냅샷 표(`capture-repo-state.sh` 위임)를 붙인다. heading 은 `## <N>. 현재 상태 스냅샷` 으로 둔다 — verify-handoff-integrity.sh 가 이 절의 `| HEAD |`(또는 `| **HEAD** |`) 행(없으면 절의 첫 해시)을 HEAD anchor 로 읽는다. **HEAD = 작성 기준 HEAD = handoff 커밋 직전 HEAD.**
+
+HEAD 셀에는 **현재 해시를 맨 앞에** 적는다 — verify 는 그 행의 첫 백틱 해시를 anchor 로 읽으므로 이전 커밋·base 해시가 앞에 오면 FAIL 한다.
 
 **단일 repo — 표 형식:**
 ```markdown
-## 1. 현재 상태
+## 1. 현재 상태 스냅샷
 | 항목 | 값 |
 |---|---|
 | branch | `feature/v2-tc` |
 | HEAD | `<hash>` (`<msg>`) ← `<prev>` (`<msg>`) ← ... (직전 N commit chain) |
-| 빌드 | `assembleDebug` GREEN. 단말 <모델> 연결. APK: `<경로>` |
-| 빌드 prefix(의무) | `JAVA_HOME=... COPYFILE_DISABLE=1 ./gradlew ...` |
-| ledger(SoT) | `.superpowers/sdd/progress.md` (<해당 절>) |
-| plan/spec | `docs/superpowers/plans/<...>.md` · `docs/superpowers/specs/<...>.md` |
-| architect | `docs/superpowers/architect-reviews/<...>.md` (권장 <요약>) |
+| 빌드 | `<빌드 명령>` <GREEN/RED>. <단말·산출물 경로> |
+| 빌드·실행 prefix(프로젝트 CLAUDE.md) | `<env·명령 prefix>` |
+| plan/spec | `<경로>` |
 ```
 
 **multi-repo — repo 행 표:**
@@ -63,7 +63,7 @@ Live Recording 중 Zipformer 자막 + SpeechLM 위험도 배너 = Plan A(네이�
 | **<repo1>** | `<branch>` | `<hash>` | `<base>..<head>` (<N> commits) | ✅ <상태> |
 | **<repo2>** | `<branch>` | `<hash>` | `<base>..<head>` (<M> commits) | ✅ <상태> |
 ```
-+ merge/PR 미실행 명시 (git-policy §5.2 — 명시 요청 시만) + 무관 in-flight 변경 경고 (지정 파일만 add) + 단말/자산 배치 상태.
++ merge/PR 미실행 명시 (명시 요청 시만) + 무관 in-flight 변경 경고 (지정 파일만 add) + 단말/자산 배치 상태.
 
 ---
 
@@ -119,19 +119,16 @@ next-turn 이 이미 결정된 것을 다시 협의하는 낭비 차단. `파일
 
 ## §6. 빌드·실행 환경 (필수) — "매번 prefix"
 
-CLAUDE.md §7 정합. next-turn 이 그대로 복붙.
+프로젝트 CLAUDE.md 의 빌드·실행 prefix 와 정합. next-turn 이 그대로 복붙.
 
 ```markdown
 ## 6. 빌드 · 실행 환경 (매번 prefix)
 ​```bash
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-export COPYFILE_DISABLE=1
-export PATH="$HOME/Library/Android/sdk/platform-tools:$PATH"
-export JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=$HOME/.gradle/kt-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit"
+<프로젝트 빌드·실행 prefix — 프로젝트 CLAUDE.md 의 env·경로 설정을 그대로>
 cd <repo>
 ​```
-- JVM 테스트: `./gradlew :app:testDebugUnitTest --tests "..."` (+ pre-existing baseline 실패 있으면 명시)
-- 단말 테스트: `assembleDebugAndroidTest` 후 `am instrument` (connectedDebugAndroidTest flake 시 우회). appops `--uid` grant 필수
+- 테스트: `<프로젝트 테스트 명령>` (+ pre-existing baseline 실패 있으면 명시)
+- 단말·실측: `<단말 테스트·측정 명령>` (`<전제: 권한·자산 배치>`)
 - AppleDouble: 빌드 실패 시 `find . -name "._*" -type f -delete`
 - 커밋: `dev-helper-plugin:github-commit` 의무. 무관 dirty 는 지정 파일만 add
 ```
@@ -153,15 +150,14 @@ systematic-debugging 으로 root cause 도달한 것만. 증상은 logcat/빌드
 
 ## §8. 참조 인덱스 (필수)
 
-깊이 파고들 링크. 절대/repo-상대 경로.
+깊이 파고들 링크. 절대 경로 또는 repo 루트 기준 상대 경로 (verify-handoff-integrity.sh 가 백틱·링크 경로의 존재를 검사 — 모듈·sibling repo 기준 경로는 전체 경로로 적는다. `:<줄>`·`:<줄>:<열>`·`:L<줄>`·`#앵커`·` §절` 접미는 허용, `…`·`...` 가 든 생략 표기는 건너뜀). 단말·원격 경로(`/sdcard/…` 등)는 백틱 밖이나 §6 에 적는다 — `/sdcard/`·`/storage/`·`/data/local/`·`/data/data/`·`/system/`·`/vendor/` 로 시작하는 경로만 검사에서 빠지고, 그 밖의 원격 절대 경로는 FAIL 한다.
 
 ```markdown
 ## 8. 참조 인덱스
-- 설계 spec: `docs/superpowers/specs/<...>.md`
-- Plan: `docs/superpowers/plans/<...>.md`
-- architect 협의: `docs/superpowers/architect-reviews/<...>.md`
-- 메트릭: `docs/superpowers/specs/<...>-results.md`
-- SDD ledger: `.superpowers/sdd/progress.md` (gitignored — repo-local)
+- 설계 spec: `<spec 경로>`
+- Plan: `docs/dev-plans/<category>/<date>-<topic>-plan.md` (없으면 docs/plans/ 아래)
+- 메트릭: `<결과 문서 경로>`
+- (있으면) 프로젝트 ledger: `<경로>`
 ```
 
 ---
@@ -173,9 +169,9 @@ next-turn 이 순서대로 실행. 진입 site 는 §5 항목과 1:1.
 ```markdown
 ## 9. 재개 절차 (다음 세션)
 1. 본 문서 §1(상태) + §5(다음 작업) 읽기.
-2. `.superpowers/sdd/progress.md` carry-forward 블록 확인.
-3. <primary 작업> 착수 = §5.1: <파일> → <변경>. §6 env + 단말 자산/appops 확인.
-4. Kotlin 변경 시 `kotlin-audio-architect` 협의 (CLAUDE.md §1.4 — 테스트-only 는 면제 가능).
+2. (있으면) 프로젝트 ledger 의 carry-forward 블록 확인.
+3. <primary 작업> 착수 = §5.1: <파일> → <변경>. §6 prefix + 전제(단말·자산·권한) 확인.
+4. 구현 전후 `code-quality-plugin:strategic-code-reviewer` 협의 (전역 CLAUDE.md Code Authoring Procedure — 면제 조건 동일).
 5. 완료 시 `<results>.md` 메트릭 갱신 + 본 handoff §5 체크 + `dev-helper-plugin:github-commit`.
 ```
 
@@ -198,7 +194,7 @@ next-turn 이 순서대로 실행. 진입 site 는 §5 항목과 1:1.
 **형식 규칙**
 - 제목은 `## 10. 다음 세션 시작 프롬프트 (그대로 복사해 첫 입력으로 사용)`, 본문은 ```` ```text ```` 펜스 블록 **1개**. 블록 앞에 blockquote 로 세션 형태 제약(대화형/워크트리) 1~2줄만.
 - 블록 안 문장은 **명령형**("~해라", "~할 것"), 번호 목록. 설명·근거는 §3/§7 에 두고 여기서는 참조만.
-- 경로·hash·커맨드는 §1/§6 과 **문자 그대로 동일**해야 한다(verify-handoff-integrity.sh 가 파일 경로·HEAD 존재를 검사). handoff 작성 후 커밋이 더 생기면 HEAD 를 함께 갱신.
+- 경로·hash·커맨드는 §1/§6 과 **문자 그대로 동일**해야 한다(verify-handoff-integrity.sh 가 파일 경로·HEAD 존재를 검사). 작성 기준 HEAD = 커밋 직전 HEAD — handoff 커밋 자체의 해시는 적지 않는다 (커밋 뒤 verify 는 anchor = `HEAD^` 를 "커밋 후 검증" 으로 통과시킴). 그 뒤 handoff 와 무관한 커밋이 생겼을 때만 §1·§10 HEAD 를 정정.
 - 길이 15~30줄. 넘치면 규칙을 CLAUDE.md/메모리로 옮기고 참조만 남긴다.
 
 **실사용 예** (`docs/handoffs/2026-09-05-v4-gemma-mnn-plan-d-complete-handoff.md` §10 축약):
