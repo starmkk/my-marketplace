@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.17 | 스킬 7종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 |
+| `dev-helper-plugin` | 1.0.18 | 스킬 7종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 |
 | `on-device-ai-plugin` | 1.1.11 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.11 | 스킬 4종 + 에이전트 1종 + 훅 3종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 + pkill/pgrep -f 자기 매칭 차단 |
@@ -43,7 +43,7 @@
 | `model-profile` | 서브에이전트 모델 배정을 세션 단위로 opus 위주(fable 은 에스컬레이션 전용)로 전환 — `/dev-helper-plugin:model-profile [opus\|fable]` |
 | `daily-report` | Notion 리포트 DB 의 미검토 리포트 조치 항목을 AskUserQuestion 으로 결정·적용하고 검토 상태 갱신 — `/dev-helper-plugin:daily-report [날짜\|시작~끝\|weekly\|monthly]` |
 | `device-settings` | Android 단말 테스트 전 설정(font_scale·애니메이션 배율 등) 기록과 종료 후 복원 — `scripts/device_settings.sh save\|diff\|restore` |
-| `notion-issue` | 요청한 이슈를 Notion 「Claude Code 리포트」 이슈 DB 에 배경·근거·완료 조건과 함께 등록하고, 작업 시 상태(백로그·진행중·보류·완료)·진행 기록 갱신 — "이슈 등록해줘: …" 또는 `/dev-helper-plugin:notion-issue` |
+| `notion-issue` | 요청한 이슈를 Notion 「Claude Code 리포트」 이슈 DB 에 배경·근거·완료 조건과 함께 등록하고, 작업 시 상태(백로그·진행중·보류·완료)·진행 기록 갱신(관련 리포트 🔵 진행중 연동) — "이슈 등록해줘: …" 또는 `/dev-helper-plugin:notion-issue` |
 
 ---
 
@@ -168,7 +168,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integr
 
 ### daily-report
 
-claude-insights(리포트 v3)가 Notion 「Claude Code 리포트」 DB 에 게시한 일일·주간·월간 리포트를 검토합니다. 생성·게시는 호스트 cron(`scripts/run_reports.py`)이 담당하고, 이 스킬은 미검토 리포트의 조치 항목을 AskUserQuestion 으로 결정(적용·보류·기각)해 적용하고 `decisions.jsonl` 기록과 Notion 검토 상태(🔴 검토필요 · 🟡 검토미정 · ✅ 검토완료)를 갱신합니다.
+claude-insights(리포트 v3)가 Notion 「Claude Code 리포트」 DB 에 게시한 일일·주간·월간 리포트를 검토합니다. 생성·게시는 호스트 cron(`scripts/run_reports.py`)이 담당하고, 이 스킬은 미검토 리포트의 조치 항목을 AskUserQuestion 으로 결정(적용·보류·기각)해 적용하고 `decisions.jsonl` 기록과 Notion 검토 상태(🔴 검토필요 · 🟡 검토미정 · 🔵 진행중 · ✅ 검토완료)를 갱신합니다. 🔵 진행중은 연결된 이슈가 진행 중인 리포트로, notion-issue 스킬이 이슈 상태에 맞춰 설정·해제합니다.
 
 **사용:**
 ```shell
