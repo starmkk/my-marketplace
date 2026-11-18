@@ -12,8 +12,8 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.18 | 스킬 7종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 |
-| `on-device-ai-plugin` | 1.1.12 | 스킬 8종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 + PT→MNN 포팅 공통 측정 지표·리포트 생성기 |
+| `dev-helper-plugin` | 1.0.19 | 스킬 8종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 + PT→MNN 포팅 측정 지표·리포트 |
+| `on-device-ai-plugin` | 1.1.13 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.11 | 스킬 4종 + 에이전트 1종 + 훅 3종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 + pkill/pgrep -f 자기 매칭 차단 |
 | `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
@@ -25,7 +25,7 @@
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 6종을 제공합니다.
+개발 워크플로우 자동화 스킬 8종을 제공합니다.
 
 ### 설치
 
@@ -44,6 +44,7 @@
 | `daily-report` | Notion 리포트 DB 의 미검토 리포트 조치 항목을 AskUserQuestion 으로 결정·적용하고 검토 상태 갱신 — `/dev-helper-plugin:daily-report [날짜\|시작~끝\|weekly\|monthly]` |
 | `device-settings` | Android 단말 테스트 전 설정(font_scale·애니메이션 배율 등) 기록과 종료 후 복원 — `scripts/device_settings.sh save\|diff\|restore` |
 | `notion-issue` | 요청한 이슈를 Notion 「Claude Code 리포트」 이슈 DB 에 배경·근거·완료 조건과 함께 등록하고, 작업 시 상태(백로그·진행중·보류·완료)·진행 기록 갱신(관련 리포트 🔵 진행중 연동) — "이슈 등록해줘: …" 또는 `/dev-helper-plugin:notion-issue` |
+| `port-metrics` | PT→MNN 포팅 5단계(PT·pymnn·C++ CLI·단말 CLI·단말 앱) 공통 측정 지표 — 임계 동결·체크리스트·판정·표준 리포트 생성(`skills/port-metrics/scripts/make_report.py`) |
 
 ---
 
@@ -184,9 +185,36 @@ claude-insights(리포트 v3)가 Notion 「Claude Code 리포트」 DB 에 게�
 
 ---
 
+### port-metrics
+
+원본 PyTorch 모델을 MNN 으로 포팅하는 5단계(S1 PT CUDA → S2 pymnn → S3 C++ CLI → S4 단말 CLI → S5 단말 Java 앱, GPU 는 backend 변형)에서 측정할 공통 지표를 정의하고 리포트를 만듭니다. 프로젝트(모델)에 종속되지 않으며, Zipformer·SpeechLM·SoundAI(Granite)·Nemotron 4개 사례에서 재측정을 만든 원인(지표 정의 불일치·기준점 오선택·잡음 바닥보다 작은 임계·열 교란·앱 코어 배치 등)을 규칙으로 고정했습니다.
+
+- 지표 구성: 코어(항상) + 목적(`convert`·`regress`·`optimize`·`ship`) + 모델 유형(`streaming`·`llm`·`classifier`), 정의 정본 `assets/catalog.json`(45 지표)
+- 비교: 정확도는 S1 대비 누적 열화, 텐서·출력 동등성은 인접 단계끼리(이중 기준)
+- 판정: `pass`·`fail`·`invalid`·`not_established`·`record_only`, 임계는 측정 전 동결·사후 완화 금지
+- 계산: 시간·자원 지표(RTF·nearest-rank 분위수·CPU-s·PSS MiB·ABBA)는 생성기가 원자료 행에서 계산, 텐서·정확도 값은 프로젝트가 제공
+
+**사용 예시:**
+```shell
+S=skills/port-metrics/scripts/make_report.py
+python3 $S init-thresholds --stages S1,S2,S3,S4,S5 --purposes convert,ship \
+  --model-types streaming --input-kind audio -o thresholds.json   # 동결 템플릿
+python3 $S checklist --thresholds thresholds.json -o checklist.md   # 측정 전 필수 지표 확인
+python3 $S report results.json --thresholds thresholds.json -o report.md   # rc 0 = 전부 pass
+```
+
+**트리거 표현:**
+- "측정 지표", "성능 지표", "측정 계획", "PT vs MNN", "parity"
+- "RTF", "PSS", "ABBA", "패치 회귀", "출하 게이트", "리포트"
+- "MNN 결과가 PT 와 안 맞음", "어느 단계에서 틀어졌나"
+
+**관련 스킬:** `device-settings` (단말 설정 기록·복원), on-device-ai-plugin `mnn` (MNN API·변환·빌드)·`mnn-source-inspector` 에이전트
+
+---
+
 ## on-device-ai-plugin
 
-온디바이스 AI 모델 개발을 위한 레퍼런스 스킬 7종, 포팅 측정 스킬 1종, 에이전트 1종을 제공합니다. 모델 사용법(Gemma 4, Qwen 2.5/3.x)과 추론 프레임워크(LiteRT, LiteRT-LM, TensorFlow/TFLite, MNN), 호스팅 앱(AI Edge Gallery)을 한 묶음으로 다루고, PT→MNN 포팅 단계별 공통 측정 지표와 리포트 생성기(`port-metrics`)를 함께 둡니다.
+온디바이스 AI 모델 개발을 위한 레퍼런스 스킬 7종과 에이전트 1종을 제공합니다. 모델 사용법(Gemma 4, Qwen 2.5/3.x)과 추론 프레임워크(LiteRT, LiteRT-LM, TensorFlow/TFLite, MNN), 호스팅 앱(AI Edge Gallery)을 한 묶음으로 다룹니다.
 
 ### 설치
 
@@ -205,7 +233,6 @@ claude-insights(리포트 v3)가 Notion 「Claude Code 리포트」 DB 에 게�
 | `tensorflow` | 추론 엔진 | TensorFlow v2.21 / TFLite C/C++/Python API 및 Delegate 시스템 레퍼런스 |
 | `mnn` | 추론 엔진 | Alibaba MNN 모바일 경량 딥러닝 프레임워크 |
 | `gallery` | 호스팅 앱 | Google AI Edge Gallery — 온디바이스 LLM Android/iOS 앱 |
-| `port-metrics` | 측정 | PT→MNN 포팅 5단계(PT·pymnn·C++ CLI·단말 CLI·단말 앱) 공통 측정 지표, 임계 동결·체크리스트·판정·표준 리포트 생성 |
 
 ### 에이전트
 
@@ -408,33 +435,6 @@ bash skills/gallery/scripts/install.sh
 - "llm chat ui", "Jetpack Compose"
 
 **관련 스킬:** `litert` (ML 추론 백엔드), `litert-lm` (LLM 실행 엔진)
-
----
-
-### port-metrics
-
-원본 PyTorch 모델을 MNN 으로 포팅하는 5단계(S1 PT CUDA → S2 pymnn → S3 C++ CLI → S4 단말 CLI → S5 단말 Java 앱, GPU 는 backend 변형)에서 측정할 공통 지표를 정의하고 리포트를 만듭니다. 프로젝트(모델)에 종속되지 않으며, Zipformer·SpeechLM·SoundAI(Granite)·Nemotron 4개 사례에서 재측정을 만든 원인(지표 정의 불일치·기준점 오선택·잡음 바닥보다 작은 임계·열 교란·앱 코어 배치 등)을 규칙으로 고정했습니다.
-
-- 지표 구성: 코어(항상) + 목적(`convert`·`regress`·`optimize`·`ship`) + 모델 유형(`streaming`·`llm`·`classifier`), 정의 정본 `assets/catalog.json`(45 지표)
-- 비교: 정확도는 S1 대비 누적 열화, 텐서·출력 동등성은 인접 단계끼리(이중 기준)
-- 판정: `pass`·`fail`·`invalid`·`not_established`·`record_only`, 임계는 측정 전 동결·사후 완화 금지
-- 계산: 시간·자원 지표(RTF·nearest-rank 분위수·CPU-s·PSS MiB·ABBA)는 생성기가 원자료 행에서 계산, 텐서·정확도 값은 프로젝트가 제공
-
-**사용 예시:**
-```shell
-S=skills/port-metrics/scripts/make_report.py
-python3 $S init-thresholds --stages S1,S2,S3,S4,S5 --purposes convert,ship \
-  --model-types streaming --input-kind audio -o thresholds.json   # 동결 템플릿
-python3 $S checklist --thresholds thresholds.json -o checklist.md   # 측정 전 필수 지표 확인
-python3 $S report results.json --thresholds thresholds.json -o report.md   # rc 0 = 전부 pass
-```
-
-**트리거 표현:**
-- "측정 지표", "성능 지표", "측정 계획", "PT vs MNN", "parity"
-- "RTF", "PSS", "ABBA", "패치 회귀", "출하 게이트", "리포트"
-- "MNN 결과가 PT 와 안 맞음", "어느 단계에서 틀어졌나"
-
-**관련 스킬:** `mnn` (MNN API·변환·빌드), `mnn-source-inspector` 에이전트, dev-helper-plugin `device-settings` (단말 설정 기록·복원)
 
 ---
 

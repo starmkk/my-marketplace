@@ -12,8 +12,8 @@ description: |
   - 정밀도 프로파일(fp16·w8a·precision·memory)을 비교하거나 단말·앱 출하 게이트를 판정할 때
   - MNN 결과가 PT 와 안 맞아 원인을 찾을 때 ("불일치 원인", "어느 단계에서 틀어졌나")
 
-  관련: `mnn`(MNN API·변환·빌드), `mnn-source-inspector` 에이전트(MNN 소스로 동작 확정),
-  dev-helper-plugin `device-settings`(단말 설정 기록·복원)
+  관련: `device-settings`(단말 설정 기록·복원), on-device-ai-plugin `mnn`(MNN API·변환·빌드)·
+  `mnn-source-inspector` 에이전트(MNN 소스로 동작 확정)
 ---
 
 # port-metrics — PT → MNN 포팅 공통 측정 지표
