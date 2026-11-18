@@ -60,7 +60,7 @@ next-turn 이 이 순서로 읽는다. **필수** 섹션은 모든 handoff 에 �
 
 | 순서 | 섹션 | 필수? | 핵심 |
 |---|---|---|---|
-| 헤더 | 제목 + 작성일 + branch + 목적 1 줄 + "이 문서만 읽고 진입 가능" 선언 + 진입 순서 안내 + (있으면) 프로젝트 ledger cross-link | **필수** | next-turn 이 어느 섹션부터 읽을지 명시 |
+| 헤더 | 제목 + 작성일 + branch + 목적 1 줄(측정·비교 작업이면 측정 대상·비교 기준·판정 지표 포함) + "이 문서만 읽고 진입 가능" 선언 + 진입 순서 안내 + (있으면) 프로젝트 ledger cross-link | **필수** | next-turn 이 어느 섹션부터 읽을지 명시 |
 | §0 | 한 줄 요약 | 선택 | 중·대형 handoff 권장 |
 | §1 | 현재 상태 스냅샷 (표: branch / HEAD / commit 범위 / 빌드 상태 / prefix / plan·spec refs). multi-repo 면 repo 행 표 | **필수** | collect-handoff-facts.sh 출력 |
 | §2 | 완료 작업 (커밋·검증됨 — "건드리지 말 것") — commit 표 + 근본원인 | **필수** | 무엇이 이미 done 인지 |
