@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""PreToolUse(Bash) hook — `pkill -f`·`pgrep -f` 의 패턴이 자기 명령줄에 매칭되면 거부.
+
+도구 셸은 명령 전체가 들어 있는 명령줄(`zsh -c "... eval '<명령>'"`)로 실행됨. `-f` 는 프로세스의
+전체 명령줄을 정규식으로 검색하므로, 패턴이 명령 문자열에 매칭되면 자기 셸이 대상에 포함됨
+- pkill: 자기 셸이 종료돼 뒤 명령이 실행되지 않음(exit 144)
+- pgrep: 자기 셸 PID 를 잡아 항상 rc=0 거짓 양성이 됨(`while pgrep -f ...` 가 끝나지 않음)
+
+- 판정: 각 후보 패턴에 `re.search(패턴, 명령 전체)` 를 수행해 자기 매칭을 직접 확인함.
+  대괄호 유무가 아니라 매칭 여부가 기준이므로 `[r]un` 이어도 같은 명령에 `run` 평문이 남아 있으면
+  거부하고, 정규식 오류(re.error)도 거부함
+- 탐지: 명령 전체를 shlex 로 토큰화해 basename 이 pkill·pgrep 인 토큰을 위치와 무관하게 찾음
+  (`sudo`·`xargs`·`$(...)`·`bash -c` 안쪽 포함). 다음 `; | & ( )` 전까지가 그 명령의 인자임
+- 거부는 `permissionDecision: deny` 로만 표현함. allow 는 출력하지 않음
+- 입력 해석 실패·예외는 모두 통과(exit 0, 출력 없음) — hook 고장이 작업을 막지 않게 함
+- 한계: 따옴표 없는 `echo pkill -f x` 처럼 인자 위치의 pkill 도 명령으로 보아 거부함(실사용 드묾).
+  판정하지 못하는 경로 — `"$VAR"` 패턴, `-i`(대소문자 무시), 실제 argv 에 붙는 래퍼 접두
+  (`zsh`·`snapshot`·`/dev/null`·`true` 등)에만 걸리는 짧은 패턴, `-x` 와 `-f` 를 함께 쓴 패턴은
+  전체 일치(re.fullmatch)로만 봄
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shlex
+import signal
+import sys
+
+_TARGETS = ("pkill", "pgrep")
+_PUNCT = "();<>|&\n"
+_SHELLS = ("bash", "sh", "zsh")
+_SIGNALS = frozenset(s.name.removeprefix("SIG") for s in signal.Signals)
+# 값을 받는 짧은 옵션(procps-ng 3.3.16 `pkill --help` 기준). 대문자 -F 는 pidfile 이라 -f 와 구분함
+_VALUE_SHORT = frozenset("gGPstuUFrd")
+_VALUE_LONG = frozenset({
+    "--signal", "--ns", "--nslist", "--pgroup", "--group", "--parent", "--session",
+    "--terminal", "--euid", "--uid", "--pidfile", "--runstates", "--delimiter",
+})
+
+
+def _tokens(command: str) -> list[str]:
+    lex = shlex.shlex(command, posix=True, punctuation_chars=_PUNCT)
+    lex.whitespace = " \t\r"
+    lex.whitespace_split = True
+    lex.commenters = ""
+    return list(lex)
+
+
+def _is_punct(token: str) -> bool:
+    return all(c in _PUNCT for c in token)
+
+
+def _is_signal(option: str) -> bool:
+    """`-9`·`-STOP`·`-SIGTERM` 같은 시그널 옵션(`-P` 등 값 옵션과 구분하려고 먼저 거름)."""
+    name = option[1:]
+    return name.isdigit() or name.removeprefix("SIG") in _SIGNALS
+
+
+def _parse_args(args: list[str]) -> tuple[bool, bool, list[str]]:
+    """pkill·pgrep 인자에서 (-f 사용 여부, -x 사용 여부, 패턴 후보 목록) 을 뽑음."""
+    full = False
+    exact = False
+    candidates: list[str] = []
+    options_done = False
+    i = 0
+    while i < len(args):
+        token = args[i]
+        i += 1
+        if options_done or not token.startswith("-") or token == "-":
+            candidates.append(token)
+        elif token == "--":
+            options_done = True
+        elif token.startswith("--"):
+            name = token.split("=", 1)[0]
+            full = full or name == "--full"
+            exact = exact or name == "--exact"
+            if name in _VALUE_LONG and "=" not in token:
+                i += 1
+        elif not _is_signal(token):
+            for pos, char in enumerate(token[1:], start=1):
+                if char in _VALUE_SHORT:
+                    if pos == len(token) - 1:  # 값이 다음 토큰에 있음
+                        i += 1
+                    break
+                full = full or char == "f"
+                exact = exact or char == "x"
+    return full, exact, candidates
+
+
+def _split_backticks(tokens: list[str]) -> list[str]:
+    """따옴표 없는 백틱(공백 없는 토큰에 붙은 것)을 `;` 구분자로 펼침. 공백이 든 토큰은 그대로 둠."""
+    expanded: list[str] = []
+    for token in tokens:
+        if "`" not in token or any(c.isspace() for c in token):
+            expanded.append(token)
+            continue
+        for part_index, part in enumerate(token.split("`")):
+            if part_index:
+                expanded.append(";")
+            if part:
+                expanded.append(part)
+    return expanded
+
+
+def _substitution_body(token: str) -> str:
+    """따옴표 안에 든 `$(...)`·백틱 명령 치환의 안쪽 문자열(없으면 빈 문자열)."""
+    if "$(" in token:
+        return token.split("$(", 1)[1]
+    if "`" in token:
+        return token.split("`", 1)[1].replace("`", " ")
+    return ""
+
+
+def _shell_c_body(following: list[str]) -> str:
+    """`bash -c '<명령>'`·`bash -lc '<명령>'` 의 명령 문자열(없으면 빈 문자열)."""
+    for offset, option in enumerate(following):
+        if option.startswith("-") and not option.startswith("--") and "c" in option[1:]:
+            return following[offset + 1] if offset + 1 < len(following) else ""
+    return ""
+
+
+def _self_matching(command: str, full_text: str) -> list[tuple[str, str]]:
+    """(명령 이름, 자기 매칭 사유) 목록 — 사유는 'match' 또는 'regex-error'."""
+    try:
+        tokens = _split_backticks(_tokens(command))
+    except ValueError:
+        return []
+    found: list[tuple[str, str]] = []
+    for index, token in enumerate(tokens):
+        name = os.path.basename(token)
+        substitution = _substitution_body(token)
+        if substitution:
+            found.extend(_self_matching(substitution, full_text))
+            continue
+        if name in _SHELLS:
+            inner = _shell_c_body(tokens[index + 1:index + 5])
+            if inner:
+                found.extend(_self_matching(inner, full_text))
+            continue
+        if name not in _TARGETS:
+            continue
+        args: list[str] = []
+        for following in tokens[index + 1:]:
+            if _is_punct(following):
+                if following[0] in "<>" and args and args[-1].isdigit():
+                    args.pop()  # `2>&1` 의 파일 디스크립터 번호는 패턴이 아님
+                break
+            args.append(following)
+        full, exact, candidates = _parse_args(args)
+        if not full:
+            continue
+        matcher = re.fullmatch if exact else re.search  # -x 는 명령줄 전체 일치라 자기 셸에 안 걸림
+        for pattern in candidates:
+            try:
+                if matcher(pattern, full_text):
+                    found.append((name, "match"))
+            except re.error:
+                found.append((name, "regex-error"))
+    return found
+
+
+def verdict(command: str) -> str | None:
+    """거부 사유(거부 대상이 아니면 None)."""
+    hits = _self_matching(command, command)
+    if not hits:
+        return None
+    name, kind = hits[0]
+    if kind == "regex-error":
+        return (f"`{name} -f` 의 패턴을 정규식으로 해석할 수 없어 자기 매칭 여부를 확인하지 못한다. "
+                "패턴을 단순화하거나 `[x]` 형식으로 바꾼다.")
+    effect = ("자기 셸이 종료돼 뒤 명령이 실행되지 않는다(exit 144)" if name == "pkill"
+              else "자기 셸 PID 를 잡아 항상 성공(rc=0)으로 끝나 조건 루프가 멈추지 않는다")
+    return (f"`{name} -f` 의 패턴이 이 명령줄 자체에 매칭돼 {effect}. "
+            "패턴 첫 글자를 대괄호로 감싸(예: `pkill -f \"[r]un_reports.py\"`) 평문 `run_reports.py` 가 "
+            "같은 Bash 호출 어디에도 남지 않게 한다. 정지 뒤 재시작처럼 평문이 필요한 명령은 "
+            "별도 Bash 호출로 나눈다.")
+
+
+def main() -> int:
+    try:
+        data = json.load(sys.stdin)
+        tool_input = data.get("tool_input") if isinstance(data, dict) else None
+        command = tool_input.get("command") if isinstance(tool_input, dict) else None
+        if not isinstance(command, str):
+            return 0
+        reason = verdict(command)
+    except Exception:
+        return 0
+    if reason:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                                 "permissionDecision": "deny",
+                                                 "permissionDecisionReason": reason}},
+                         ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
