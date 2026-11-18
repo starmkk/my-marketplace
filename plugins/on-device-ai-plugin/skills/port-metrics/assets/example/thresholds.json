@@ -1,0 +1,391 @@
+{
+  "schema": "port-metrics-thresholds/1",
+  "frozen_at": "2026-11-10T09:00:00+09:00",
+  "scope": {
+    "stages": [
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5"
+    ],
+    "purposes": [
+      "convert",
+      "regress",
+      "ship"
+    ],
+    "model_types": [
+      "streaming"
+    ],
+    "input_kind": "audio"
+  },
+  "validity": {
+    "start_battery_max_c": 34.0,
+    "wait_max_sec": 600,
+    "sampler_min_n": 100,
+    "sampler_max_gap_ratio": 2.0
+  },
+  "rules": [
+    {
+      "metric": "NUM.max_abs",
+      "when": {
+        "pair": "S1-S2",
+        "class": "fp"
+      },
+      "op": "<=",
+      "limit": 0.001,
+      "noise_floor": 1e-05,
+      "noise_source": "S1 CPU fp32 t1 대 t4 재실행 차"
+    },
+    {
+      "metric": "NUM.max_abs",
+      "when": {
+        "pair": "S1-S2",
+        "class": "lowp"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "NUM.max_abs",
+      "when": {
+        "pair": "S2-S3"
+      },
+      "op": "<=",
+      "limit": 0.001
+    },
+    {
+      "metric": "NUM.max_abs",
+      "when": {
+        "pair": "S3-S4",
+        "class": "fp"
+      },
+      "op": "<=",
+      "limit": 0.001
+    },
+    {
+      "metric": "NUM.max_abs",
+      "when": {
+        "pair": "S3-S4",
+        "class": "lowp"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "NUM.rel_l2",
+      "when": {
+        "pair": "S1-S2",
+        "class": "fp"
+      },
+      "op": "<=",
+      "limit": 0.0001,
+      "noise_floor": 1e-06,
+      "noise_source": "S1 CPU fp32 t1 대 t4 재실행 차"
+    },
+    {
+      "metric": "NUM.rel_l2",
+      "when": {
+        "pair": "S1-S2",
+        "class": "lowp"
+      },
+      "op": "<=",
+      "limit": 0.05,
+      "noise_floor": 0.001,
+      "noise_source": "S1 CPU fp32 t1 대 t4 재실행 차"
+    },
+    {
+      "metric": "NUM.rel_l2",
+      "when": {
+        "pair": "S2-S3"
+      },
+      "op": "<=",
+      "limit": 0.0001
+    },
+    {
+      "metric": "NUM.rel_l2",
+      "when": {
+        "pair": "S3-S4",
+        "class": "fp"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "NUM.rel_l2",
+      "when": {
+        "pair": "S3-S4",
+        "class": "lowp"
+      },
+      "op": "<=",
+      "limit": 0.05
+    },
+    {
+      "metric": "NUM.cos_min",
+      "when": {
+        "pair": "S1-S2",
+        "class": "fp"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "NUM.cos_min",
+      "when": {
+        "pair": "S1-S2",
+        "class": "lowp"
+      },
+      "op": ">=",
+      "limit": 0.99,
+      "noise_floor": 0.9999,
+      "noise_source": "S1 CPU fp32 t1 대 t4 재실행 차"
+    },
+    {
+      "metric": "NUM.cos_min",
+      "when": {
+        "pair": "S2-S3"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "NUM.cos_min",
+      "when": {
+        "pair": "S3-S4",
+        "class": "fp"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "NUM.cos_min",
+      "when": {
+        "pair": "S3-S4",
+        "class": "lowp"
+      },
+      "op": ">=",
+      "limit": 0.99
+    },
+    {
+      "metric": "DEC.match_rate",
+      "when": {
+        "pair": "S1-S2"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "DEC.match_rate",
+      "when": {
+        "pair": "S2-S3"
+      },
+      "op": ">=",
+      "limit": 1.0
+    },
+    {
+      "metric": "DEC.match_rate",
+      "when": {
+        "pair": "S3-S4"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "DEC.match_rate",
+      "when": {
+        "pair": "S4-S5"
+      },
+      "op": ">=",
+      "limit": 1.0
+    },
+    {
+      "metric": "DEC.match_rate",
+      "when": {
+        "pair": "base"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "DEC.match_rate",
+      "when": {
+        "pair": "regress"
+      },
+      "op": ">=",
+      "limit": 1.0
+    },
+    {
+      "metric": "DEC.severe_flip",
+      "when": {
+        "pair": "base"
+      },
+      "op": "<=",
+      "limit": 0
+    },
+    {
+      "metric": "ACC.degradation",
+      "when": {
+        "subset": "overall"
+      },
+      "op": "<=",
+      "limit": 0.3,
+      "reason": "CER 절대 열화 허용폭(%p), 측정 전 합의"
+    },
+    {
+      "metric": "ACC.degradation",
+      "when": {
+        "subset": "each"
+      },
+      "op": "<=",
+      "limit": 0.5,
+      "reason": "CER 절대 열화 허용폭(%p), 측정 전 합의"
+    },
+    {
+      "metric": "SPD.rtf_max",
+      "when": {
+        "stage": "S1"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "SPD.rtf_max",
+      "when": {
+        "stage": "S2"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "SPD.rtf_max",
+      "when": {
+        "stage": "S3"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "SPD.rtf_max",
+      "when": {
+        "stage": "S4"
+      },
+      "op": "<=",
+      "limit": 0.5,
+      "reason": "실시간의 2 배 여유"
+    },
+    {
+      "metric": "SPD.rtf_max",
+      "when": {
+        "stage": "S5"
+      },
+      "op": "<=",
+      "limit": 0.5,
+      "reason": "실시간의 2 배 여유"
+    },
+    {
+      "metric": "CNV.audit_ok",
+      "when": {},
+      "op": "==",
+      "limit": true
+    },
+    {
+      "metric": "CNV.act_range_margin",
+      "when": {},
+      "op": ">=",
+      "limit": 4
+    },
+    {
+      "metric": "STB.soak_p99_ratio",
+      "when": {},
+      "op": "<=",
+      "limit": 1.2
+    },
+    {
+      "metric": "THM.drift",
+      "when": {},
+      "op": "<=",
+      "limit": 0.15
+    },
+    {
+      "metric": "STB.deterministic",
+      "when": {},
+      "op": "==",
+      "limit": true
+    },
+    {
+      "metric": "STB.reuse_identical",
+      "when": {},
+      "op": "==",
+      "limit": true
+    },
+    {
+      "metric": "SPD.jitter",
+      "when": {
+        "stage": "S3"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "SPD.jitter",
+      "when": {
+        "stage": "S4"
+      },
+      "op": "<=",
+      "limit": 2.0
+    },
+    {
+      "metric": "SPD.jitter",
+      "when": {
+        "stage": "S5"
+      },
+      "op": "<=",
+      "limit": 2.0
+    },
+    {
+      "metric": "SPD.step_p95_over_hop",
+      "when": {
+        "stage": "S3"
+      },
+      "op": "record",
+      "limit": null
+    },
+    {
+      "metric": "SPD.step_p95_over_hop",
+      "when": {
+        "stage": "S4"
+      },
+      "op": "<=",
+      "limit": 1.0
+    },
+    {
+      "metric": "SPD.step_p95_over_hop",
+      "when": {
+        "stage": "S5"
+      },
+      "op": "<=",
+      "limit": 1.0
+    },
+    {
+      "metric": "SPD.tail_over_hop",
+      "when": {},
+      "op": "<=",
+      "limit": 1.0
+    },
+    {
+      "metric": "SPD.deadline_miss",
+      "when": {},
+      "op": "==",
+      "limit": 0
+    }
+  ],
+  "abba_limits_pct": {
+    "SPD.rtf_max": 5.0,
+    "SPD.lat_p50": 5.0,
+    "SPD.lat_p95": 5.0,
+    "SPD.lat_p99": 5.0,
+    "RES.rss_peak_mib": 2.0,
+    "RES.cpu_s_per_unit": 2.0,
+    "RES.pss_mean_mib": 2.0
+  }
+}

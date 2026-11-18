@@ -1,0 +1,1320 @@
+{
+  "schema": "port-metrics-results/1",
+  "project": {
+    "name": "example-streaming-asr",
+    "task_metric": {
+      "id": "CER",
+      "unit": "%",
+      "direction": "lower"
+    }
+  },
+  "runs": [
+    {
+      "run_id": "s1_acc_cuda",
+      "stage": "S1",
+      "backend": "cuda",
+      "run_kind": "accuracy",
+      "profile": "pt-fp32-t4",
+      "effective": {
+        "weight_storage": "fp32",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T10:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "torch_version": "2.5.1",
+        "device_name": "RTX-4090",
+        "tf32": true,
+        "checkpoint_sha256": "be4e4dc1f1e4907ebc4040e2a6c2ebcba6bf79cc8211367a3aceedb760503840",
+        "attn_impl": "eager"
+      },
+      "values": [
+        {
+          "metric": "ACC.primary",
+          "value": 5.0
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 3.0,
+          "subset": "clean"
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 7.0,
+          "subset": "noisy"
+        }
+      ]
+    },
+    {
+      "run_id": "s1_golden_cpu",
+      "stage": "S1",
+      "backend": "cpu",
+      "run_kind": "accuracy",
+      "profile": "pt-fp32-t4",
+      "effective": {
+        "weight_storage": "fp32",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T10:30:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "torch_version": "2.5.1",
+        "device_name": "host-x86",
+        "tf32": false,
+        "checkpoint_sha256": "be4e4dc1f1e4907ebc4040e2a6c2ebcba6bf79cc8211367a3aceedb760503840",
+        "attn_impl": "eager"
+      },
+      "values": []
+    },
+    {
+      "run_id": "s1_perf",
+      "stage": "S1",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "pt-fp32-t4",
+      "effective": {
+        "weight_storage": "fp32",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T11:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "torch_version": "2.5.1",
+        "device_name": "host-x86",
+        "tf32": false,
+        "checkpoint_sha256": "be4e4dc1f1e4907ebc4040e2a6c2ebcba6bf79cc8211367a3aceedb760503840",
+        "attn_impl": "eager"
+      },
+      "nonce": "n-s1",
+      "timing": "timing_s1.jsonl",
+      "meta": {
+        "rss_peak_kb": 1536000,
+        "hop_ms": 160
+      },
+      "values": []
+    },
+    {
+      "run_id": "s2_acc",
+      "stage": "S2",
+      "backend": "cpu",
+      "run_kind": "accuracy",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T13:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0"
+      },
+      "meta": {
+        "bundle_bytes": 125829120
+      },
+      "values": [
+        {
+          "metric": "ACC.primary",
+          "value": 5.05
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 3.02,
+          "subset": "clean"
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 7.08,
+          "subset": "noisy"
+        },
+        {
+          "metric": "CNV.audit_ok",
+          "value": true
+        }
+      ]
+    },
+    {
+      "run_id": "s2_perf",
+      "stage": "S2",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T13:30:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0"
+      },
+      "nonce": "n-s2",
+      "timing": "timing_s2.jsonl",
+      "meta": {
+        "rss_peak_kb": 262144,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s3_acc",
+      "stage": "S3",
+      "backend": "cpu",
+      "run_kind": "accuracy",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T14:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555"
+      },
+      "values": [
+        {
+          "metric": "ACC.primary",
+          "value": 5.05
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 3.02,
+          "subset": "clean"
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 7.08,
+          "subset": "noisy"
+        }
+      ]
+    },
+    {
+      "run_id": "s3_perf",
+      "stage": "S3",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T14:30:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555"
+      },
+      "nonce": "n-s3",
+      "timing": "timing_s3.jsonl",
+      "meta": {
+        "rss_peak_kb": 258048,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s3_sampler",
+      "stage": "S3",
+      "backend": "cpu",
+      "run_kind": "sampler",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-11T15:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555"
+      },
+      "nonce": "n-s3",
+      "samples": "samples_s3.jsonl",
+      "meta": {
+        "clk_tck": 100,
+        "sample_interval_sec": 1.0,
+        "work_amount": 119.0
+      }
+    },
+    {
+      "run_id": "s4_acc",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "accuracy",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T09:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "values": [
+        {
+          "metric": "ACC.primary",
+          "value": 5.2
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 3.1,
+          "subset": "clean"
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 7.3,
+          "subset": "noisy"
+        },
+        {
+          "metric": "STB.deterministic",
+          "value": true
+        }
+      ]
+    },
+    {
+      "run_id": "s4_acc_old",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "accuracy",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T09:30:00+09:00",
+      "identity": {
+        "git_sha": "41d7e05",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "4c948cdcb1dc7bd24d558a1fdaf67e0c5e07f71e21e6824053f4c89f6fd09714",
+        "mnn_patches_sha256": "d64c97da02fee3baaeff47bc10d854b03d40ae78165ccc7b23e7988899e88487",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "values": []
+    },
+    {
+      "run_id": "s4_perf_a1",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T10:00:00+09:00",
+      "identity": {
+        "git_sha": "41d7e05",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "4c948cdcb1dc7bd24d558a1fdaf67e0c5e07f71e21e6824053f4c89f6fd09714",
+        "mnn_patches_sha256": "d64c97da02fee3baaeff47bc10d854b03d40ae78165ccc7b23e7988899e88487",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-a1",
+      "timing": "timing_s4_a1.jsonl",
+      "meta": {
+        "rss_peak_kb": 204800,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_perf_b1",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T10:20:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-b1",
+      "timing": "timing_s4_b1.jsonl",
+      "meta": {
+        "rss_peak_kb": 206848,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_perf_b2",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T10:40:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-b2",
+      "timing": "timing_s4_b2.jsonl",
+      "meta": {
+        "rss_peak_kb": 206848,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_perf_a2",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T11:00:00+09:00",
+      "identity": {
+        "git_sha": "41d7e05",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "4c948cdcb1dc7bd24d558a1fdaf67e0c5e07f71e21e6824053f4c89f6fd09714",
+        "mnn_patches_sha256": "d64c97da02fee3baaeff47bc10d854b03d40ae78165ccc7b23e7988899e88487",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-a2",
+      "timing": "timing_s4_a2.jsonl",
+      "meta": {
+        "rss_peak_kb": 204800,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_perf_a3",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T11:20:00+09:00",
+      "identity": {
+        "git_sha": "41d7e05",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "4c948cdcb1dc7bd24d558a1fdaf67e0c5e07f71e21e6824053f4c89f6fd09714",
+        "mnn_patches_sha256": "d64c97da02fee3baaeff47bc10d854b03d40ae78165ccc7b23e7988899e88487",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-a3",
+      "timing": "timing_s4_a3.jsonl",
+      "meta": {
+        "rss_peak_kb": 204800,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_perf_b3",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T11:40:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-b3",
+      "timing": "timing_s4_b3.jsonl",
+      "meta": {
+        "rss_peak_kb": 206848,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_rt",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "realtime",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T13:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-rt",
+      "timing": "timing_s4_rt.jsonl",
+      "meta": {
+        "rss_peak_kb": 206848,
+        "hop_ms": 160,
+        "window_sec": 3.2,
+        "wall_total_sec": 6.5,
+        "audio_total_sec": 6.4
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s4_sampler",
+      "stage": "S4",
+      "backend": "cpu",
+      "run_kind": "sampler",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-12T14:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7"
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s4-b1",
+      "samples": "samples_s4.jsonl",
+      "meta": {
+        "clk_tck": 100,
+        "sample_interval_sec": 1.0,
+        "work_amount": 119.0
+      }
+    },
+    {
+      "run_id": "s5_acc",
+      "stage": "S5",
+      "backend": "cpu",
+      "run_kind": "accuracy",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-13T09:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7",
+        "apk_sha256": "dd37c2d7274f7ea982cb83390c36918fee9ce8889073c44b68cdc00bdb8c3e04",
+        "so_sha256": "a1d9890884c1b4b960c279cfe7554a900d169422d6cec980beef67761487d3b9",
+        "cpuset": "top-app",
+        "proc_state": "TOP",
+        "core_distribution": {
+          "cpu4-6": 0.72,
+          "cpu7": 0.28
+        }
+      },
+      "values": [
+        {
+          "metric": "ACC.primary",
+          "value": 5.2
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 3.1,
+          "subset": "clean"
+        },
+        {
+          "metric": "ACC.primary",
+          "value": 7.3,
+          "subset": "noisy"
+        },
+        {
+          "metric": "STB.deterministic",
+          "value": true
+        }
+      ]
+    },
+    {
+      "run_id": "s5_perf",
+      "stage": "S5",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "max",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-13T10:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7",
+        "apk_sha256": "dd37c2d7274f7ea982cb83390c36918fee9ce8889073c44b68cdc00bdb8c3e04",
+        "so_sha256": "a1d9890884c1b4b960c279cfe7554a900d169422d6cec980beef67761487d3b9",
+        "cpuset": "top-app",
+        "proc_state": "TOP",
+        "core_distribution": {
+          "cpu4-6": 0.72,
+          "cpu7": 0.28
+        }
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s5",
+      "timing": "timing_s5.jsonl",
+      "meta": {
+        "rss_peak_kb": 309248,
+        "hop_ms": 160
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s5_rt",
+      "stage": "S5",
+      "backend": "cpu",
+      "run_kind": "perf",
+      "pacing": "realtime",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-13T11:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7",
+        "apk_sha256": "dd37c2d7274f7ea982cb83390c36918fee9ce8889073c44b68cdc00bdb8c3e04",
+        "so_sha256": "a1d9890884c1b4b960c279cfe7554a900d169422d6cec980beef67761487d3b9",
+        "cpuset": "top-app",
+        "proc_state": "TOP",
+        "core_distribution": {
+          "cpu4-6": 0.72,
+          "cpu7": 0.28
+        }
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s5-rt",
+      "timing": "timing_s5_rt.jsonl",
+      "meta": {
+        "rss_peak_kb": 309248,
+        "hop_ms": 160,
+        "window_sec": 3.2,
+        "wall_total_sec": 6.5,
+        "audio_total_sec": 6.4
+      },
+      "values": [
+        {
+          "metric": "SPD.load_ms",
+          "value": 850.0
+        }
+      ]
+    },
+    {
+      "run_id": "s5_sampler",
+      "stage": "S5",
+      "backend": "cpu",
+      "run_kind": "sampler",
+      "profile": "fp16-high-normal-t4",
+      "effective": {
+        "weight_storage": "fp16",
+        "matmul_accum": "fp32",
+        "activation_quant": "none"
+      },
+      "started_at": "2026-11-13T12:00:00+09:00",
+      "identity": {
+        "git_sha": "9f3c2ab",
+        "git_dirty": false,
+        "manifest_sha256": "88c7275ef3ef13f6eb8bf6a201c972557ab952d4d6ebe115ca80d40a1c9b64c3",
+        "threads_effective": 4,
+        "thresholds_sha256": "6b98e51d0a9c1b7a14d837ac5bcbbf564635d9c4d2f5e9b45216bb1b54b328c3",
+        "mnn_commit": "3.2.0-a1b2c3d",
+        "bundle_files_sha256": {
+          "encoder.mnn.weight": "5fb2ab76ed9bda034b192c48c7069359252fccda168d925acc0ae7d316c0b53e",
+          "decoder.mnn.weight": "e7502c799b8f76fbed077ff2cd55c906ab144d5b88ef09a71abc70b5fad601f1"
+        },
+        "converter_args": "--fp16 --weightQuantAsymmetric=0 --useGeluApproximation 0",
+        "binary_sha256": "09ba120795e2b852a40615057d044fd180b28f5e51f8558dddc2995273a04cc4",
+        "mnn_patches_sha256": "66488b511cfcaad6564007989778930f5431bf01957970fc4b301bf78e51e555",
+        "device_model": "SM-F711N",
+        "soc": "SM8350",
+        "android": "14",
+        "cpus_allowed": "0-7",
+        "apk_sha256": "dd37c2d7274f7ea982cb83390c36918fee9ce8889073c44b68cdc00bdb8c3e04",
+        "so_sha256": "a1d9890884c1b4b960c279cfe7554a900d169422d6cec980beef67761487d3b9",
+        "cpuset": "top-app",
+        "proc_state": "TOP",
+        "core_distribution": {
+          "cpu4-6": 0.72,
+          "cpu7": 0.28
+        }
+      },
+      "thermal": {
+        "start_battery_c": 33.2,
+        "clock_restored": true,
+        "wait_sec": 120,
+        "pause_events": 0,
+        "source": "thermalservice HAL"
+      },
+      "nonce": "n-s5",
+      "samples": "samples_s5.jsonl",
+      "meta": {
+        "clk_tck": 100,
+        "sample_interval_sec": 1.0,
+        "work_amount": 119.0
+      }
+    }
+  ],
+  "pairs": [
+    {
+      "pair_id": "chain_s1_s2",
+      "kind": "chain",
+      "ref": "s1_golden_cpu",
+      "target": "s2_acc",
+      "values": [
+        {
+          "metric": "NUM.max_abs",
+          "value": 0.00032,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.max_abs",
+          "value": 0.00051,
+          "tensor": "logits"
+        },
+        {
+          "metric": "NUM.rel_l2",
+          "value": 4e-05,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.rel_l2",
+          "value": 6.1e-05,
+          "tensor": "logits"
+        },
+        {
+          "metric": "NUM.cos_min",
+          "value": 0.999999,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.cos_min",
+          "value": 0.999998,
+          "tensor": "logits"
+        },
+        {
+          "metric": "DEC.match_rate",
+          "value": 0.995
+        },
+        {
+          "metric": "DEC.flip",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "pair_id": "chain_s2_s3",
+      "kind": "chain",
+      "ref": "s2_acc",
+      "target": "s3_acc",
+      "values": [
+        {
+          "metric": "NUM.max_abs",
+          "value": 0.0,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.max_abs",
+          "value": 0.0,
+          "tensor": "logits"
+        },
+        {
+          "metric": "NUM.rel_l2",
+          "value": 0.0,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.rel_l2",
+          "value": 0.0,
+          "tensor": "logits"
+        },
+        {
+          "metric": "NUM.cos_min",
+          "value": 1.0,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.cos_min",
+          "value": 1.0,
+          "tensor": "logits"
+        },
+        {
+          "metric": "DEC.match_rate",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "pair_id": "chain_s3_s4",
+      "kind": "chain",
+      "ref": "s3_acc",
+      "target": "s4_acc",
+      "values": [
+        {
+          "metric": "NUM.max_abs",
+          "value": 0.00064,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.max_abs",
+          "value": 0.0008,
+          "tensor": "logits"
+        },
+        {
+          "metric": "NUM.rel_l2",
+          "value": 0.0011,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.rel_l2",
+          "value": 0.0029,
+          "tensor": "logits"
+        },
+        {
+          "metric": "NUM.cos_min",
+          "value": 0.99999,
+          "tensor": "encoder_out"
+        },
+        {
+          "metric": "NUM.cos_min",
+          "value": 0.99998,
+          "tensor": "logits"
+        },
+        {
+          "metric": "DEC.match_rate",
+          "value": 0.985
+        },
+        {
+          "metric": "DEC.flip",
+          "value": 6
+        }
+      ]
+    },
+    {
+      "pair_id": "chain_s4_s5",
+      "kind": "chain",
+      "ref": "s4_acc",
+      "target": "s5_acc",
+      "values": [
+        {
+          "metric": "DEC.match_rate",
+          "value": 1.0
+        }
+      ]
+    },
+    {
+      "pair_id": "base_s2",
+      "kind": "base",
+      "ref": "s1_acc_cuda",
+      "target": "s2_acc",
+      "values": [
+        {
+          "metric": "DEC.match_rate",
+          "value": 0.995
+        },
+        {
+          "metric": "DEC.flip",
+          "value": 2
+        },
+        {
+          "metric": "DEC.severe_flip",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "pair_id": "base_s3",
+      "kind": "base",
+      "ref": "s1_acc_cuda",
+      "target": "s3_acc",
+      "values": [
+        {
+          "metric": "DEC.match_rate",
+          "value": 0.995
+        },
+        {
+          "metric": "DEC.flip",
+          "value": 2
+        },
+        {
+          "metric": "DEC.severe_flip",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "pair_id": "base_s4",
+      "kind": "base",
+      "ref": "s1_acc_cuda",
+      "target": "s4_acc",
+      "values": [
+        {
+          "metric": "DEC.match_rate",
+          "value": 0.98
+        },
+        {
+          "metric": "DEC.flip",
+          "value": 8
+        },
+        {
+          "metric": "DEC.severe_flip",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "pair_id": "base_s5",
+      "kind": "base",
+      "ref": "s1_acc_cuda",
+      "target": "s5_acc",
+      "values": [
+        {
+          "metric": "DEC.match_rate",
+          "value": 0.98
+        },
+        {
+          "metric": "DEC.flip",
+          "value": 8
+        },
+        {
+          "metric": "DEC.severe_flip",
+          "value": 0
+        }
+      ]
+    },
+    {
+      "pair_id": "regress_s4",
+      "kind": "regress",
+      "ref": "s4_acc_old",
+      "target": "s4_acc",
+      "values": [
+        {
+          "metric": "DEC.match_rate",
+          "value": 1.0
+        }
+      ]
+    }
+  ],
+  "abba": [
+    {
+      "abba_id": "abba_s4_patch",
+      "metrics": [
+        "SPD.rtf_max",
+        "SPD.lat_p99",
+        "RES.rss_peak_mib"
+      ],
+      "pairs": [
+        {
+          "a": "s4_perf_a1",
+          "b": "s4_perf_b1"
+        },
+        {
+          "a": "s4_perf_a2",
+          "b": "s4_perf_b2"
+        },
+        {
+          "a": "s4_perf_a3",
+          "b": "s4_perf_b3"
+        }
+      ]
+    }
+  ]
+}

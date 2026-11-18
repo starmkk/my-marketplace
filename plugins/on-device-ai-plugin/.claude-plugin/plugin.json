@@ -1,5 +1,5 @@
 {
   "name": "on-device-ai-plugin",
-  "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen (2.5/3.x), LiteRT/LiteRT-LM, MNN, AI Edge Gallery, TensorFlow/TFLite 스킬 7종 및 MNN 내부 구조 조사 에이전트 제공",
-  "version": "1.1.11"
+  "description": "온디바이스 AI 모델 개발 레퍼런스 — Gemma 4, Qwen (2.5/3.x), LiteRT/LiteRT-LM, MNN, AI Edge Gallery, TensorFlow/TFLite 스킬 7종 + PT→MNN 포팅 공통 측정 지표·리포트 생성기(port-metrics) 스킬 1종 및 MNN 내부 구조 조사 에이전트 제공",
+  "version": "1.1.12"
 }

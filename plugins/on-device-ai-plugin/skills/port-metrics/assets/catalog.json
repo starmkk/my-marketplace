@@ -1,0 +1,486 @@
+{
+  "schema": "port-metrics-catalog/1",
+  "metrics": [
+    {
+      "id": "NUM.max_abs", "name": "텐서 최대 절대 오차", "category": "NUM", "level": "core",
+      "purposes": [], "model_types": [], "scope": "pair", "stages": ["S1-S2", "S2-S3", "S3-S4"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "abs", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"pair": "S1-S2", "class": "fp"}, "op": "<=", "limit": 1e-3},
+        {"when": {"pair": "S1-S2", "class": "lowp"}, "op": "record", "limit": null},
+        {"when": {"pair": "S2-S3"}, "op": "<=", "limit": 1e-3},
+        {"when": {"pair": "S3-S4", "class": "fp"}, "op": "<=", "limit": 1e-3},
+        {"when": {"pair": "S3-S4", "class": "lowp"}, "op": "record", "limit": null}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "max|target-ref| (float64 누산), 텐서별 값(tensor 키). ref = 인접 앞 단계, S1 은 CPU fp32 골든"
+    },
+    {
+      "id": "NUM.rel_l2", "name": "텐서 상대 L2 오차", "category": "NUM", "level": "core",
+      "purposes": [], "model_types": [], "scope": "pair", "stages": ["S1-S2", "S2-S3", "S3-S4"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"pair": "S1-S2", "class": "fp"}, "op": "<=", "limit": 1e-4},
+        {"when": {"pair": "S1-S2", "class": "lowp"}, "op": "<=", "limit": 0.05},
+        {"when": {"pair": "S2-S3"}, "op": "<=", "limit": 1e-4},
+        {"when": {"pair": "S3-S4", "class": "fp"}, "op": "record", "limit": null},
+        {"when": {"pair": "S3-S4", "class": "lowp"}, "op": "<=", "limit": 0.05}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "||target-ref||2 / ||ref||2 (float64 누산), 텐서별 값. S3-S4 fp 는 ISA 차로 기록만"
+    },
+    {
+      "id": "NUM.cos_min", "name": "텐서 코사인 유사도 최솟값", "category": "NUM", "level": "core",
+      "purposes": [], "model_types": [], "scope": "pair", "stages": ["S1-S2", "S2-S3", "S3-S4"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "ratio", "direction": "higher", "judged": true,
+      "default_rules": [
+        {"when": {"pair": "S1-S2", "class": "fp"}, "op": "record", "limit": null},
+        {"when": {"pair": "S1-S2", "class": "lowp"}, "op": ">=", "limit": 0.99},
+        {"when": {"pair": "S2-S3"}, "op": "record", "limit": null},
+        {"when": {"pair": "S3-S4", "class": "fp"}, "op": "record", "limit": null},
+        {"when": {"pair": "S3-S4", "class": "lowp"}, "op": ">=", "limit": 0.99}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "target·ref / (||target|| ||ref||), 청크·텐서별 최솟값. 저정밀(lowp) 비교의 주 지표"
+    },
+    {
+      "id": "DEC.match_rate", "name": "출력 완전 일치율", "category": "DEC", "level": "core",
+      "purposes": [], "model_types": [], "scope": "pair",
+      "stages": ["S1-S2", "S2-S3", "S3-S4", "S4-S5", "base", "regress"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "ratio", "direction": "higher", "judged": true,
+      "default_rules": [
+        {"when": {"pair": "S1-S2"}, "op": "record", "limit": null},
+        {"when": {"pair": "S2-S3"}, "op": ">=", "limit": 1.0},
+        {"when": {"pair": "S3-S4"}, "op": "record", "limit": null},
+        {"when": {"pair": "S4-S5"}, "op": ">=", "limit": 1.0},
+        {"when": {"pair": "base"}, "op": "record", "limit": null},
+        {"when": {"pair": "regress"}, "op": ">=", "limit": 1.0}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "최종 출력(전사·판정 레코드·RTTM 등)이 바이트 단위로 같은 입력 수 ÷ 전체 입력 수"
+    },
+    {
+      "id": "DEC.flip", "name": "판정 변경 건수", "category": "DEC", "level": "core",
+      "purposes": [], "model_types": [], "scope": "pair", "stages": ["S1-S2", "S3-S4", "base"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "int", "unit": "count", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "ref 와 결정(라벨·등급·토큰)이 달라진 항목 수"
+    },
+    {
+      "id": "DEC.severe_flip", "name": "심각 판정 변경 건수", "category": "DEC", "level": "core",
+      "purposes": [], "model_types": [], "scope": "pair", "stages": ["base"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "int", "unit": "count", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"pair": "base"}, "op": "<=", "limit": 0}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "프로젝트가 정의한 심각 변경(예: 없음↔위험, 양성↔음성) 건수, S1 대비"
+    },
+    {
+      "id": "ACC.primary", "name": "태스크 주지표", "category": "ACC", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "task", "direction": "none", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "모델별 주지표(CER·WER·DER·F1 등) 값. subset 생략 = 전체, subset 이름 = 서브셋"
+    },
+    {
+      "id": "ACC.degradation", "name": "S1 대비 정확도 열화", "category": "ACC", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "any",
+      "value_type": "float", "unit": "task", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"subset": "overall"}, "op": "<=", "limit": null},
+        {"when": {"subset": "each"}, "op": "<=", "limit": null}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values ACC.primary", "project.task_metric.direction"],
+      "definition": "lower: target-S1, higher: S1-target (양수 = 열화), 서브셋별 + 전체. 기준 = S1 ACC.primary 회차"
+    },
+    {
+      "id": "SPD.rtf_max", "name": "처리량 RTF(최대 속도 투입)", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "x", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"stage": "S1"}, "op": "record", "limit": null},
+        {"when": {"stage": "S2"}, "op": "record", "limit": null},
+        {"when": {"stage": "S3"}, "op": "record", "limit": null},
+        {"when": {"stage": "S4"}, "op": "<=", "limit": null},
+        {"when": {"stage": "S5"}, "op": "<=", "limit": null}
+      ],
+      "abba_limit_pct": 5.0, "abba_required_for": ["regress", "optimize"],
+      "inputs": ["timing.wall_ms", "timing.audio_sec", "timing.kind", "timing.paused", "pacing=max"],
+      "definition": "pacing=max 회차의 Σwall_sec ÷ Σaudio_sec (warmup·paused 행 제외). 비율의 평균 아님"
+    },
+    {
+      "id": "SPD.rtf_rt", "name": "실시간 투입 RTF", "category": "SPD", "level": "purpose",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "x", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [],
+      "inputs": ["timing.wall_ms", "timing.audio_sec", "pacing=realtime"],
+      "definition": "pacing=realtime 회차의 Σwall_sec ÷ Σaudio_sec. 1 근처가 정상, 처리량 비교에 쓰지 않음"
+    },
+    {
+      "id": "SPD.units_per_sec", "name": "처리량(단위/s)", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "units/s", "direction": "higher", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 5.0, "abba_required_for": ["regress", "optimize"],
+      "inputs": ["timing.wall_ms", "timing.units", "timing.kind", "timing.paused"],
+      "definition": "Σunits ÷ Σwall_sec (warmup·paused 행 제외). 단위 = 토큰·구간·항목(프로젝트 정의)"
+    },
+    {
+      "id": "SPD.lat_p50", "name": "단위 지연 p50", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 5.0, "abba_required_for": [], "inputs": ["timing.wall_ms", "timing.kind", "timing.paused"],
+      "definition": "kind=steady·paused=false 행 wall_ms 의 nearest-rank p50"
+    },
+    {
+      "id": "SPD.lat_p95", "name": "단위 지연 p95", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 5.0, "abba_required_for": [], "inputs": ["timing.wall_ms", "timing.kind", "timing.paused"],
+      "definition": "kind=steady·paused=false 행 wall_ms 의 nearest-rank p95"
+    },
+    {
+      "id": "SPD.lat_p99", "name": "단위 지연 p99", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 5.0, "abba_required_for": ["regress", "optimize"],
+      "inputs": ["timing.wall_ms", "timing.kind", "timing.paused"],
+      "definition": "kind=steady·paused=false 행 wall_ms 의 nearest-rank p99"
+    },
+    {
+      "id": "SPD.lat_max", "name": "단위 지연 최댓값", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.wall_ms", "timing.kind", "timing.paused"],
+      "definition": "kind=steady·paused=false 행 wall_ms 최댓값"
+    },
+    {
+      "id": "SPD.load_ms", "name": "엔진 로드 시간", "category": "SPD", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "엔진 생성(모델 로드·세션 생성) 시작~첫 입력 가능 시점, cold(프로세스 첫 생성)"
+    },
+    {
+      "id": "RES.rss_peak_mib", "name": "최대 상주 메모리", "category": "RES", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "MiB", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 2.0, "abba_required_for": ["regress", "optimize"], "inputs": ["meta.rss_peak_kb"],
+      "definition": "perf 회차 meta.rss_peak_kb(VmHWM 또는 ru_maxrss, kB) ÷ 1024. S5 는 ART 포함"
+    },
+    {
+      "id": "RES.bundle_mib", "name": "모델 번들 크기", "category": "RES", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S2"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "any",
+      "value_type": "float", "unit": "MiB", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["meta.bundle_bytes"],
+      "definition": "meta.bundle_bytes ÷ 2^20 (배포 번들 파일 바이트 합)"
+    },
+    {
+      "id": "MQ.excluded_rows", "name": "집계 제외 행 수", "category": "MQ", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S1", "S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "int", "unit": "count", "direction": "none", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.kind", "timing.paused"],
+      "definition": "warmup·paused 로 전 집계에서, flush·aux 로 분위수에서 제외된 timing 행 수"
+    },
+    {
+      "id": "THM.start_battery_c", "name": "회차 시작 배터리 온도", "category": "THM", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "degC", "direction": "none", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["thermal.start_battery_c"],
+      "definition": "thermal.start_battery_c (HAL 실시간 값). validity 한도 초과 회차는 invalid"
+    },
+    {
+      "id": "THM.pause_events", "name": "열 정지 사건 수", "category": "THM", "level": "core",
+      "purposes": [], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "int", "unit": "count", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["thermal.pause_events"],
+      "definition": "thermal.pause_events (45 degC 정지 / 38 degC 재개 횟수). 정지 구간 행은 paused=true"
+    },
+    {
+      "id": "CNV.audit_ok", "name": "변환 산출물 감사", "category": "CNV", "level": "purpose",
+      "purposes": ["convert"], "model_types": [], "scope": "run", "stages": ["S2"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "bool", "unit": "bool", "direction": "none", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "==", "limit": true}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "의도한 양자화·fp32 유지 op·half Const 수·op 목록(GELU 근사 등)이 번들 바이트에서 확인됨"
+    },
+    {
+      "id": "CNV.act_range_margin", "name": "fp16 활성 범위 여유", "category": "CNV", "level": "optional",
+      "purposes": ["convert"], "model_types": [], "scope": "run", "stages": ["S1"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "x", "direction": "higher", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": ">=", "limit": 4}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "65504 ÷ PT fp32 활성 absmax 최솟값(잔차·attention score 포함). fp16 연산 프로파일을 쓸 때"
+    },
+    {
+      "id": "RES.cpu_s_per_unit", "name": "작업량당 CPU 시간", "category": "RES", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "float", "unit": "s/unit", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 2.0, "abba_required_for": ["optimize"],
+      "inputs": ["samples.cpu_ticks", "meta.clk_tck", "meta.work_amount"],
+      "definition": "(마지막 cpu_ticks - 첫 cpu_ticks) ÷ clk_tck ÷ meta.work_amount. 오디오면 CPU-s/audio-s"
+    },
+    {
+      "id": "RES.cpu_pct_mean", "name": "CPU 사용률 평균", "category": "RES", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "float", "unit": "%", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [],
+      "inputs": ["samples.t_sec", "samples.cpu_ticks", "samples.paused", "meta.clk_tck"],
+      "definition": "Δticks ÷ clk_tck ÷ Δt × 100 (1 코어 = 100), paused 끝점 구간 제외. thread 상한에 붙으면 비교 근거 아님"
+    },
+    {
+      "id": "RES.cpu_pct_max", "name": "CPU 사용률 최대", "category": "RES", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "float", "unit": "%", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [],
+      "inputs": ["samples.t_sec", "samples.cpu_ticks", "samples.paused", "meta.clk_tck"],
+      "definition": "구간 CPU % 최댓값. 표본 주기에 따라 값이 달라짐(주기 병기)"
+    },
+    {
+      "id": "RES.pss_mean_mib", "name": "PSS 평균", "category": "RES", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "float", "unit": "MiB", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 2.0, "abba_required_for": ["optimize"], "inputs": ["samples.pss_kb", "samples.paused"],
+      "definition": "paused=false 표본 pss_kb 평균 ÷ 1024 (smaps_rollup Pss)"
+    },
+    {
+      "id": "RES.pss_p95_mib", "name": "PSS p95", "category": "RES", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "float", "unit": "MiB", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["samples.pss_kb", "samples.paused"],
+      "definition": "paused=false 표본 pss_kb 의 nearest-rank p95 ÷ 1024"
+    },
+    {
+      "id": "MQ.sampler_n", "name": "샘플 수", "category": "MQ", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "int", "unit": "count", "direction": "higher", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["samples"],
+      "definition": "samples.jsonl 행 수. validity.sampler_min_n 미달이면 그 회차 sampler 지표 invalid"
+    },
+    {
+      "id": "MQ.sampler_gap_ratio", "name": "샘플 최대 간격 비", "category": "MQ", "level": "purpose",
+      "purposes": ["optimize", "ship"], "model_types": [], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "sampler",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["samples.t_sec", "meta.sample_interval_sec"],
+      "definition": "max(Δt_sec) ÷ meta.sample_interval_sec. validity.sampler_max_gap_ratio 초과면 sampler 지표 invalid"
+    },
+    {
+      "id": "STB.soak_p99_ratio", "name": "장시간 지연 p99 비", "category": "STB", "level": "purpose",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "<=", "limit": 1.2}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [],
+      "inputs": ["timing.t_start_sec", "timing.wall_ms", "meta.window_sec"],
+      "definition": "meta.window_sec 창으로 t_start_sec 를 나눠 마지막 창 p99 ÷ 첫 창 p99 (창 2 개 이상)"
+    },
+    {
+      "id": "THM.drift", "name": "지속 부하 열 드리프트", "category": "THM", "level": "purpose",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "<=", "limit": 0.15}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [],
+      "inputs": ["timing.t_start_sec", "timing.wall_ms", "meta.window_sec"],
+      "definition": "마지막 창 wall_ms 중앙값 ÷ 첫 창 중앙값 - 1 (soak 회차)"
+    },
+    {
+      "id": "STB.deterministic", "name": "반복 실행 결정성", "category": "STB", "level": "purpose",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "bool", "unit": "bool", "direction": "none", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "==", "limit": true}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "같은 입력·구성 재실행 출력 바이트 동일"
+    },
+    {
+      "id": "STB.reuse_identical", "name": "엔진 재사용 동일성", "category": "STB", "level": "optional",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "bool", "unit": "bool", "direction": "none", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "==", "limit": true}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "엔진 재사용(reset) 출력 = 입력마다 재생성 출력 (상태 누수 검사)"
+    },
+    {
+      "id": "RES.rss_after_release_mib", "name": "해제 후 잔류 메모리", "category": "RES", "level": "optional",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "MiB", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "엔진 release 후 VmRSS - 엔진 생성 직전 VmRSS"
+    },
+    {
+      "id": "PWR.mah_per_unit", "name": "작업량당 배터리 소모", "category": "PWR", "level": "optional",
+      "purposes": ["ship"], "model_types": [], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "mAh/unit", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["runs[].values"],
+      "definition": "충전 해제 상태 current_now 적분(또는 batterystats) ÷ 작업량. 측정 수단 병기"
+    },
+    {
+      "id": "SPD.jitter", "name": "지연 지터", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["streaming"], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"stage": "S3"}, "op": "record", "limit": null},
+        {"when": {"stage": "S4"}, "op": "<=", "limit": 2.0},
+        {"when": {"stage": "S5"}, "op": "<=", "limit": 2.0}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.wall_ms", "timing.kind"],
+      "definition": "kind=steady·paused=false 행 wall_ms 의 p99 ÷ p50 (nearest-rank, flush·warmup 제외)"
+    },
+    {
+      "id": "SPD.step_p95_over_hop", "name": "step p95 ÷ hop", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["streaming"], "scope": "run", "stages": ["S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"stage": "S3"}, "op": "record", "limit": null},
+        {"when": {"stage": "S4"}, "op": "<=", "limit": 1.0},
+        {"when": {"stage": "S5"}, "op": "<=", "limit": 1.0}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.wall_ms", "timing.kind", "meta.hop_ms"],
+      "definition": "kind=steady·paused=false 행 wall_ms 의 nearest-rank p95 ÷ meta.hop_ms. 1 이하 = hop 안에 처리"
+    },
+    {
+      "id": "SPD.tail_over_hop", "name": "종료 꼬리 지연 ÷ hop", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["streaming"], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ratio", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "<=", "limit": 1.0}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [],
+      "inputs": ["pacing=realtime", "meta.wall_total_sec", "meta.audio_total_sec", "meta.hop_ms"],
+      "definition": "pacing=realtime 회차의 (meta.wall_total_sec - meta.audio_total_sec) × 1000 ÷ meta.hop_ms"
+    },
+    {
+      "id": "SPD.deadline_miss", "name": "마감 초과 건수", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["streaming"], "scope": "run", "stages": ["S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "int", "unit": "count", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {}, "op": "==", "limit": 0}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.deadline_miss"],
+      "definition": "kind≠warmup·paused=false 행 중 deadline_miss=true 수. 그 행 중 하나라도 필드가 없으면 미측정(0 건으로 세지 않음)"
+    },
+    {
+      "id": "SPD.prefill_ms_p50", "name": "prefill 시간 p50", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["llm"], "scope": "run", "stages": ["S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.prefill_ms"],
+      "definition": "prefill_ms 필드의 nearest-rank p50 (프롬프트 전체 forward, 샘플링 제외)"
+    },
+    {
+      "id": "SPD.ttft_ms_p50", "name": "첫 토큰 시간 p50", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["llm"], "scope": "run", "stages": ["S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "ms", "direction": "lower", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["timing.ttft_ms"],
+      "definition": "ttft_ms 필드(입력 투입~첫 토큰 확정)의 nearest-rank p50"
+    },
+    {
+      "id": "SPD.decode_tok_s", "name": "decode 전용 토큰 속도", "category": "SPD", "level": "ext",
+      "purposes": [], "model_types": ["llm"], "scope": "run", "stages": ["S2", "S3", "S4", "S5"],
+      "input_kinds": ["audio", "other"], "source": "generator", "run_kind": "perf",
+      "value_type": "float", "unit": "tok/s", "direction": "higher", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": 5.0, "abba_required_for": [], "inputs": ["timing.gen_tokens", "timing.decode_ms"],
+      "definition": "Σgen_tokens ÷ Σdecode_ms × 1000 (prefill·샘플링 제외)"
+    },
+    {
+      "id": "DEC.token_match_rate", "name": "토큰열 완전 일치율", "category": "DEC", "level": "ext",
+      "purposes": [], "model_types": ["llm"], "scope": "pair",
+      "stages": ["S1-S2", "S2-S3", "S3-S4", "S4-S5", "base"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "ratio", "direction": "higher", "judged": false,
+      "default_rules": [],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "생성 토큰열이 ref 와 완전히 같은 항목 수 ÷ 전체"
+    },
+    {
+      "id": "DEC.margin_delta_max", "name": "판정 마진 차 최댓값", "category": "DEC", "level": "ext",
+      "purposes": [], "model_types": ["classifier"], "scope": "pair", "stages": ["S2-S3", "S3-S4", "base"],
+      "input_kinds": ["audio", "other"], "source": "project", "run_kind": "any",
+      "value_type": "float", "unit": "logit", "direction": "lower", "judged": true,
+      "default_rules": [
+        {"when": {"pair": "S2-S3"}, "op": "<=", "limit": null},
+        {"when": {"pair": "S3-S4"}, "op": "<=", "limit": null},
+        {"when": {"pair": "base"}, "op": "<=", "limit": null}
+      ],
+      "abba_limit_pct": null, "abba_required_for": [], "inputs": ["pairs[].values"],
+      "definition": "max|margin_target - margin_ref|, margin = 결정 logit 차(예 logits[1]-logits[0]). 잡음 바닥 × 배수로 동결"
+    }
+  ]
+}
