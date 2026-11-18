@@ -1,6 +1,6 @@
 # 단계 매트릭스 — 단계·비교 대상·산출물·필수 범위
 
-- 정확한 필수 지표 목록은 `make_report.py checklist --thresholds thresholds.json` 이 동결 scope 로 출력함(이 문서는 구조 설명)
+- 정확한 필수 지표 목록은 `make_report.py checklist` 가 동결 파일(기본 `experiments/port-metrics/thresholds.json`)의 scope 로 출력함(이 문서는 구조 설명)
 - 결정: D2 이중 기준 — ACC 는 S1 대비 누적 열화, NUM·DEC 는 인접 단계 사슬
 
 ---

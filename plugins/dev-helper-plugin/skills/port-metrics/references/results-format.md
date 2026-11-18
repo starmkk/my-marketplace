@@ -8,6 +8,8 @@
 
 ## 1. thresholds.json(측정 전 동결)
 
+- 기본 위치: 프로젝트 루트의 `experiments/port-metrics/thresholds.json`(모든 명령의 기본값, 프로젝트 저장소에 커밋)
+
 | 키 | 내용 |
 |---|---|
 | `schema` | `port-metrics-thresholds/1` |

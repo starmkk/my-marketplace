@@ -12,7 +12,7 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.19 | 스킬 8종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 + PT→MNN 포팅 측정 지표·리포트 |
+| `dev-helper-plugin` | 1.0.20 | 스킬 8종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 + PT→MNN 포팅 측정 지표·리포트 |
 | `on-device-ai-plugin` | 1.1.13 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.11 | 스킬 4종 + 에이전트 1종 + 훅 3종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 + pkill/pgrep -f 자기 매칭 차단 |
@@ -198,9 +198,9 @@ claude-insights(리포트 v3)가 Notion 「Claude Code 리포트」 DB 에 게�
 ```shell
 S=skills/port-metrics/scripts/make_report.py
 python3 $S init-thresholds --stages S1,S2,S3,S4,S5 --purposes convert,ship \
-  --model-types streaming --input-kind audio -o thresholds.json   # 동결 템플릿
-python3 $S checklist --thresholds thresholds.json -o checklist.md   # 측정 전 필수 지표 확인
-python3 $S report results.json --thresholds thresholds.json -o report.md   # rc 0 = 전부 pass
+  --model-types streaming --input-kind audio   # → experiments/port-metrics/thresholds.json (기존 파일이 있으면 거부)
+python3 $S checklist -o checklist.md            # 측정 전 필수 지표 확인(--thresholds 생략 = 기본 위치)
+python3 $S report results.json -o report.md     # rc 0 = 전부 pass
 ```
 
 **트리거 표현:**

@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import io
 import json
+import os
 import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,6 +48,8 @@ class CliTest(unittest.TestCase):
         self.assertEqual(self.report_rc(base), 1)
         text = (base / "report.md").read_text(encoding="utf-8")
         self.assertIn("SPD.jitter", text)
+        # §0 에 사용한 동결 파일 절대 경로 표시(엉뚱한 파일 사용을 드러냄)
+        self.assertIn(f"- 임계 파일: `{(base / 'thresholds.json').resolve()}`", text)
 
         # 판정 대상 0 건: S1 만·목적 없음·other 입력 → 필수 지표가 전부 기록 지표
         zero = self.tmp / "zero"
@@ -172,6 +178,57 @@ class CliTest(unittest.TestCase):
         self.assertEqual(text.count("noise_floor 기입(convert)"), 4)
         self.assertIn("`NUM.max_abs` [pair=S1-S2, class=fp]: noise_floor", text)
         self.assertNotIn("`NUM.max_abs` [pair=S2-S3]: noise_floor", text)
+
+    def test_cli_default_thresholds_path(self) -> None:
+        # 계획 밖 추가(2026-11-18 사용자 요청): 동결 파일 기본 위치·덮어쓰기 거부
+        init = ["init-thresholds", "--stages", "S1,S2", "--input-kind", "audio"]
+        cwd = Path.cwd()
+        os.chdir(self.tmp)
+        self.addCleanup(os.chdir, cwd)
+        default = self.tmp / "experiments" / "port-metrics" / "thresholds.json"
+        self.assertEqual(make_report.main(init), 0)
+        self.assertTrue(default.is_file())
+        first = default.read_bytes()
+        # 재실행은 동결 파일을 덮어쓰지 않음(rc 2, 내용 불변)
+        self.assertEqual(make_report.main(init), 2)
+        self.assertEqual(default.read_bytes(), first)
+        # --force 일 때만 덮어쓰고 이전 판본은 번호 붙은 .bak 으로 보관(반복해도 보존)
+        default.write_text("{}", encoding="utf-8")
+        self.assertEqual(make_report.main([*init, "--force"]), 0)
+        self.assertEqual(default.read_bytes(), first)
+        default.write_text('{"x": 1}', encoding="utf-8")
+        self.assertEqual(make_report.main([*init, "--force"]), 0)
+        bak1 = default.with_name("thresholds.json.1.bak")
+        bak2 = default.with_name("thresholds.json.2.bak")
+        self.assertEqual(bak1.read_text("utf-8"), "{}")
+        self.assertEqual(bak2.read_text("utf-8"), '{"x": 1}')
+        # -o - 는 파일 대신 stdout(init·checklist 모두, '-' 파일 생성 없음)
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            self.assertEqual(make_report.main([*init, "-o", "-"]), 0)
+            self.assertEqual(make_report.main(["checklist", "-o", "-"]), 0)
+        self.assertIn('"frozen_at": null', stdout.getvalue())
+        self.assertFalse((self.tmp / "-").exists())
+        # checklist 는 --thresholds 생략 시 기본 위치를 읽고 사용 경로를 알림
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(make_report.main(["checklist", "-o", "c.md"]), 0)
+        self.assertTrue((self.tmp / "c.md").is_file())
+        self.assertIn(f"임계 파일: {default.resolve()}", stderr.getvalue())
+        default.unlink()
+        self.assertEqual(make_report.main(["checklist", "-o", "c.md"]), 2)
+        # 기본 위치가 .gitignore 대상이면 커밋 누락 경고(git 없는 환경은 이 구간 생략)
+        if shutil.which("git") is None:
+            return
+        repo = self.tmp / "repo"
+        repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True)
+        (repo / ".gitignore").write_text("experiments/\n", encoding="utf-8")
+        os.chdir(repo)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(make_report.main(init), 0)
+        self.assertIn(".gitignore 대상", stderr.getvalue())
 
 
 if __name__ == "__main__":

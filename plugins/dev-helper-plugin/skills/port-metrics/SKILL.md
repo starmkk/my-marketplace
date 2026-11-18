@@ -36,17 +36,22 @@ description: |
 S="${CLAUDE_PLUGIN_ROOT}/skills/port-metrics/scripts/make_report.py"
 ```
 
+- **동결 파일 기본 위치 = `experiments/port-metrics/thresholds.json`**(프로젝트 루트에서 실행). 명령은 모두 이 위치를 기본으로 씀 —
+  이 위치를 쓰면 프로젝트 CLAUDE.md 에 경로 포인터가 필요 없음. 다른 위치를 쓸 때만 프로젝트 CLAUDE.md 에 `--thresholds <경로>` 를 한 줄 적음
+- 기존 동결 파일이 있으면 그것을 씀. `init-thresholds` 를 다시 실행하지 않음(기존 파일이 있으면 rc 2 로 거부됨)
+
 1. **범위·임계 동결(측정 전)**
    ```bash
    python3 "$S" init-thresholds --stages S1,S2,S3,S4,S5 --purposes convert,ship \
-       --model-types streaming --input-kind audio -o thresholds.json
+       --model-types streaming --input-kind audio      # → experiments/port-metrics/thresholds.json
    ```
    - `limit: null` 을 제품 KPI·잡음 바닥으로 채우고 `reason` 기입, 기록만 할 항목은 `op: "record"`(규칙 삭제 금지)
    - `convert` 면 잡음 바닥(thread 1↔4·eager↔sdpa·CPU↔GPU)을 재서 S1-S2 NUM 규칙 `noise_floor` 기입
    - `frozen_at` 기록 후 프로젝트 저장소에 커밋 → references/thresholds.md
+   - 재동결(범위·임계 변경)은 사용자 승인 후 `--force` — 이전 판본은 `thresholds.json.<N>.bak`(번호 증가, 덮어쓰지 않음)과 git 이력에 남고, 이전 회차는 sha 불일치로 invalid 가 되므로 재측정
 2. **체크리스트 확인**
    ```bash
-   python3 "$S" checklist --thresholds thresholds.json -o checklist.md
+   python3 "$S" checklist -o checklist.md            # --thresholds 생략 = 기본 위치
    ```
    - 단계별로 잴 지표·필요한 원자료 키·회차 종류(accuracy·perf·sampler)를 측정 전에 확인
 3. **측정**: references/measurement-control.md 의 통제를 지킴
@@ -56,8 +61,8 @@ S="${CLAUDE_PLUGIN_ROOT}/skills/port-metrics/scripts/make_report.py"
 4. **결과 JSON 조립**: 프로젝트 어댑터가 references/results-format.md 형식으로 `results.json` + `timing.jsonl`·`samples.jsonl` 작성
 5. **리포트**
    ```bash
-   python3 "$S" report results.json --thresholds thresholds.json -o report.md   # rc 0 = 전부 pass
-   python3 "$S" report results.json --thresholds thresholds.json --partial S1,S2 -o report.md  # 개발 중 부분
+   python3 "$S" report results.json -o report.md                     # rc 0 = 전부 pass
+   python3 "$S" report results.json --partial S1,S2 -o report.md     # 개발 중 부분
    ```
    - rc 1 = fail·invalid·not_established 존재(누락 지표 포함), rc 2 = 형식 오류
 6. **fail 이면 원인 추적**: 임계 완화 대신 references/root-cause.md — 첫 이탈 단계 → 모듈·op → 원인, 패치했으면 `regress` 로 재측정

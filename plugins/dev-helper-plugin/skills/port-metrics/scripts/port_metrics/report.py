@@ -80,6 +80,7 @@ class ReportModel:
     counts: dict[str, int]
     overall: str
     exit_code: int
+    thresholds_path: str = ""  # 사용한 동결 파일 절대 경로(CLI 가 채움, 빈 값 = 미표시)
 
 
 def exit_code_for(counts: Mapping[str, int]) -> int:

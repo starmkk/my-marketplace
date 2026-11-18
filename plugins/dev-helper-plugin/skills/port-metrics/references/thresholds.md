@@ -32,12 +32,14 @@
 
 ## 3. 동결 절차
 
-1. `make_report.py init-thresholds --stages ... --purposes ... --model-types ... --input-kind ... -o thresholds.json`
+1. `make_report.py init-thresholds --stages ... --purposes ... --model-types ... --input-kind ...` → 기본 위치 `experiments/port-metrics/thresholds.json`(프로젝트 루트 기준, `-o <경로>` 로 바꾸면 프로젝트 CLAUDE.md 에 포인터 1 줄, `-o -` = stdout)
 2. `limit: null` 항목을 KPI·잡음 바닥으로 채우고 `reason` 기입. 기록만 할 항목은 `op: "record"` 로 명시(규칙 삭제 금지 — 판정 지표에 규칙이 없으면 not_established)
 3. §2 잡음 바닥을 측정해 `noise_floor`·`noise_source` 기입
 4. `frozen_at` 에 현재 시각(ISO 8601, 타임존 포함) 기록 → 프로젝트 저장소에 커밋
-5. `make_report.py checklist --thresholds thresholds.json` 으로 측정할 지표·원자료 키 목록 확인
-6. 측정 하네스가 회차마다 `identity.thresholds_sha256 = sha256(thresholds.json)` 과 `started_at` 을 기록
+5. `make_report.py checklist` 로 측정할 지표·원자료 키 목록 확인(`--thresholds` 생략 = 기본 위치)
+6. 측정 하네스가 회차마다 `identity.thresholds_sha256 = sha256(동결 파일)` 과 `started_at` 을 기록
+
+- 재동결: 동결 파일이 이미 있으면 `init-thresholds` 는 rc 2 로 거부함(새 세션이 실수로 다시 만들어 덮어쓰는 사고 방지). 범위·임계를 바꿔야 하면 사용자 승인 후 `--force` 로 다시 만들고 커밋 — 이전 판본은 `thresholds.json.<N>.bak`(번호 증가)·git 이력에 남고, 이전 회차는 sha 불일치로 invalid 이므로 재측정. 사용한 파일의 절대 경로는 stderr 와 리포트 §0 `임계 파일` 줄에 표시됨
 
 - 겹치는 규칙(같은 지표에 when 이 겹침)은 형식 오류(rc 2) — 좁은 규칙을 추가해 특정 문맥만 완화하는 길을 막음
 - 한계: 동결 파일과 frozen_at 을 고의로 다시 쓰는 변조는 막지 못함. 이 장치는 **실수와 순서 위반**(측정 후 동결·다른 판본 임계로 판정)을 잡는 것임 → 동결 파일은 측정 전에 커밋해 git 이력을 근거로 둠

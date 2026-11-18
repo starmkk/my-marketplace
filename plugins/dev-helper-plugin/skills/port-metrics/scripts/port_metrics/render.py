@@ -88,6 +88,7 @@ def render_report(model: ReportModel) -> str:
         f"{', '.join(scope['purposes']) or '-'} / 유형 "
         f"{', '.join(scope['model_types']) or '-'} / 입력 {scope['input_kind']}",
         f"- 임계 동결: {model.frozen_at or '미동결(전 판정 not_established)'}",
+        f"- 임계 파일: `{model.thresholds_path or '-'}`",
         f"- thresholds sha256: `{model.thresholds_sha}`",
         "- 유효성 한도: "
         + ", ".join(f"{k} = {_fmt(v)}" for k, v in model.validity.items()),
