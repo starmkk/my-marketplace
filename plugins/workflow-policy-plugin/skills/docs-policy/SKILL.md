@@ -2,8 +2,8 @@
 name: docs-policy
 description: >
   문서 정책 상세 — docs/ 카테고리 하위폴더 저장 절차와 표준 카테고리, 메인(≤500줄)+상세 파일
-  분할 규칙과 무손실 분할, 계획서는 계약만 기술하는 규칙과 계획서 파일 위치, 일일 dev-log 작성
-  시점·기록 항목을 다룬다.
+  분할 규칙과 무손실 분할, 계획서는 계약만 기술하는 규칙과 계획서 파일 위치, 계획서 작성 전 기록된
+  결정 조회, 일일 dev-log 작성 시점·기록 항목을 다룬다.
   docs/ 아래에 .md 를 만들거나 옮길 때, 스펙·설계·계획서를 작성하거나 500줄을 넘겨 분할할 때,
   PLAN.md·report.md 위치를 정할 때, dev-log 를 쓰거나 마일스톤을 기록할 때, "문서 저장",
   "문서 분할", "계획서", "dev-log", "개발 로그", "docs/README 인덱스" 가 언급될 때 사용하라.
@@ -52,6 +52,12 @@ Specs, designs, and plans (`.md`) keep a **main file ≤ 500 lines**; anything l
   Multi-phase development: `<YYYY-MM-DD>-<topic>-plan.md` in the project's plan folder
   (`docs/dev-plans/<category>/`, else `docs/plans/`). Single task or measurement:
   `experiments/<YYYY-MM-DD>-<topic>/PLAN.md`, results in `report.md` of the same folder
+- **Look up recorded decisions before writing a plan or spec**: search the project's `docs/`
+  (dev-logs, design, handoffs) and the topic's `experiments/*/report.md` for its keywords (model,
+  runtime option, file names) and carry every frozen decision (settings, chosen/rejected options,
+  prohibitions) into the plan as a premise with its source. A plan that departs from one says why.
+  (2026-11-16: a plan missed frozen runtime settings — w8a, precision=low, memory=normal,
+  unpatched libMNN — and the user had to restate them)
 - Exempt: dev-logs (one file per day) and handoffs (self-contained by design)
 
 ## Development Log (`docs/dev-logs/`) (IMPORTANT)

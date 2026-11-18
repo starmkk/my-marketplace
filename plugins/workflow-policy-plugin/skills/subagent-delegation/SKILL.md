@@ -90,9 +90,11 @@ Measured first-request size (median, 2026-11-10~17): Agent-tool `general-purpose
     (e.g. "read only design §6.2 (lines 761-819) and `hf_runner.py:51-106`, answer Q1–Q3")
   - Reference large docs by section/line range, never whole
   - Subagents skip Serena `initial_instructions` and unlisted skills unless the task needs symbol
-    navigation or that skill. One that does need symbols calls `activate_project` with its
-    worktree path first (Serena failures in voiceguard were all "No active project"), and if that
-    fails, says so once and uses grep/Read
+    navigation or that skill. One that does need symbols calls `initial_instructions` once for its
+    Serena session id, then `activate_project` with its worktree path and that id — Serena 2.1
+    requires both `project` and `session`, and the id is not in the server instructions (Serena
+    failures in voiceguard were all "No active project"). If that fails, it says so once and uses
+    grep/Read
   - In a worktree session, temp scripts and outputs go under that worktree's `experiments/` — the
     original checkout's scratchpad path is outside the isolation boundary and is refused
 - **Pass results through files, not prompts**: a stage writes `experiments/<date>-<topic>/`
