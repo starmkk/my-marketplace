@@ -38,6 +38,9 @@ Measured first-request size (median, 2026-11-10~17): Agent-tool `general-purpose
   adversarial verification 2 perspectives → fix 1
 - **Workflow size**: 4–6 agents per phase. Before running more than 10 agents in total, consider
   bundling or direct handling first. Re-run an interrupted workflow with `resumeFromRunId`
+- **File ownership per stage**: each editing stage's prompt lists the files it owns. The stage runs
+  `git diff` on them before editing; a change it did not make, or one outside its list, is reported
+  rather than edited or reverted (2026-11-14~18: concurrent edits duplicated an item, rolled back)
 - **Agent tool: always pass `subagent_type`** (an omitted one is denied by this plugin's
   `agent_type_guard.py` hook) and choose the cheapest type that can do the work
   - edit/execute → `workflow-policy-plugin:wf-worker`; read/review/verify/locate files or
