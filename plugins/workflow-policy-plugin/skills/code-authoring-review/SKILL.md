@@ -24,7 +24,8 @@ description: >
   `strategic-code-reviewer` agent on the design. Skippable: typo/comment/doc edits, one-line changes
   leaving logic intact, or an explicit user instruction to skip
 - **After implementing** → review the diff **before** lint/test, continuing the same reviewer agent
-  via `SendMessage` (not a new one). Apply **High** findings; report Medium/Low to the user
+  via `SendMessage` to its `agentId` (not a new one — spawn the reviewer without `name`; see
+  `subagent-delegation` "Agent lifecycle"). Apply **High** findings; report Medium/Low to the user
 - Subagents cannot call the reviewer: for a subagent-implemented change the main session (or a
   workflow stage with `agentType: 'code-quality-plugin:strategic-code-reviewer'`) runs the review,
   and the implementer or fix stage applies the High findings

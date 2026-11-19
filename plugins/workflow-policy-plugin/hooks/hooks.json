@@ -1,5 +1,5 @@
 {
-  "description": "workflow-policy-plugin — Agent 도구 subagent_type 누락 차단 훅",
+  "description": "workflow-policy-plugin — Agent 도구 subagent_type 누락 차단·name(팀원) 수명 안내 훅",
   "hooks": {
     "PreToolUse": [
       {

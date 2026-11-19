@@ -12,14 +12,14 @@
 
 | 플러그인 | 버전 | 구성 | 한 줄 설명 |
 |---|---|---|---|
-| `dev-helper-plugin` | 1.0.20 | 스킬 8종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 + PT→MNN 포팅 측정 지표·리포트 |
+| `dev-helper-plugin` | 1.0.22 | 스킬 8종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 + PT→MNN 포팅 측정 지표·리포트 |
 | `on-device-ai-plugin` | 1.1.13 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
 | `code-quality-plugin` | 1.0.11 | 스킬 4종 + 에이전트 1종 + 훅 3종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 + pkill/pgrep -f 자기 매칭 차단 |
 | `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.8 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
-| `workflow-policy-plugin` | 1.0.4 | 스킬 5종 + 에이전트 2종 + 훅 1종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 + Agent `subagent_type` 누락 차단 |
+| `workflow-policy-plugin` | 1.0.7 | 스킬 5종 + 에이전트 2종 + 훅 1종 | 전역 CLAUDE.md 상세판 — 서브에이전트 위임·코드 작성 리뷰 절차·문서 정책·AskUserQuestion·macOS 파일 함정 + Agent `subagent_type` 누락 차단·`name`(팀원) 수명 안내 |
 
 ---
 
@@ -153,7 +153,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/collect-handoff-facts
 bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/capture-repo-state.sh" \
     /path/to/sibling-repo-1 /path/to/sibling-repo-2
 
-# self-review(커밋 전) — §1 HEAD anchor·§10 시작 프롬프트·§8 참조 경로 존재·파일명 날짜 검사 (FAIL 시 exit 1)
+# self-review(커밋 전) — §1 HEAD anchor·§10 시작 프롬프트·§8 참조 경로 존재·파일명 날짜·살아 있는 대기 팀원 검사 (FAIL 시 exit 1)
 # handoff 를 커밋한 뒤 다시 돌려도 HEAD^ = anchor 이고 HEAD 가 이 handoff 를 포함하면 OK
 bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" \
     docs/handoffs/2026-07-22-my-topic-handoff.md
@@ -1012,7 +1012,7 @@ OWASP **ASVS 5.0.0**(17챕터 345요구사항 — L1 70 · L2 183 · L3 92) 기�
 
 ### Agent `subagent_type` 누락 차단 훅 (1.0.4~)
 
-- `agent_type_guard.py`(`PreToolUse`, matcher `Agent|Task`): `subagent_type` 이 없거나 null·공백이면 거부하고 선택지를 안내합니다. 생략 시 기본값이 `general-purpose`(첫 요청 약 47k)라서입니다
+- `agent_type_guard.py`(`PreToolUse`, matcher `Agent|Task`): `subagent_type` 이 없거나 null·공백이면 거부하고 선택지를 안내합니다. 생략 시 기본값이 `general-purpose`(첫 요청 약 47k)라서입니다. agent teams 가 켜져 있고(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` = 1·true·yes·on) `name` 이 있으면 거부 대신 `additionalContext` 로 팀원 수명을 안내합니다(보고 뒤에도 대기·재사용은 `SendMessage(name)`·tmux 모드는 `TaskStop` 뒤 재개 불가·이어 쓰기만이면 `name` 없이 agentId 로 재개 — 권한 흐름은 바뀌지 않음)
 - 명시한 값은 무엇이든 통과합니다(`general-purpose`·`fork` 포함). 입력 해석 실패·예외는 통과(fail-open)
 - 선택 기준: 편집·실행 `wf-worker`, 읽기·검토·검증·위치 찾기 `wf-reader`(Explore 대비 약 2.0~2.7배 가벼움), URL `web-fetch`, 규칙이 핵심이면 전문 에이전트, `general-purpose` 는 MCP·WebSearch·Skill 도구가 필요할 때만
 

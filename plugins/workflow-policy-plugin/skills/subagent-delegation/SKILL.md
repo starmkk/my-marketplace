@@ -48,7 +48,33 @@ Measured first-request size (median, 2026-11-10~17): Agent-tool `general-purpose
     `web-fetch`; a specialist agent where its rules are the point
   - `general-purpose` only when the task needs MCP, WebSearch, or Skill tools
   - Do not `fork` in a long session (it inherits the whole conversation). Continue an existing
-    agent with `SendMessage` for follow-up work in the same context
+    agent with `SendMessage` to the `agentId` from its spawn result for follow-up work in the
+    same context
+- **Agent lifecycle — omit `name` unless a live team is the point** (measured 2026-11-19 with
+  agent teams on, `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`)
+  - Without `name`: the background agent ends after its report (`completed`), and `SendMessage`
+    to its `agentId` resumes it with its context — this is how a reviewer is kept from design
+    consult to diff review. Write the `agentId` into the step's notes file so it survives
+    context compaction
+  - With `name`: it becomes a teammate (with `teammateMode: "tmux"`, a separate process in a tmux
+    pane) that idles after its report and never exits by itself — seen: 44 min idle at ~390 MB
+    RSS, still listed as running after the milestone and the handoff; the team registries hold
+    541 such named reviewers, critics and workers left since 07-30. `TaskStop` ends it, but the
+    name is no longer reachable afterwards (no resume)
+  - Reuse of a named one: an idle teammate makes no requests (39 min idle: 0) and continues with
+    its context on `SendMessage(to: "<name>")`, so keep it while this session will reuse it.
+    Stop it once it will not be reused here: save the result to a file, `TaskStop({task_id:
+    "<name>"})` from the lead, then check `ListAgents`. In tmux mode a stopped teammate cannot be
+    revived (the agent-teams docs say in-process mode restores it on the next message). Stop it
+    before ending the session or `/clear` — a new session cannot address it. Keeping it alive
+    saves no tokens: a reuse after a long idle re-reads its whole context (the docs give a 5-min
+    default cache for in-process teammates), the same as resuming an unnamed subagent
+  - Context: neither a teammate nor a subagent inherits the lead's conversation (measured: first
+    request 12k–42k tokens vs ~600k for the lead; docs: "The lead's conversation history does not
+    carry over"). They start from the agent definition, CLAUDE.md, git status and the spawn
+    prompt, so the prompt carries the work basis and task-specific context. Only `fork` inherits
+  - The `agent_type_guard.py` hook adds a model-only notice when a named Agent is spawned with
+    agent teams on
 - **Workflow stages: always pass `agentType`.** Omitted = `workflow-subagent`, which loads every tool
   definition plus the whole skill list (~48k tokens before the task; measured 2026-11-17: 468 agents,
   326M input-equivalent tokens in 30 days, ~80% fixed overhead — `claude-insights`

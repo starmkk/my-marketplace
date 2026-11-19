@@ -35,6 +35,36 @@
 #   T25 (추가) cwd 와 다른 repo 의 handoff, anchor = cwd repo HEAD → 1
 #   T26 (추가) cwd 와 다른 repo 의 handoff, anchor·§8 경로가 그 repo 기준 → 0
 #       이유: HEAD 대조·§8 기준을 cwd 가 아니라 handoff 가 속한 repo 로 고정했는지 확인
+#   T27 세션 ID 없음 → 팀원 검사 [info] 건너뜀, 0
+#   T28 대기 팀원(isActive false) 프로세스 살아 있음 → 1, 이름·TaskStop 안내
+#   T29 대기 팀원 등록만 있고 프로세스 없음 + 접두만 같은 다른 agentId 프로세스 → 0, [OK]
+#   T30 작업 중 팀원(isActive true) 살아 있음 → WARN, 0
+#   T31 팀 등록부 JSON 깨짐 → WARN, 0
+#   T32 세션 ID 있음·등록부 없음 → [OK], 0
+#   T33 isActive 키 없는 팀원 살아 있음 → WARN(작업 중일 수 있음), 0 — 실측 등록부에 4건
+#   T34 '--agent-id <id>' 가 명령줄 맨 끝 인자 → 1(감지)
+#   T35 (추가) 대기 2 + 작업 중 1 혼재 → 1, 대기 두 이름 모두 FAIL·작업 중 WARN
+#       이유: 단일 팀원 시험만으로는 '첫 대기만 보고'·'혼재 시 FAIL 숨김' 돌연변이가 생존(반대 검토)
+#   T36 (추가) ps 실패 → WARN(ps 를 읽지 못함), 0 — 이유: ps 실패 무시 돌연변이 생존
+#   T37 (추가) CLAUDE_CONFIG_DIR 지정 → 그 아래 등록부로 감지, 1 — 이유: 경로 무시 돌연변이 생존
+#   T38 (추가) '--agent-id=<id>' 등호 형식 → 감지, 1 — 이유: CLI 는 값이 '-' 로 시작하면 등호 형식
+#   T39 (추가) 리더 pid 가 ps 에 없음 → WARN(PID 격리), OK 문구 없음
+#       이유: 샌드박스 --unshare-pid 에서 ps 가 팀원을 못 보면 거짓 OK(반대 검토)
+#   T40 (추가) backendType 이 tmux 가 아닌 팀원 → WARN(프로세스로 확인 불가), 0
+#       이유: in-process 팀원은 ps 에 안 보여 거짓 OK
+#   T41 (추가) name 키 없는 대기 팀원 → 안내 대상 = agentId — 이유: 'None' 안내 돌연변이 생존
+#   T42 (추가) 대기 팀원 + §1 '실행 중' 줄에 `이름` 기록(같은 세션 재사용 예정) → WARN, 0
+#   T43 (추가) §1 에 다른 이름만 기록 → FAIL
+#   T44 (추가) §1 에 `review-f1` 만 기록·대기 팀원 = review → FAIL(접두 일치 방지 — 백틱 고정 문자열)
+#   T45 (추가) 이름이 §1 밖의 '실행 중' 줄·§1 의 '실행 중' 아닌 줄에만 → FAIL
+#       이유(T42~T45): 사용자 결정 — 같은 세션에서 다시 쓸 팀원은 끄지 않음(재사용 예외), 예외가
+#       기록만으로 넓어지지 않는지 고정
+#   T46 (추가) 일반 '실행 중:' 줄·'실행 중' 칸의 종료 메모·§1 펜스 예시에만 `rev` → FAIL
+#       이유: 재사용 예외가 '실행 중(이 세션 한정' 형식 밖으로 넓어지면 '§1 에 적고 넘어감' 이 다시 통과
+#   T47 (추가) leadProcess 없는 구판 등록부 → PID 격리 점검 없이 대기 팀원 감지 — 이유: 구판 경로 고정
+#   T29·T30 보강: 리더 agentId 가 ps 에 있어도 무시(리더 제외 돌연변이), WARN 끝까지 출력('실행 중')
+#   미시험: python3 없음 경로(가드만 구현 — PATH 재구성 비용 대비 가치 낮음)
+#   팀원 검사 공통: HOME·세션 ID 를 시험 안에서만 지정(사용자 환경 격리), ps 는 PATH 앞 가짜 ps
 #
 # 사용: bash test-verify-handoff-integrity.sh   (모두 통과 시 exit 0)
 
@@ -44,6 +74,18 @@ export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1   # 사용자 전역 gi
 SCRIPT="$(cd "$(dirname "$0")" && pwd)/verify-handoff-integrity.sh"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
+# 팀원 검사 격리 — 실제 세션의 팀 등록부·프로세스를 보지 않게 함
+export HOME="$WORK/home"
+mkdir -p "$HOME"
+unset CLAUDE_CODE_SESSION_ID CLAUDE_CONFIG_DIR
+FAKEBIN="$WORK/bin"   # 가짜 ps — FAKE_PS_OUT 파일 내용을 그대로 출력
+mkdir -p "$FAKEBIN"
+cat > "$FAKEBIN/ps" <<'EOF'
+#!/usr/bin/env bash
+cat "${FAKE_PS_OUT:-/dev/null}"
+exit "${FAKE_PS_RC:-0}"
+EOF
+chmod +x "$FAKEBIN/ps"
 TODAY="$(date +%Y-%m-%d)"
 FENCE="$(printf '\140\140\140')"   # 펜스 코드 블록 표시(백틱 3개)
 fail=0
@@ -330,5 +372,219 @@ run "$a" "$f"
 if [[ "$rc" -eq 0 && "$out" == *"[OK] HEAD anchor ($(head_of "$b"))"* ]]; then
   pass "T26 다른 repo handoff 를 그 repo 기준으로 판정"
 else flunk "T26 다른 repo handoff 를 그 repo 기준으로 판정"; fi
+
+# ── 팀원 검사(T27~T34) ─────────────────────────────────────────────────────────
+SID="abcdef12-0000-4000-8000-000000000000"
+TEAMCFG="$HOME/.claude/teams/session-abcdef12/config.json"
+
+# team_cfg <members JSON 배열(리더 제외)> — 리더 + 주어진 팀원으로 등록부 작성
+team_cfg() {
+  local cfg="${2:-$TEAMCFG}"
+  mkdir -p "$(dirname "$cfg")"
+  printf '{"name":"session-abcdef12","leadProcess":{"pid":4242},"members":[%s%s]}\n' \
+    '{"agentId":"team-lead@session-abcdef12","name":"team-lead","agentType":"team-lead"}' \
+    "${1:+,$1}" > "$cfg"
+}
+# ps_out <args 줄...> — 가짜 ps 출력('pid args'). 첫 줄 = 리더(pid 4242), 이어서 5000 부터
+ps_out() {
+  local i=5000 line
+  {
+    echo "4242 claude --dangerously-skip-permissions"
+    for line in "$@"; do echo "$i $line"; i=$((i + 1)); done
+  } > "$WORK/ps.txt"
+}
+# run_team <실행 디렉터리> <handoff 경로> — 세션 ID·가짜 ps 를 이 실행에만 적용
+# (추가 환경은 run_team 앞 env 로: FAKE_PS_RC·CLAUDE_CONFIG_DIR)
+run_team() {
+  out="$(cd "$1" && env CLAUDE_CODE_SESSION_ID="$SID" FAKE_PS_OUT="$WORK/ps.txt" \
+    PATH="$FAKEBIN:$PATH" ${3:+"$3"} bash "$SCRIPT" "$2" 2>&1)"
+  rc=$?
+}
+member() {  # member <이름> <isActive JSON 값 — 빈 문자열이면 키 없음> [backendType]
+  local active=""
+  if [[ -n "$2" ]]; then active=",\"isActive\":$2"; fi
+  printf '{"agentId":"%s@session-abcdef12","name":"%s","backendType":"%s"%s}' \
+    "$1" "$1" "${3:-tmux}" "$active"
+}
+ARGS_TAIL="--agent-name x --team-name session-abcdef12"
+
+r="$(new_repo t27)"; h="$(head_of "$r")"; f="$r/docs/handoffs/$TODAY-t-handoff.md"
+write_doc "$f" "요약" "$(s1_single "$h")" "$OK_S8" "$h"
+
+# T27
+run "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[info]"*"팀원 검사 건너뜀"* ]]; then pass "T27 세션 ID 없음 → 건너뜀"
+else flunk "T27 세션 ID 없음 → 건너뜀"; fi
+
+# T28
+team_cfg "$(member rev false)"
+ps_out "claude --agent-id rev@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* \
+  && "$out" == *'TaskStop({task_id: "rev"})'* ]]; then
+  pass "T28 대기 팀원 살아 있음 → FAIL·TaskStop 안내"
+else flunk "T28 대기 팀원 살아 있음 → FAIL·TaskStop 안내"; fi
+
+# T29
+team_cfg "$(member rev false)"
+ps_out "claude --agent-id rev@session-abcdef123 $ARGS_TAIL" \
+  "claude --agent-name rev@session-abcdef12" "claude --agent-id team-lead@session-abcdef12"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[OK] 이 세션의 살아 있는 팀원 없음"* && "$out" != *"'rev'"* \
+  && "$out" != *"team-lead"* ]]; then
+  pass "T29 등록만 남은 팀원·접두만 같은 프로세스 → OK"
+else flunk "T29 등록만 남은 팀원·접두만 같은 프로세스 → OK"; fi
+
+# T30
+team_cfg "$(member impl true)"
+ps_out "claude --agent-id impl@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"'impl'"*"실행 중"* && "$out" != *"[FAIL]"* ]]; then
+  pass "T30 작업 중 팀원 → WARN"
+else flunk "T30 작업 중 팀원 → WARN"; fi
+
+# T31
+mkdir -p "$(dirname "$TEAMCFG")"; printf '{"members": [' > "$TEAMCFG"
+ps_out "claude --agent-id rev@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"팀 등록부를 읽지 못함"* ]]; then
+  pass "T31 등록부 JSON 깨짐 → WARN"
+else flunk "T31 등록부 JSON 깨짐 → WARN"; fi
+
+# T32
+rm -rf "$HOME/.claude/teams"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[OK] 이 세션의 팀원 없음"* ]]; then pass "T32 등록부 없음 → OK"
+else flunk "T32 등록부 없음 → OK"; fi
+
+# T33
+team_cfg "$(member draft '')"
+ps_out "claude --agent-id draft@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"'draft'"* && "$out" != *"[FAIL]"* ]]; then
+  pass "T33 isActive 키 없음 → WARN"
+else flunk "T33 isActive 키 없음 → WARN"; fi
+
+# T34
+team_cfg "$(member rev false)"
+ps_out "claude --agent-name rev --agent-id rev@session-abcdef12"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* ]]; then pass "T34 --agent-id 맨 끝 인자 → 감지"
+else flunk "T34 --agent-id 맨 끝 인자 → 감지"; fi
+
+# T35
+team_cfg "$(member r1 false),$(member r2 false),$(member w1 true)"
+ps_out "claude --agent-id r1@session-abcdef12 $ARGS_TAIL" \
+  "claude --agent-id r2@session-abcdef12 $ARGS_TAIL" \
+  "claude --agent-id w1@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'r1'"* && "$out" == *"[FAIL]"*"'r2'"* \
+  && "$out" == *"[WARN]"*"'w1'"* ]]; then pass "T35 대기 2·작업 중 1 혼재 → 모두 보고"
+else flunk "T35 대기 2·작업 중 1 혼재 → 모두 보고"; fi
+
+# T36
+team_cfg "$(member rev false)"
+ps_out "claude --agent-id rev@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f" FAKE_PS_RC=1
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"ps 를 읽지 못함"* && "$out" != *"[OK] 이 세션"* ]]; then
+  pass "T36 ps 실패 → WARN"
+else flunk "T36 ps 실패 → WARN"; fi
+
+# T37
+rm -rf "$HOME/.claude/teams"
+team_cfg "$(member rev false)" "$WORK/cfgdir/teams/session-abcdef12/config.json"
+ps_out "claude --agent-id rev@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f" CLAUDE_CONFIG_DIR="$WORK/cfgdir"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* ]]; then pass "T37 CLAUDE_CONFIG_DIR 등록부"
+else flunk "T37 CLAUDE_CONFIG_DIR 등록부"; fi
+
+# T38
+team_cfg "$(member rev false)"
+ps_out "claude --agent-id=rev@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* ]]; then pass "T38 --agent-id= 등호 형식 → 감지"
+else flunk "T38 --agent-id= 등호 형식 → 감지"; fi
+
+# T39
+team_cfg "$(member rev false)"
+printf '%s\n' "7000 claude --agent-id other@session-zzzzzzzz $ARGS_TAIL" > "$WORK/ps.txt"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"리더 프로세스"*"ListAgents"* \
+  && "$out" != *"[OK] 이 세션"* ]]; then
+  pass "T39 리더 pid 안 보임 → WARN"
+else flunk "T39 리더 pid 안 보임 → WARN"; fi
+
+# T40
+team_cfg "$(member inproc false in-process)"
+ps_out
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"'inproc'"*"확인할 수 없음"* ]]; then
+  pass "T40 in-process 팀원 → WARN"
+else flunk "T40 in-process 팀원 → WARN"; fi
+
+# T41
+team_cfg '{"agentId":"anon@session-abcdef12","backendType":"tmux","isActive":false}'
+ps_out "claude --agent-id anon@session-abcdef12 $ARGS_TAIL"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *'TaskStop({task_id: "anon@session-abcdef12"})'* ]]; then
+  pass "T41 name 없는 팀원 → agentId 안내"
+else flunk "T41 name 없는 팀원 → agentId 안내"; fi
+
+# T42~T45 — 재사용 예정 예외(§1 '실행 중' 줄의 `이름`)
+team_cfg "$(member rev false)"
+ps_out "claude --agent-id rev@session-abcdef12 $ARGS_TAIL"
+s1_keep() {  # s1_keep <실행 중 줄에 적을 내용>
+  s1_single "$h"
+  printf "| 실행 중 | 실행 중(이 세션 한정 — 새 세션에서 주소 불가): %s — 재리뷰 |\n" "$1"
+}
+# T42
+write_doc "$f" "요약" "$(s1_keep "\`rev\`")" "$OK_S8" "$h"
+run_team "$r" "$f"
+if [[ "$rc" -eq 0 && "$out" == *"[WARN]"*"'rev'"*"TaskStop"* && "$out" != *"[FAIL]"* ]]; then
+  pass "T42 §1 에 기록된 재사용 예정 팀원 → WARN"
+else flunk "T42 §1 에 기록된 재사용 예정 팀원 → WARN"; fi
+# T43
+write_doc "$f" "요약" "$(s1_keep "\`other\`")" "$OK_S8" "$h"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* ]]; then pass "T43 다른 이름만 기록 → FAIL"
+else flunk "T43 다른 이름만 기록 → FAIL"; fi
+# T44
+team_cfg "$(member review false)"
+ps_out "claude --agent-id review@session-abcdef12 $ARGS_TAIL"
+write_doc "$f" "요약" "$(s1_keep "\`review-f1\`")" "$OK_S8" "$h"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'review'"* ]]; then
+  pass "T44 review-f1 기록이 review 를 면제 안 함"
+else flunk "T44 review-f1 기록이 review 를 면제 안 함"; fi
+# T45
+team_cfg "$(member rev false)"
+ps_out "claude --agent-id rev@session-abcdef12 $ARGS_TAIL"
+s1_note="$(s1_single "$h"; printf "| 메모 | \`rev\` 재리뷰 |\n")"
+write_doc "$f" "실행 중: \`rev\`" "$s1_note" "$OK_S8" "$h"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* ]]; then pass "T45 §1 실행 중 줄 밖의 기록 → FAIL"
+else flunk "T45 §1 실행 중 줄 밖의 기록 → FAIL"; fi
+# T46
+s1_loose="$(s1_single "$h"
+  printf "| 실행 중 | 없음 — \`rev\` 는 TaskStop 함 |\n"
+  printf -- "- 실행 중: \`rev\` — 대기\n"
+  printf '%s\n' "$FENCE" "실행 중(이 세션 한정 — 새 세션에서 주소 불가): \`rev\` — 예시" "$FENCE"
+  printf "<!-- 실행 중(이 세션 한정): \`rev\` -->\n")"
+write_doc "$f" "요약" "$s1_loose" "$OK_S8" "$h"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* ]]; then
+  pass "T46 '이 세션 한정' 형식 밖·펜스·주석의 기록 → FAIL"
+else flunk "T46 '이 세션 한정' 형식 밖·펜스·주석의 기록 → FAIL"; fi
+# T47
+mkdir -p "$(dirname "$TEAMCFG")"
+printf '{"name":"session-abcdef12","members":[%s,%s]}\n' \
+  '{"agentId":"team-lead@session-abcdef12","name":"team-lead","agentType":"team-lead"}' \
+  "$(member rev false)" > "$TEAMCFG"
+printf '%s\n' "7000 claude --agent-id rev@session-abcdef12 $ARGS_TAIL" > "$WORK/ps.txt"
+write_doc "$f" "요약" "$(s1_single "$h")" "$OK_S8" "$h"
+run_team "$r" "$f"
+if [[ "$rc" -eq 1 && "$out" == *"[FAIL]"*"'rev'"* && "$out" != *"리더 프로세스"* ]]; then
+  pass "T47 leadProcess 없는 구판 등록부 → 감지"
+else flunk "T47 leadProcess 없는 구판 등록부 → 감지"; fi
 
 exit "$fail"

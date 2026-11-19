@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # verify-handoff-integrity.sh
 # project-handoff 스킬 §2 step 4 self-review (handoff 커밋 직전 실행, 커밋 직후 재실행도 통과).
-# 검사 4종 — 모두 실행한 뒤 끝에서 한 번만 종료 코드를 정함.
+# 검사 5종 — 모두 실행한 뒤 끝에서 한 번만 종료 코드를 정함.
 #   head   '현재 상태 스냅샷' 절의 HEAD anchor 가 git HEAD 와 일치하는가
 #          (anchor = HEAD^ 이고 HEAD 가 이 handoff 를 포함한 커밋이면 '커밋 후 검증'으로 통과.
 #           이때 기준 repo 는 handoff 파일이 있는 repo — 다른 파일 동반 허용)
@@ -9,6 +9,8 @@
 #   refs   '참조 인덱스' 절의 경로(절대 경로 또는 repo 루트 기준 상대 경로)가 실제로 있는가
 #   절 탐지는 펜스 코드 블록(```) 안의 줄을 heading 으로 보지 않음
 #   date   파일명 앞 날짜가 오늘인가(다르면 WARN)
+#   teammates 이 세션이 name 을 주고 띄운 팀원(agent teams) 중 살아 있는 프로세스가 있는가
+#          (대기 = FAIL·TaskStop 안내, 작업 중일 수 있음·확인 불가 = WARN — check_teammates 주석)
 #
 # 사용:
 #   $ bash verify-handoff-integrity.sh docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md
@@ -71,8 +73,9 @@ fi
 
 status=0
 ANCHOR=""   # check_head 가 채우고 check_prompt 가 참조
-fail() { echo "[FAIL] $1" >&2; status=1; }
-warn() { echo "[WARN] $1"; }
+# 인자가 여럿이면 공백으로 이어 한 줄로 출력(긴 문구를 줄 나눠 넘겨도 잘리지 않게)
+fail() { echo "[FAIL] $*" >&2; status=1; }
+warn() { echo "[WARN] $*"; }
 
 # section_body <heading 정규식> — 첫 매치 heading 다음 줄부터 다음 '## ' 전까지 출력
 # (같은 제목이 다시 나와도 거기서 끝). 펜스 코드 블록(^```) 안의 줄은 heading 으로 보지 않음.
@@ -227,10 +230,116 @@ check_date() {
   fi
 }
 
+# ── teammates: 이 세션이 name 을 주고 띄운 팀원(agent teams)의 살아 있는 프로세스 ─────────
+# name 을 준 Agent 는 팀원으로 떠서 보고 뒤에도 끝나지 않고 대기한다(isActive=false). 새 세션에서는
+# 주소 불가이고 TaskStop 뒤에는 같은 이름으로 재개되지 않으므로 handoff 전에 리더가 종료한다.
+#   등록부   ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/teams/session-<세션 ID 앞 8자>/config.json
+#   살아 있음 tmux 팀원 = `ps -ww -eo pid=,args=` 의 한 줄에 '--agent-id <id>' 또는
+#            '--agent-id=<id>' 토큰(정확 일치). 그 밖 backendType 은 프로세스로 확인 불가 → WARN
+#   판정     isActive 가 false → FAIL, true·키 없음 → WARN(작업 중일 수 있음), 없으면 OK
+#   재사용 예외 §1 의 '실행 중(이 세션 한정' 줄(펜스·HTML 주석 줄 제외)에 `이름`(백틱 포함 고정
+#            문자열)이 있으면 대기 팀원도 WARN — handoff 뒤 같은 세션에서 계속 쓸 팀원만(사용자 결정
+#            2026-11-19), 세션 종료·/clear 전 TaskStop
+#   믿을 수 없음 등록부의 leadProcess.pid 가 ps 에 없으면(샌드박스 PID 격리 등) WARN 만 내고 끝냄
+#   세션 ID 없음 → info 로 건너뜀, python3 없음·ps 실패·등록부 읽기 실패 → WARN(ListAgents 로 확인)
+PY_TEAMMATES=""
+read -r -d '' PY_TEAMMATES <<'PY' || true
+import io, json, sys
+cfg = json.load(open(sys.argv[1], encoding="utf-8"))
+pids, alive = set(), set()
+for line in io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="replace"):
+    args = line.split()
+    if not args:
+        continue
+    pids.add(args[0])
+    for i, a in enumerate(args):
+        if a == "--agent-id" and i + 1 < len(args):
+            alive.add(args[i + 1])
+        elif a.startswith("--agent-id="):
+            alive.add(a.split("=", 1)[1])
+lead_pid = (cfg.get("leadProcess") or {}).get("pid")
+if lead_pid is not None and str(lead_pid) not in pids:
+    print("nolead\t" + str(lead_pid))
+    sys.exit(0)
+for m in cfg["members"]:
+    if m.get("agentType") == "team-lead":
+        continue
+    name = m.get("name") or m.get("agentId")
+    if m.get("backendType") != "tmux":
+        print("unknown\t" + str(name) + "\t" + str(m.get("backendType")))
+    elif m.get("agentId") in alive:
+        print(("idle" if m.get("isActive") is False else "busy") + "\t" + str(name))
+PY
+
+check_teammates() {
+  local sid="${CLAUDE_CODE_SESSION_ID:-}" cfg psout rows kind name extra found=0 kept
+  if [[ -z "$sid" ]]; then
+    echo "[info] CLAUDE_CODE_SESSION_ID 없음 — 팀원 검사 건너뜀"
+    return 0
+  fi
+  cfg="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/teams/session-${sid:0:8}/config.json"
+  if [[ ! -f "$cfg" ]]; then
+    echo "[OK] 이 세션의 팀원 없음"
+    return 0
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    warn "python3 없음 — 팀원 검사를 못 함. ListAgents 의 Teammates 행으로 직접 확인"
+    return 0
+  fi
+  if ! psout=$(ps -ww -eo pid=,args= 2>/dev/null); then
+    warn "ps 를 읽지 못함 — 팀원 검사를 못 함. ListAgents 의 Teammates 행으로 직접 확인"
+    return 0
+  fi
+  if ! rows=$(python3 -c "$PY_TEAMMATES" "$cfg" <<<"$psout" 2>/dev/null); then
+    warn "팀 등록부를 읽지 못함($cfg) — ListAgents 의 Teammates 행으로 직접 확인"
+    return 0
+  fi
+  # §1 의 '실행 중(이 세션 한정' 줄들(펜스 안·HTML 주석 줄 제외) — 재사용 예정 팀원 판정용
+  kept=$( { section_body '^## [0-9]+\. 현재 상태 스냅샷' || true; } \
+    | awk '/^```/ { fence = !fence; next } !fence && !/<!--/' \
+    | grep -F '실행 중(이 세션 한정' || true)
+  while IFS=$'\t' read -r kind name extra; do
+    case "$kind" in
+      nolead)
+        warn "ps 에 리더 프로세스(pid $name)가 보이지 않음(샌드박스 PID 격리 등) —" \
+          "팀원 검사를 믿을 수 없음. ListAgents 의 Teammates 행으로 직접 확인"
+        return 0
+        ;;
+      idle)
+        found=1
+        if grep -qF -- "\`$name\`" <<<"$kept"; then
+          extra="§1 에 재사용 예정으로 기록된 대기 팀원 '$name' — handoff 뒤 이 세션에서 계속 쓸"
+          extra+=" 때만 유효(새 세션에서는 주소 불가). 세션을 끝내거나 /clear 하기 전에"
+          warn "$extra TaskStop({task_id: \"$name\"})"
+          continue
+        fi
+        fail "대기 팀원 '$name' 이 살아 있음(name 을 주고 띄운 Agent — 보고 뒤에도 끝나지 않음)"
+        {
+          echo "  → 결과 원문을 파일로 보관했는지 확인한 뒤 리더(메인 세션)에서"
+          echo "     TaskStop({task_id: \"$name\"}) 로 종료하고 ListAgents 의 Teammates 행이 사라졌는지 확인"
+          echo "  → 새 세션에서는 주소 불가, 종료 뒤에는 같은 이름으로 재개 불가"
+        } >&2
+        ;;
+      busy)
+        found=1
+        warn "작업 중일 수 있는 팀원 '$name' — 종료할지 사용자에게 묻고, 남기면 §1 에 '실행 중: <이름·목적·결과 경로>' 로 기록"
+        ;;
+      unknown)
+        found=1
+        warn "팀원 '$name'(backendType $extra) 은 프로세스로 확인할 수 없음 — ListAgents 로 확인"
+        ;;
+    esac
+  done <<<"$rows"
+  if [[ "$found" -eq 0 ]]; then
+    echo "[OK] 이 세션의 살아 있는 팀원 없음"
+  fi
+}
+
 check_head
 check_prompt
 check_refs
 check_date
+check_teammates
 
 if [[ "$status" -eq 0 ]]; then
   echo "[PASS] $HANDOFF"
