@@ -22,6 +22,7 @@
 - **요청값으로 실측 필드를 채우지 않음**: `threads_effective`·`effective` 는 엔진이 실제 적용한 값을 읽음
 - 단말 push 바이너리는 host sha 와 단말 `sha256sum` 을 대조하고 그 값을 `binary_sha256` 에 기록
 - 변환 인자는 기본값에 기대지 않고 명시(`--weightQuantAsymmetric=1`, `--useGeluApproximation 0` 등)
+- 권장 키(선택 — 누락이어도 invalid 아님): `call_path`(S3~S5 호출 경로, 형식 `cli:<바이너리>` · `app:<클래스>→<so>`)·`manifest_name`(사람이 읽는 입력 집합 이름). 리포트 §1 보조 표에 표시하며 S3~S5 의 `call_path` 미기록은 `(미기록)`(필수 키 누락 `(누락)` 과 구분)
 
 ## 2. 단말 열 통제(S4·S5, 결정 D5)
 

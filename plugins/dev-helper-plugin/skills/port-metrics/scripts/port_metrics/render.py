@@ -14,6 +14,7 @@ MARK_BEGIN = "<!-- port-metrics:catalog-table:begin -->"
 MARK_END = "<!-- port-metrics:catalog-table:end -->"
 _ITEM_HEAD = ("지표", "대상", "문맥", "서브셋·텐서", "값", "단위", "상태")
 _PROBLEM_STATUSES = (judge.FAIL, judge.INVALID, judge.NOT_ESTABLISHED)
+_CALL_PATH_STAGES = frozenset({"S3", "S4", "S5"})  # 호출 경로(CLI·앱 JNI)가 갈리는 단계
 
 
 def _cell(value: object) -> str:
@@ -61,6 +62,21 @@ def _identity_text(run: RunInfo, key: str) -> str:
     if isinstance(value, (dict, list)):
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
     return str(value)
+
+
+def _call_path_text(run: RunInfo) -> str:
+    """S3~S5 는 미기록을 드러내고, 호출 경로가 하나뿐인 S1·S2 는 "-". (누락) 은 필수 키 전용."""
+    value = run.identity.get("call_path")
+    if value:
+        return str(value)
+    return "(미기록)" if run.stage in _CALL_PATH_STAGES else "-"
+
+
+def _input_set_text(run: RunInfo) -> str:
+    sha = run.identity.get("manifest_sha256")
+    short = str(sha)[:12] if sha else "(누락)"
+    name = run.identity.get("manifest_name")
+    return f"{name} ({short})" if name else short
 
 
 def _section(title: str, items: Sequence[Item]) -> list[str]:
@@ -120,6 +136,16 @@ def render_report(model: ReportModel) -> str:
     ]
     head = ("회차", "단계", "백엔드", "종류", "pacing", "프로파일", "실효(class)")
     lines += _table(head + ("시작", "git_sha", "유효성"), run_rows)
+    lines += [
+        "",
+        "- 호출 경로 = `identity.call_path`(S3~S5) · 입력 집합 = `manifest_name` "
+        "(`manifest_sha256` 앞 12자)",
+        "",
+    ]
+    lines += _table(
+        ("회차", "호출 경로", "입력 집합"),
+        [(r.run_id, _call_path_text(r), _input_set_text(r)) for r in model.runs],
+    )
 
     lines += _section("2. 단계 사슬 동등성", [i for i in measured if i.kind == "pair"])
     runs = [i for i in measured if i.kind == "run"]
@@ -220,6 +246,16 @@ def render_checklist(catalog: Catalog, thresholds: Mapping[str, Any]) -> str:
         f"- 임계 동결: {frozen or '미동결 — 측정 전에 frozen_at 을 기입하고 커밋'}",
         "- 회차마다 identity.thresholds_sha256 = 동결 파일 sha256 기록",
     ]
+    stages = set(scope["stages"])
+    if stages & _CALL_PATH_STAGES:
+        lines.append(
+            "- S3~S5 회차마다 identity.call_path = 호출 경로(`cli:<바이너리>` · `app:<클래스>→<so>`) 기록"
+        )
+    if {"S3", "S4"} <= stages:
+        lines.append(
+            "- 입력 집합은 identity.manifest_sha256(+ manifest_name)으로 대조 — 단말 결과는 같은 "
+            "manifest 의 S3-S4 chain pair 로 host 와 비교"
+        )
     for stage in STAGES:
         ids = [m for m, s in reqs.run if s == stage]
         if not ids:

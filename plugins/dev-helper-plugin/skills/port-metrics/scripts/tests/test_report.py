@@ -167,6 +167,26 @@ class ReportTest(unittest.TestCase):
             self.item(model, "RES.cpu_pct_mean", "s5_sampler").status, "record_only"
         )
 
+    def test_render_call_path_and_input_set(self) -> None:
+        # 단말 보고에서 "어떤 경로로·어떤 입력으로 쟀나" 질문이 반복된 원인(2026-11-19 리포트 A3)
+        results = helpers.clone(self.results)
+        identity = helpers.run_by_id(results, "s4_perf_a1")["identity"]
+        identity["call_path"] = "cli:port_cli"
+        identity["manifest_name"] = "golden_v1"
+        text = render.render_report(self.build(results))
+        self.assertIn("| s4_perf_a1 | cli:port_cli | golden_v1 (88c7275ef3ef) |", text)
+        # S3~S5 의 선택 키 미기록은 (미기록), S1·S2 는 해당 없음(-)
+        self.assertIn("| s3_acc | (미기록) | 88c7275ef3ef |", text)
+        self.assertIn("| s1_perf | - | 88c7275ef3ef |", text)
+
+    def test_checklist_device_lines_follow_scope(self) -> None:
+        # 리뷰 Low 반영: S1·S2 만 재는 체크리스트에는 단말 안내가 잡음 — 분기 검증
+        thresholds = helpers.clone(self.thresholds)
+        thresholds["scope"]["stages"] = ["S1", "S2"]
+        text = render.render_checklist(self.catalog, thresholds)
+        self.assertNotIn("call_path", text)
+        self.assertNotIn("chain pair", text)
+
     def test_render_counts(self) -> None:
         model = self.build()
         text = render.render_report(model)

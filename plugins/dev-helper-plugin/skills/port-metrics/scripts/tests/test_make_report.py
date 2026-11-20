@@ -174,6 +174,8 @@ class CliTest(unittest.TestCase):
         for metric_id in sorted(required):
             self.assertIn(f"`{metric_id}`", text)
         self.assertNotIn("SPD.units_per_sec", text)
+        self.assertIn("S3~S5 회차마다 identity.call_path", text)
+        self.assertIn("S3-S4 chain pair", text)
         # convert 목적: S1-S2 NUM 판정 규칙(record 제외)마다 noise_floor 기입 요구
         self.assertEqual(text.count("noise_floor 기입(convert)"), 4)
         self.assertIn("`NUM.max_abs` [pair=S1-S2, class=fp]: noise_floor", text)
