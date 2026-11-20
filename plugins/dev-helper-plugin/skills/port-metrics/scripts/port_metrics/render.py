@@ -8,7 +8,7 @@ from typing import Any
 
 from port_metrics import judge
 from port_metrics.catalog import STAGES, Catalog, MetricSpec
-from port_metrics.report import Item, ReportModel, RunInfo
+from port_metrics.report import Item, ReportModel, RunInfo, rule_label
 
 MARK_BEGIN = "<!-- port-metrics:catalog-table:begin -->"
 MARK_END = "<!-- port-metrics:catalog-table:end -->"
@@ -37,17 +37,23 @@ def _fmt(value: object) -> str:
     return str(value)
 
 
+def _item_name(item: Item) -> str:
+    """지표 표기. 균형 항목은 같은 지표의 회차·ABBA 항목과 구분되게 이름을 덧붙임."""
+    return f"`{item.metric}`" + (" 예상 fail 균형" if item.kind == "balance" else "")
+
+
 def _item_rows(items: Iterable[Item], reason: bool = False) -> list[list[object]]:
     rows: list[list[object]] = []
     for i in items:
+        # 예상 fail 표지는 이 함수 한 곳에서만 붙임
         row: list[object] = [
-            f"`{i.metric}`",
+            _item_name(i),
             i.ref or "(누락)",
             i.context,
             i.subset or "-",
             _fmt(i.value),
             i.unit,
-            i.status,
+            i.status + ("(예상)" if i.is_expected_fail else ""),
         ]
         if reason:
             row.append(i.reason)
@@ -79,6 +85,60 @@ def _input_set_text(run: RunInfo) -> str:
     return f"{name} ({short})" if name else short
 
 
+def _validity_text(run: RunInfo) -> str:
+    """§1 유효성 칸. 대체된 회차는 대체 표시를 덧붙임(열은 늘리지 않음)."""
+    text = "invalid" if run.problems else "ok"
+    if run.superseded_by is None:
+        return text
+    text += f" · 대체됨 → {run.superseded_by}({run.superseded_reason})"
+    if not run.problems and not run.sampler_problems:
+        # 대체 회차는 원자료를 읽지 않아 신원·열 검사만 통과한 것임을 드러냄
+        text += " · 신원·열 검사 통과 회차 대체(원자료 품질 미검사)"
+    return text
+
+
+def _summary_names(items: Iterable[Item]) -> list[str]:
+    """§0 지표 목록 표기(지표 ID 순 — 균형 항목은 같은 지표 뒤에 구분해 실음)."""
+    keys = sorted({(i.metric, i.kind == "balance") for i in items})
+    return [f"`{m}`" + (" 예상 fail 균형" if balance else "") for m, balance in keys]
+
+
+def _summary_problem_lines(model: ReportModel) -> list[str]:
+    """§0 상태별 지표 목록. 예상 fail 이 없으면 1.0.24 와 같은 줄."""
+    lines: list[str] = []
+    for status in _PROBLEM_STATUSES:
+        found = [i for i in model.items if i.status == status]
+        if status == judge.FAIL and model.expected_fail:
+            names = _summary_names(i for i in found if not i.is_expected_fail)
+            if names:
+                lines += ["", "- 예상 밖 fail 지표: " + ", ".join(names)]
+            expected = {
+                (i.metric, i.context): i.expected_fail
+                for i in found
+                if i.is_expected_fail
+            }
+            for (metric, context), reason in sorted(expected.items()):
+                lines += [
+                    "",
+                    f"- 예상 fail(사전 등록) `{metric}` @ {context}: {_cell(reason)}",
+                ]
+            continue
+        names = _summary_names(found)
+        if names:
+            lines += ["", f"- {status} 지표: " + ", ".join(names)]
+    if model.expected_rules:
+        lines += ["", f"- 등록된 예상 fail 규칙: {len(model.expected_rules)} 건"]
+        lines += [
+            f"  - {_cell(r.label)}: {_cell(r.reason)} — "
+            f"덮은 항목 {r.covered}, fail {r.failed}"
+            for r in model.expected_rules
+        ]
+    superseded = sum(r.superseded_by is not None for r in model.runs)
+    if superseded:
+        lines += ["", f"- 대체 회차 {superseded} 건(판정 제외)"]
+    return lines
+
+
 def _section(title: str, items: Sequence[Item]) -> list[str]:
     lines = ["", f"## {title}", ""]
     if not items:
@@ -97,8 +157,13 @@ def render_report(model: ReportModel) -> str:
             f"- **부분 리포트**: 필수 검사를 {stages} 로 축소함(전체 판정 아님)"
         )
     scope = model.scope
+    overall = f"- 종합 판정: **{model.overall}** (종료 코드 {model.exit_code})"
+    if model.expected_fail:
+        overall += (
+            f" — 예상 fail {model.expected_fail} 건을 pass 로 봄(원판정 fail 보존)"
+        )
     lines += [
-        f"- 종합 판정: **{model.overall}** (종료 코드 {model.exit_code})",
+        overall,
         f"- 태스크 지표: {model.task_metric}",
         f"- 범위: stages {', '.join(scope['stages'])} / 목적 "
         f"{', '.join(scope['purposes']) or '-'} / 유형 "
@@ -113,10 +178,7 @@ def render_report(model: ReportModel) -> str:
     lines += [f"  - {_cell(text)}" for text in model.rule_deviations]
     lines.append("")
     lines += _table(("상태", "건수"), model.counts.items())
-    for status in _PROBLEM_STATUSES:
-        ids = sorted({i.metric for i in model.items if i.status == status})
-        if ids:
-            lines += ["", f"- {status} 지표: " + ", ".join(f"`{m}`" for m in ids)]
+    lines += _summary_problem_lines(model)
 
     lines += ["", "## 1. 측정 신원", ""]
     run_rows = [
@@ -130,7 +192,7 @@ def render_report(model: ReportModel) -> str:
             f"{r.effective} ({r.precision_class})",
             r.started_at,
             r.identity.get("git_sha", "-"),
-            "invalid" if r.problems else "ok",
+            _validity_text(r),
         )
         for r in model.runs
     ]
@@ -153,7 +215,8 @@ def render_report(model: ReportModel) -> str:
     lines += _section("4. 속도", [i for i in runs if i.category == "SPD"])
     lines += _section("5. 자원", [i for i in runs if i.category in ("RES", "PWR")])
     lines += _section(
-        "6. A/B(같은 세션 ABBA)", [i for i in measured if i.kind == "abba"]
+        "6. A/B(같은 세션 ABBA)",
+        [i for i in measured if i.kind in ("abba", "balance")],
     )
     for abba_id, problems in model.abba_problems.items():
         lines += ["", f"- ABBA `{abba_id}` invalid: " + "; ".join(problems)]
@@ -308,6 +371,11 @@ def render_checklist(catalog: Catalog, thresholds: Mapping[str, Any]) -> str:
             todo.append(f"- [ ] {label}: noise_floor 기입(convert)")
     lines += ["", "## 동결 전 기입할 임계", ""]
     lines += todo or ["- 없음"]
+    expected = [r for r in thresholds.get("rules", []) if "expected_fail" in r]
+    if expected:
+        # 예상 fail 은 측정 전에만 등록(측정 뒤 추가 = 사후 완화) — 매번 드러냄
+        lines += ["", "## 등록된 예상 fail 규칙", ""]
+        lines += [f"- {rule_label(r)}: {r['expected_fail']}" for r in expected]
     return "\n".join(lines) + "\n"
 
 

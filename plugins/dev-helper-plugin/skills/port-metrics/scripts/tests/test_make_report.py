@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Any
 
 import make_report
-from port_metrics import schema
+from port_metrics import render, schema
+from port_metrics.report import build_report
 from tests import helpers
 
 Obj = dict[str, Any]
@@ -231,6 +232,35 @@ class CliTest(unittest.TestCase):
         with contextlib.redirect_stderr(stderr):
             self.assertEqual(make_report.main(init), 0)
         self.assertIn(".gitignore 대상", stderr.getvalue())
+
+    # ------------------------------------------------ 1.0.25(계획 §4 T19·T20)
+
+    def test_example_report_matches_golden(self) -> None:
+        # T19: 새 키가 없는 입력은 1.0.24(HEAD 371be19)와 리포트 바이트·rc 동일
+        golden = helpers.SCRIPTS / "tests" / "golden"
+        results, thresholds, sha = helpers.example()
+        model = build_report(
+            results, thresholds, sha, helpers.catalog(), helpers.rows_loader(), None
+        )
+        text = render.render_report(model).encode("utf-8")
+        self.assertEqual(text, (golden / "example_report_1.0.24.md").read_bytes())
+        rc = (golden / "example_rc_1.0.24.txt").read_text(encoding="utf-8")
+        self.assertEqual(model.exit_code, int(rc))
+
+    def test_cli_expected_fail_only_rc0(self) -> None:
+        # T20: CLI 경로 확인 — thresholds 를 고쳤으므로 회차 thresholds_sha256 을 다시 씀
+        base = self.copy_example()
+        _, thresholds, _ = helpers.example()
+        changed = helpers.expect_fail(thresholds, "SPD.jitter", "S5", regress=False)
+        write_json(base / "thresholds.json", changed)
+        sha = hashlib.sha256((base / "thresholds.json").read_bytes()).hexdigest()
+        results: Obj = json.loads((base / "results.json").read_text(encoding="utf-8"))
+        for run in results["runs"]:
+            run["identity"]["thresholds_sha256"] = sha
+        write_json(base / "results.json", results)
+        self.assertEqual(self.report_rc(base), 0)
+        text = (base / "report.md").read_text(encoding="utf-8")
+        self.assertIn("- 종합 판정: **pass** (종료 코드 0) — 예상 fail 1 건", text)
 
 
 if __name__ == "__main__":

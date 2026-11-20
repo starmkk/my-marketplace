@@ -28,6 +28,7 @@ class Rule:
     op: str
     limit: float | bool | None
     noise_floor: float | None = None
+    expected_fail: str | None = None  # 사전 등록한 예상 fail 사유(없으면 None)
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,7 @@ def rule_from(rule: Mapping[str, Any]) -> Rule:
         op=rule["op"],
         limit=rule.get("limit"),
         noise_floor=rule.get("noise_floor"),
+        expected_fail=rule.get("expected_fail"),
     )
 
 

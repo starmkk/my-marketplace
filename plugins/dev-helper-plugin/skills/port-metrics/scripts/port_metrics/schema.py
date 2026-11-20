@@ -16,6 +16,7 @@ from port_metrics.catalog import (
     RUN_KINDS,
     STAGES,
     Catalog,
+    MetricSpec,
     is_number,
     rule_limit_problems,
     value_type_ok,
@@ -38,6 +39,13 @@ DEFAULT_VALIDITY: dict[str, float] = {
     "sampler_min_n": 100,
     "sampler_max_gap_ratio": 2.0,
 }
+# validity 선택 키(없으면 그 검사를 하지 않음). 이 밖의 키는 형식 오류
+OPTIONAL_VALIDITY = ("abba_start_battery_min_c",)
+# 예상 fail 을 등록할 수 있는 지표 범주(scope=run 한정) — 목적의 핵심 판정은 덮지 못함
+EXPECTED_FAIL_CATEGORIES = ("SPD", "RES", "PWR", "THM")
+# 대체 회차가 대체하는 회차와 같아야 하는 키(같은 역할의 재측정)
+_ROLE_KEYS = ("run_kind", "pacing", "backend", "profile", "effective")
+_ROLE_IDENTITY_KEYS = ("git_sha", "manifest_sha256", "threads_effective")
 # meta 키 → 0 을 허용하는지
 _META_KEYS: dict[str, bool] = {
     "rss_peak_kb": True,
@@ -86,10 +94,14 @@ class FormatError(ValueError):
 
 @dataclass(frozen=True)
 class CrossProblems:
-    """회차 간 유효성 문제. sampler = 회차별 sampler 지표 무효 사유, abba = 블록별."""
+    """회차 간 유효성 문제.
+
+    sampler = 회차별 sampler 지표 무효 사유, abba = 블록별, pairs = 쌍(pair_id)별.
+    """
 
     sampler: dict[str, list[str]] = field(default_factory=dict)
     abba: dict[str, list[str]] = field(default_factory=dict)
+    pairs: dict[str, list[str]] = field(default_factory=dict)
 
 
 def _reject_constant(name: str) -> object:
@@ -163,8 +175,9 @@ def _rules_problems(rules: object, catalog: Catalog) -> list[str]:
             continue
         probs = _missing(rule, ("metric", "when", "op", "limit"), where)
         allowed = ("metric", "when", "op", "limit", "noise_floor", "noise_source")
+        optional = ("reason", "expected_fail")
         probs += [
-            f"{where}: 미지 키 {k!r}" for k in rule if k not in allowed + ("reason",)
+            f"{where}: 미지 키 {k!r}" for k in rule if k not in allowed + optional
         ]
         if probs:
             out += probs
@@ -186,6 +199,8 @@ def _rules_problems(rules: object, catalog: Catalog) -> list[str]:
         if not spec.judged and rule["op"] != "record":
             # 무시될 규칙을 조용히 받아들이지 않음
             probs.append(f"{where}: 기록 지표(judged=false)에는 op=record 만 허용")
+        if "expected_fail" in rule:
+            probs += _expected_fail_problems(rule, spec, where)
         if probs:
             out += probs
             continue
@@ -194,6 +209,46 @@ def _rules_problems(rules: object, catalog: Catalog) -> list[str]:
             if whens_overlap(when, other):
                 out.append(f"{where}: rules[{j}] 와 when 겹침")
         seen[metric].append((i, when))
+    return out
+
+
+def _expected_fail_problems(rule: Obj, spec: MetricSpec, where: str) -> list[str]:
+    """rules[].expected_fail(예상 fail 사전 등록) 형식 문제."""
+    out: list[str] = []
+    if not _is_str(rule["expected_fail"]):
+        out.append(f"{where}.expected_fail: 비어 있지 않은 문자열(구조 사유)이어야 함")
+    if rule["op"] == "record":
+        out.append(f"{where}: op=record 규칙에는 expected_fail 을 둘 수 없음")
+    when = rule["when"]
+    if not isinstance(when, dict) or "stage" not in when:
+        out.append(f"{where}: expected_fail 은 when.stage 가 있는 규칙만 허용")
+    if spec.scope != "run" or spec.category not in EXPECTED_FAIL_CATEGORIES:
+        allowed = "·".join(EXPECTED_FAIL_CATEGORIES)
+        out.append(
+            f"{where}: expected_fail 은 회차(scope=run) 지표 중 {allowed} 범주만 허용"
+            f"({spec.category}·scope={spec.scope} 는 목적의 핵심 판정)"
+        )
+    return out
+
+
+def _validity_problems(validity: object) -> list[str]:
+    if not isinstance(validity, dict):
+        return ["validity: 객체여야 함"]
+    out: list[str] = []
+    for key in DEFAULT_VALIDITY:
+        if not is_number(validity.get(key)) or validity[key] < 0:
+            out.append(f"validity.{key}: 0 이상의 수여야 함")
+    known = tuple(DEFAULT_VALIDITY) + OPTIONAL_VALIDITY
+    out += [f"validity.{k}: 미지 키" for k in validity if k not in known]
+    if "abba_start_battery_min_c" in validity:
+        low = validity["abba_start_battery_min_c"]
+        high = validity.get("start_battery_max_c")
+        if not is_number(low):
+            out.append("validity.abba_start_battery_min_c: 수여야 함")
+        elif is_number(high) and low > high:
+            out.append(
+                "validity.abba_start_battery_min_c: start_battery_max_c 이하여야 함"
+            )
     return out
 
 
@@ -210,13 +265,7 @@ def validate_thresholds(obj: object, catalog: Catalog) -> list[str]:
     if obj["frozen_at"] is not None and parse_datetime(obj["frozen_at"]) is None:
         out.append("frozen_at: 타임존 포함 ISO 8601 datetime 또는 null 이어야 함")
     out += _scope_problems(obj["scope"])
-    validity = obj["validity"]
-    if not isinstance(validity, dict):
-        out.append("validity: 객체여야 함")
-    else:
-        for key in DEFAULT_VALIDITY:
-            if not is_number(validity.get(key)) or validity[key] < 0:
-                out.append(f"validity.{key}: 0 이상의 수여야 함")
+    out += _validity_problems(obj["validity"])
     out += _rules_problems(obj["rules"], catalog)
     limits = obj["abba_limits_pct"]
     if not isinstance(limits, dict):
@@ -390,6 +439,68 @@ def _run_problems_format(
     return out
 
 
+def is_superseded(run: Mapping[str, Any]) -> bool:
+    """재측정으로 대체된 회차인지(superseded_by 키가 있음). 판단은 이 함수 한 곳."""
+    return "superseded_by" in run
+
+
+def active_runs(runs: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    """대체되지 않은 회차 목록(판정·기준 선택·짝 검사의 대상)."""
+    return [r for r in runs if not is_superseded(r)]
+
+
+def _role_differences(old: Mapping[str, Any], new: Mapping[str, Any]) -> list[str]:
+    """대체되는 회차(old)와 대체하는 회차(new)의 역할 키 차이."""
+    out = [key for key in _ROLE_KEYS if old.get(key) != new.get(key)]
+    id_old, id_new = old.get("identity"), new.get("identity")
+    if isinstance(id_old, dict) and isinstance(id_new, dict):
+        out += [k for k in _ROLE_IDENTITY_KEYS if id_old.get(k) != id_new.get(k)]
+    return out
+
+
+def _superseded_problems(runs: Mapping[str, Obj]) -> list[str]:
+    """runs[].superseded_by·superseded_reason 형식 문제."""
+    out: list[str] = []
+    for run_id, run in runs.items():
+        where = f"run {run_id!r}"
+        has_by, has_reason = "superseded_by" in run, "superseded_reason" in run
+        if not has_by and not has_reason:
+            continue
+        if has_by != has_reason:
+            out.append(f"{where}: superseded_by·superseded_reason 은 함께 있어야 함")
+            continue
+        if not _is_str(run["superseded_reason"]):
+            out.append(f"{where}.superseded_reason: 비어 있지 않은 문자열이어야 함")
+        target = run["superseded_by"]
+        if not _known_run(target, runs):
+            out.append(f"{where}.superseded_by: 미지 run 참조 {target!r}")
+            continue
+        if target == run_id:
+            out.append(f"{where}.superseded_by: 자기 참조")
+            continue
+        seen = {run_id}
+        hop: object = target
+        while isinstance(hop, str) and hop in runs and hop not in seen:
+            seen.add(hop)
+            hop = runs[hop].get("superseded_by")
+        if hop == run_id:
+            out.append(f"{where}.superseded_by: 대체 사슬 순환")
+        new = runs[target]
+        if run.get("stage") != new.get("stage"):
+            out.append(f"{where}.superseded_by: {target} 와 stage 다름")
+        t_old = parse_datetime(run.get("started_at"))
+        t_new = parse_datetime(new.get("started_at"))
+        if t_old is not None and t_new is not None and t_new <= t_old:
+            out.append(
+                f"{where}.superseded_by: 대체하는 회차 {target} 의 started_at 이 더 늦어야 함"
+            )
+        out += [
+            f"{where}.superseded_by: {target} 와 {key} 다름(같은 역할의 재측정만 대체)"
+            for key in _role_differences(run, new)
+        ]
+    return out
+
+
 def has_acc_primary(run: Mapping[str, Any]) -> bool:
     """회차가 ACC.primary 값을 갖는지."""
     values = run.get("values")
@@ -466,6 +577,11 @@ def _pairs_problems(
             continue
         unknown = [k for k in ("ref", "target") if not _known_run(pair[k], runs)]
         out += [f"{where}.{k}: 미지 run 참조 {pair[k]!r}" for k in unknown]
+        out += [
+            f"{where}.{k}: 대체된 회차 참조 {pair[k]!r}"
+            for k in ("ref", "target")
+            if k not in unknown and is_superseded(runs[pair[k]])
+        ]
         out += _values_problems(
             pair["values"], catalog, "pair", None, f"{where}.values"
         )
@@ -532,6 +648,40 @@ def _abba_problems(
             for key in ("a", "b"):
                 if not _known_run(pair[key], runs):
                     out.append(f"{pw}.{key}: 미지 run 참조 {pair[key]!r}")
+                elif is_superseded(runs[pair[key]]):
+                    out.append(f"{pw}.{key}: 대체된 회차 참조 {pair[key]!r}")
+    return out + _noise_for_problems(blocks)
+
+
+def _noise_for_problems(blocks: Sequence[object]) -> list[str]:
+    """abba[].noise_for(A ↔ A 잡음 블록이 가리키는 대상 블록) 형식 문제."""
+    by_id: dict[str, Obj] = {}
+    for block in blocks:
+        if isinstance(block, dict) and isinstance(block.get("abba_id"), str):
+            by_id[block["abba_id"]] = block
+    out: list[str] = []
+    for i, block in enumerate(blocks):
+        if not isinstance(block, dict) or "noise_for" not in block:
+            continue
+        where = f"abba[{i}].noise_for"
+        target_id = block["noise_for"]
+        if not isinstance(target_id, str) or target_id not in by_id:
+            out.append(f"{where}: 미지 블록 {target_id!r}")
+        elif target_id == block.get("abba_id"):
+            out.append(f"{where}: 자기 참조")
+        elif "noise_for" in by_id[target_id]:
+            out.append(
+                f"{where}: {target_id} 는 잡음 블록을 가리킴(대상 블록이어야 함)"
+            )
+        else:
+            own, target = block.get("metrics"), by_id[target_id].get("metrics")
+            if isinstance(own, list) and isinstance(target, list):
+                extra = [m for m in own if m not in target]
+                if extra:
+                    out.append(
+                        f"abba[{i}].metrics: {', '.join(map(str, extra))} 가 "
+                        f"대상 블록 metrics 에 없음(잡음 블록 ⊆ 대상 블록)"
+                    )
     return out
 
 
@@ -587,7 +737,10 @@ def validate_results(
             if run_id in by_id:
                 out.append(f"{where}.run_id: {run_id} 중복")
             by_id[run_id] = run
-    out += _acc_baseline_problems([r for r in runs if isinstance(r, dict)])
+    out += _superseded_problems(by_id)
+    out += _acc_baseline_problems(
+        [r for r in runs if isinstance(r, dict) and not is_superseded(r)]
+    )
     if "pairs" in obj:
         out += _pairs_problems(obj["pairs"], by_id, catalog)
     if "abba" in obj:
@@ -705,11 +858,15 @@ def _sampler_pairing(runs: Sequence[Mapping[str, Any]]) -> dict[str, list[str]]:
             group = by_nonce.setdefault(str(run.get("nonce")), {})
             group.setdefault(str(kind), []).append(run)
     for nonce, group in by_nonce.items():
-        perfs = group.get("perf", [])
-        samplers = group.get("sampler", [])
+        perfs = active_runs(group.get("perf", []))
+        replaced = [r for r in group.get("perf", []) if is_superseded(r)]
+        samplers = active_runs(group.get("sampler", []))
         for sampler in samplers:
             probs: list[str] = []
-            if not perfs:
+            if not perfs and replaced:
+                # 대체된 perf 와 묶인 sampler: 재측정 perf 와 같은 nonce 로 다시 재야 함
+                probs += [f"perf 짝 {r.get('run_id')} 는 대체됨" for r in replaced]
+            elif not perfs:
                 probs.append(f"nonce {nonce!r} 의 perf 짝 없음")
             if len(perfs) > 1 or len(samplers) > 1:
                 probs.append(
@@ -774,6 +931,106 @@ def _abba_composition(
     manifests = [(m.get("identity") or {}).get("manifest_sha256") for m in members]
     if any(value != manifests[0] for value in manifests[1:]):
         out.append("manifest_sha256 불일치")
+    threads = [_identity_value(m, "threads_effective") for m in members]
+    if any(value != threads[0] for value in threads[1:]):
+        out.append("threads_effective 불일치(블록 내 모든 회차가 같아야 함)")
+    return out
+
+
+def _identity_value(run: Mapping[str, Any], key: str) -> object:
+    return (run.get("identity") or {}).get(key)
+
+
+def _block_runs(
+    block: Mapping[str, Any], runs: Mapping[str, Mapping[str, Any]], side: str | None
+) -> list[Mapping[str, Any]]:
+    """블록이 참조하는 회차(side = a|b 한쪽, None = 양쪽). 미지 참조는 건너뜀."""
+    sides = ("a", "b") if side is None else (side,)
+    pairs: Sequence[Mapping[str, Any]] = block.get("pairs") or []
+    return [runs[p[k]] for p in pairs for k in sides if _known_run(p.get(k), runs)]
+
+
+def _distinct(values: Sequence[object]) -> list[str]:
+    """값 집합의 정렬된 문자열 표현(해시 불가 값도 비교)."""
+    return sorted({json.dumps(v, sort_keys=True, default=str) for v in values})
+
+
+def _noise_composition(
+    block: Mapping[str, Any],
+    target: Mapping[str, Any],
+    runs: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    """A ↔ A 잡음 블록(block)이 대상 블록(target)의 잡음 대조로 성립하는지."""
+    out: list[str] = []
+    own, other = _block_runs(block, runs, None), _block_runs(target, runs, None)
+    if len(_distinct([_identity_value(m, "git_sha") for m in own])) > 1:
+        out.append("잡음 블록 안 git_sha 불일치(A ↔ A 는 모든 회차가 같은 빌드)")
+    if len(_distinct([m.get("profile") for m in own])) > 1:
+        out.append("잡음 블록 안 profile 불일치(A ↔ A 는 모든 회차가 같은 구성)")
+    own_a, other_a = _block_runs(block, runs, "a"), _block_runs(target, runs, "a")
+    if _distinct([_identity_value(m, "git_sha") for m in own_a]) != _distinct(
+        [_identity_value(m, "git_sha") for m in other_a]
+    ):
+        out.append("대상 블록 a 쪽과 git_sha 불일치")
+    if _distinct([m.get("profile") for m in own_a]) != _distinct(
+        [m.get("profile") for m in other_a]
+    ):
+        out.append("대상 블록 a 쪽과 profile 불일치")
+    for key in ("stage", "run_kind", "pacing"):
+        if _distinct([m.get(key) for m in own]) != _distinct(
+            [m.get(key) for m in other]
+        ):
+            out.append(f"대상 블록과 {key} 불일치")
+    for key in ("manifest_sha256", "threads_effective"):
+        if _distinct([_identity_value(m, key) for m in own]) != _distinct(
+            [_identity_value(m, key) for m in other]
+        ):
+            out.append(f"대상 블록과 {key} 불일치")
+    return out
+
+
+def _abba_start_battery(
+    block: Mapping[str, Any], runs: Mapping[str, Mapping[str, Any]], min_c: float
+) -> list[str]:
+    """ABBA 시작 대역 하한(validity.abba_start_battery_min_c) 위반."""
+    out: list[str] = []
+    for run in _block_runs(block, runs, None):
+        thermal = run.get("thermal")
+        start: Any = (
+            thermal.get("start_battery_c") if isinstance(thermal, Mapping) else None
+        )
+        if not is_number(start):
+            out.append(
+                f"{run.get('run_id')}: thermal 없음(ABBA 시작 대역 하한 검사 불가)"
+            )
+        elif start < min_c:
+            out.append(
+                f"{run.get('run_id')}: 시작 배터리 온도 {start} < 하한 {min_c} degC"
+            )
+    return out
+
+
+def _pair_composition(
+    pair: Mapping[str, Any], runs: Mapping[str, Mapping[str, Any]]
+) -> list[str]:
+    """쌍 두 회차의 키 일치(manifest = 모든 kind, threads = regress·S1 이 없는 chain)."""
+    ref, target = runs.get(str(pair.get("ref"))), runs.get(str(pair.get("target")))
+    if ref is None or target is None:
+        return []
+    out: list[str] = []
+    if _identity_value(ref, "manifest_sha256") != _identity_value(
+        target, "manifest_sha256"
+    ):
+        out.append("manifest_sha256 불일치(두 회차의 입력 집합이 다름)")
+    kind = pair.get("kind")
+    # S1 = PT 스레드, S2~ = MNN numThread — 의미가 달라 S1 이 낀 chain 은 면제
+    same_meaning = kind == "regress" or (
+        kind == "chain" and "S1" not in (ref.get("stage"), target.get("stage"))
+    )
+    if same_meaning and _identity_value(ref, "threads_effective") != _identity_value(
+        target, "threads_effective"
+    ):
+        out.append("threads_effective 불일치")
     return out
 
 
@@ -796,17 +1053,30 @@ def sampler_quality_problems(
 def cross_problems(
     results: Mapping[str, Any], validity: Mapping[str, Any]
 ) -> CrossProblems:
-    """회차 간 유효성 문제(sampler ↔ perf 결속·ABBA 구성).
+    """회차 간 유효성 문제(sampler ↔ perf 결속·ABBA 구성·잡음 블록 구성·쌍 키).
 
     sampler 품질(표본 수·간격)은 원자료가 필요해 sampler_quality_problems 로 따로 검사.
-    validity 는 계약 시그니처(§7)의 인자이며 현재 이 함수의 검사에는 쓰이지 않음.
+    validity.abba_start_battery_min_c 가 있으면 ABBA 참조 회차의 시작 대역 하한도 검사.
     """
     runs: list[Mapping[str, Any]] = list(results.get("runs") or [])
     sampler = _sampler_pairing(runs)
     by_id = {str(r.get("run_id")): r for r in runs}
+    blocks: list[Mapping[str, Any]] = list(results.get("abba") or [])
+    block_by_id = {str(b.get("abba_id")): b for b in blocks}
+    min_c = validity.get("abba_start_battery_min_c")
     abba: dict[str, list[str]] = {}
-    for block in results.get("abba") or []:
+    for block in blocks:
         probs = _abba_composition(block, by_id)
+        target = block_by_id.get(str(block.get("noise_for")))
+        if "noise_for" in block and target is not None:
+            probs += _noise_composition(block, target, by_id)
+        if min_c is not None:
+            probs += _abba_start_battery(block, by_id, min_c)
         if probs:
             abba[str(block.get("abba_id"))] = probs
-    return CrossProblems(sampler=sampler, abba=abba)
+    pairs: dict[str, list[str]] = {}
+    for pair in results.get("pairs") or []:
+        probs = _pair_composition(pair, by_id)
+        if probs:
+            pairs[str(pair.get("pair_id"))] = probs
+    return CrossProblems(sampler=sampler, abba=abba, pairs=pairs)

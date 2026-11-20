@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """port-metrics 리포트 생성기 CLI(파일 I/O 전담).
 
-종료 코드: 0 = 전부 pass / 1 = fail·invalid·not_established 또는 판정 대상 0 건 /
-2 = 형식 오류 / 3 = 예외.
+종료 코드: 0 = 판정 대상 ≥ 1 건 ∧ 전부 pass 또는 사전 등록 예상 fail /
+1 = 예상 밖 fail·invalid·not_established 또는 판정 대상 0 건 / 2 = 형식 오류 / 3 = 예외.
 """
 
 from __future__ import annotations

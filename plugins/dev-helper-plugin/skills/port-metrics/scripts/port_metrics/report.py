@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -10,6 +11,7 @@ from port_metrics import calc, judge, schema
 from port_metrics.catalog import Catalog, MetricSpec
 
 Obj = dict[str, Any]
+NO_BLOCK_REF = "(블록 없음)"  # 균형 대조 블록이 없는 항목의 ref(누락 표기와 구분)
 Value = float | bool | None
 LoadRows = Callable[[str], list[Obj]]
 _STATUS_ORDER = (
@@ -25,8 +27,9 @@ _STATUS_ORDER = (
 class Item:
     """판정 항목 1 건.
 
-    kind = run|pair|abba|missing, ref = run_id·pair_id·abba_id, context = stage 또는
-    pair 문맥, stage = 회차 stage(pair 는 target stage), subset = 서브셋 또는 텐서 이름.
+    kind = run|pair|abba|balance|missing, ref = run_id·pair_id·abba_id, context = stage
+    또는 pair 문맥, stage = 회차 stage(pair 는 target stage), subset = 서브셋 또는 텐서
+    이름. expected_fail = 이 항목을 판정한 규칙의 예상 fail 사유(상태와 무관하게 남김).
     """
 
     metric: str
@@ -40,6 +43,22 @@ class Item:
     status: str
     reason: str
     category: str
+    expected_fail: str | None = None
+
+    @property
+    def is_expected_fail(self) -> bool:
+        """사전 등록된 예상 fail 인지(원판정 fail ∧ 규칙에 등록 사유 있음)."""
+        return self.status == judge.FAIL and self.expected_fail is not None
+
+
+@dataclass(frozen=True)
+class ExpectedRule:
+    """등록된 예상 fail 규칙 1 건과 그 규칙이 덮은 판정 항목 수."""
+
+    label: str
+    reason: str
+    covered: int
+    failed: int
 
 
 @dataclass(frozen=True)
@@ -59,6 +78,8 @@ class RunInfo:
     thermal: Mapping[str, Any] | None
     problems: tuple[str, ...]
     sampler_problems: tuple[str, ...]
+    superseded_by: str | None = None  # 재측정으로 대체됨(판정 제외)
+    superseded_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -81,12 +102,33 @@ class ReportModel:
     overall: str
     exit_code: int
     thresholds_path: str = ""  # 사용한 동결 파일 절대 경로(CLI 가 채움, 빈 값 = 미표시)
+    expected_fail: int = 0  # 예상 fail 항목 수(counts["fail"] 에 포함된 원판정)
+    expected_rules: tuple[ExpectedRule, ...] = ()  # 등록된 예상 fail 규칙
+
+
+def _effective_status(item: Item) -> str:
+    """종합 판정·종료 코드에 쓰는 상태: 예상 fail 은 pass 로 봄(원판정은 Item 에 보존)."""
+    return judge.PASS if item.is_expected_fail else item.status
 
 
 def exit_code_for(counts: Mapping[str, int]) -> int:
-    """종료 코드: 판정 대상 ≥ 1 건이고 전부 pass 일 때만 0."""
+    """종료 코드: 판정 대상 ≥ 1 건이고 전부 pass(예상 fail 포함)일 때만 0.
+
+    counts = 실효 상태(_effective_status) 집계 — 예상 fail 은 pass 로 세어 넘김.
+    invalid·not_established·예상 밖 fail 이 하나라도 있으면 1.
+    """
     judged = sum(n for status, n in counts.items() if status != judge.RECORD_ONLY)
     return 0 if judged > 0 and counts.get(judge.PASS, 0) == judged else 1
+
+
+def rule_label(rule: Mapping[str, Any]) -> str:
+    """규칙 표기 `지표 [when]`(when 키 정렬)."""
+    when = ", ".join(f"{k}={v}" for k, v in sorted(rule["when"].items())) or "전체"
+    return f"{rule['metric']} [{when}]"
+
+
+def _rule_key(metric: str, when: Mapping[str, str]) -> tuple[str, tuple[Any, ...]]:
+    return metric, tuple(sorted(when.items()))
 
 
 def _rule_text(rule: Mapping[str, Any]) -> str:
@@ -150,6 +192,20 @@ class _Builder:
         self.frozen = thresholds.get("frozen_at") is not None
         self.task = results["project"]["task_metric"]
         self.runs: dict[str, Obj] = {r["run_id"]: r for r in results["runs"]}
+        # 판정 대상 회차(대체된 회차 제외). 대체 회차는 신원·문제만 리포트에 남김
+        self.active: dict[str, Obj] = {
+            k: r for k, r in self.runs.items() if not schema.is_superseded(r)
+        }
+        self.blocks: list[Obj] = list(results.get("abba") or [])
+        # 대상 블록 ID → 그 블록을 가리키는 A ↔ A 잡음 블록 ID 목록
+        self.noise_for: dict[str, list[str]] = {}
+        for block in self.blocks:
+            if "noise_for" in block:
+                self.noise_for.setdefault(block["noise_for"], []).append(
+                    block["abba_id"]
+                )
+        # 예상 fail 규칙 키 → [덮은 판정 항목 수, 그중 fail 수]
+        self.expected_hits: dict[tuple[str, tuple[Any, ...]], list[int]] = {}
         self.problems: dict[str, list[str]] = {}
         self.cross = schema.CrossProblems()
         # 회차별 sampler 지표 무효 사유(결속 + 품질)
@@ -178,6 +234,10 @@ class _Builder:
         quality: dict[str, list[str]] = {}
         for run_id, run in self.runs.items():
             self.problems[run_id] = schema.run_problems(run, self.thresholds, self.sha)
+            if run_id not in self.active:
+                # 대체된 회차: 원자료를 읽지 않고 판정 값도 만들지 않음
+                self.values[run_id] = {}
+                continue
             meta: Obj = run.get("meta") or {}
             generated: dict[str, float | None] = dict(calc.meta_metrics(meta))
             if run["run_kind"] == "perf":
@@ -228,6 +288,8 @@ class _Builder:
         unit: str | None = None,
     ) -> None:
         context = str(ctx.get("pair") or ctx.get("stage"))
+        # 규칙을 먼저 골라 invalid·not_established 항목에도 예상 fail 표지를 남김
+        rule = judge.select_rule(self.rules, spec.id, ctx)
         if invalid:
             verdict = judge.Judgement(judge.INVALID, "; ".join(invalid))
         elif context not in spec.stages:
@@ -236,17 +298,23 @@ class _Builder:
             spec, self.scope, optional=True
         ):
             verdict = judge.Judgement(judge.RECORD_ONLY, "scope 밖 지표(자동 계산)")
+        elif judge.needs_noise_floor(
+            spec, rule, ctx.get("pair"), self.scope["purposes"]
+        ):
+            verdict = judge.Judgement(
+                judge.NOT_ESTABLISHED,
+                "convert 목적 S1-S2 NUM 규칙에 noise_floor 없음",
+            )
         else:
-            rule = judge.select_rule(self.rules, spec.id, ctx)
-            if judge.needs_noise_floor(
-                spec, rule, ctx.get("pair"), self.scope["purposes"]
-            ):
-                verdict = judge.Judgement(
-                    judge.NOT_ESTABLISHED,
-                    "convert 목적 S1-S2 NUM 규칙에 noise_floor 없음",
+            verdict = judge.judge_value(spec, value, rule, self.frozen)
+        expected = None if rule is None else rule.expected_fail
+        if rule is not None and expected is not None:
+            if verdict.status != judge.RECORD_ONLY:
+                hits = self.expected_hits.setdefault(
+                    _rule_key(rule.metric, rule.when), [0, 0]
                 )
-            else:
-                verdict = judge.judge_value(spec, value, rule, self.frozen)
+                hits[0] += 1
+                hits[1] += verdict.status == judge.FAIL
         self.items.append(
             Item(
                 metric=spec.id,
@@ -260,6 +328,7 @@ class _Builder:
                 status=verdict.status,
                 reason=verdict.reason,
                 category=spec.category,
+                expected_fail=expected,
             )
         )
 
@@ -298,7 +367,7 @@ class _Builder:
         """ACC.degradation: S1 기준 회차 대비 열화량(서브셋별 + 전체)."""
         spec = self.catalog.get("ACC.degradation")
         primary = self.catalog.get("ACC.primary")
-        baseline = schema.select_acc_baseline(list(self.runs.values()))
+        baseline = schema.select_acc_baseline(list(self.active.values()))
         if baseline is None:
             return
         base_id = baseline["run_id"]
@@ -348,7 +417,10 @@ class _Builder:
             precision = judge.pair_class(ref["effective"], target["effective"])
             for entry in pair["values"]:
                 spec = self.catalog.get(entry["metric"])
-                invalid = self._run_invalid(ref["run_id"], spec)
+                invalid = [
+                    f"쌍 구성: {p}" for p in self.cross.pairs.get(pair["pair_id"], [])
+                ]
+                invalid += self._run_invalid(ref["run_id"], spec)
                 invalid += self._run_invalid(target["run_id"], spec)
                 ctx = {
                     "pair": pair_ctx,
@@ -366,10 +438,14 @@ class _Builder:
                 )
 
     def judge_abba(self) -> None:
-        """ABBA 블록 판정: 쌍별 열화 % 의 중앙값 ≤ abba_limits_pct."""
+        """ABBA 블록 판정: 쌍별 열화 % 의 중앙값 ≤ abba_limits_pct.
+
+        A ↔ A 잡음 블록(noise_for)은 양방향 — |중앙값| ≤ 같은 허용폭(값은 부호 유지).
+        """
         limits: Mapping[str, float] = self.thresholds["abba_limits_pct"]
-        for block in self.results.get("abba") or []:
+        for block in self.blocks:
             abba_id = block["abba_id"]
+            two_sided = "noise_for" in block
             members = [p[k] for p in block["pairs"] for k in ("a", "b")]
             stage = self.runs[members[0]]["stage"] if members else ""
             for metric in block["metrics"]:
@@ -407,6 +483,9 @@ class _Builder:
                 elif value is None:
                     status = judge.NOT_ESTABLISHED
                     reason = degenerate or "쌍 없음"
+                elif two_sided:
+                    status = judge.PASS if abs(value) <= limit else judge.FAIL
+                    reason = f"|쌍별 Δ% 중앙값| <= {limit:g}(A ↔ A 잡음 블록, 양방향)"
                 else:
                     status = judge.PASS if value <= limit else judge.FAIL
                     reason = f"쌍별 열화 % 중앙값 <= {limit:g}"
@@ -425,6 +504,165 @@ class _Builder:
                         category=spec.category,
                     )
                 )
+
+    def apply_noise_controls(self) -> None:
+        """대상 블록의 pass 를 A ↔ A 잡음 대조와 결합(judge_abba 뒤, 블록 순서 무관).
+
+        대상 pass ∧ 그 지표를 가진 잡음 블록 항목이 pass 가 아님 → not_established.
+        대상 fail·invalid 는 그대로. 그 지표를 가진 잡음 블록이 없으면 사유에만 병기.
+        잡음 블록이 가리키지 않는 블록의 항목은 건드리지 않음(사유 바이트 불변).
+        """
+        noise_items = {(i.ref, i.metric): i for i in self.items if i.kind == "abba"}
+        for index, item in enumerate(self.items):
+            if item.kind != "abba" or item.status != judge.PASS:
+                continue
+            noise_ids = self.noise_for.get(item.ref)
+            if not noise_ids:
+                continue
+            controls = [
+                noise_items[(noise_id, item.metric)]
+                for noise_id in noise_ids
+                if (noise_id, item.metric) in noise_items
+            ]
+            failed = [c for c in controls if c.status != judge.PASS]
+            if not controls:
+                self.items[index] = _replace_status(
+                    item, item.status, f"{item.reason} — 잡음 대조 없음"
+                )
+            elif failed:
+                detail = ", ".join(f"{c.ref} {c.status}" for c in failed)
+                self.items[index] = _replace_status(
+                    item,
+                    judge.NOT_ESTABLISHED,
+                    f"A ↔ A 잡음 대조 미통과({detail}) — 허용폭은 넓히지 않음",
+                )
+
+    def _balance_item(
+        self,
+        metric: str,
+        ref: str,
+        stage: str,
+        subset: str | None,
+        value: Value,
+        verdict: judge.Judgement,
+    ) -> Item:
+        return Item(
+            metric=metric,
+            kind="balance",
+            ref=ref,
+            context=stage,
+            stage=stage,
+            subset=subset,
+            value=value,
+            unit="건",
+            status=verdict.status,
+            reason=verdict.reason,
+            category=self.catalog.get(metric).category,
+        )
+
+    def _balance_verdict(
+        self, abba_id: str, side_a: Sequence[Item], side_b: Sequence[Item]
+    ) -> tuple[Value, judge.Judgement]:
+        """예상 fail 균형 1 건: b 쪽 fail 수 > a 쪽이면 fail(예상 아님)."""
+        n_a = sum(i.status == judge.FAIL for i in side_a)
+        n_b = sum(i.status == judge.FAIL for i in side_b)
+        counts = f"a {len(side_a)}건 중 fail {n_a}, b {len(side_b)}건 중 fail {n_b}"
+        composition = self.cross.abba.get(abba_id, [])
+        unsettled = [
+            f"{i.ref} {i.status}"
+            for i in (*side_a, *side_b)
+            if i.status in (judge.INVALID, judge.NOT_ESTABLISHED)
+        ]
+        if composition:
+            reason = "; ".join(f"ABBA 구성: {p}" for p in composition)
+            return None, judge.Judgement(judge.INVALID, reason)
+        if not side_a or not side_b:
+            reason = f"한쪽에 예상 fail 규칙 항목 없음({counts})"
+            return None, judge.Judgement(judge.NOT_ESTABLISHED, reason)
+        if unsettled:
+            reason = f"규칙 항목 판정 불성립({', '.join(unsettled)})"
+            return None, judge.Judgement(judge.NOT_ESTABLISHED, reason)
+        if n_b > n_a:
+            reason = f"b 쪽 fail {n_b} > a 쪽 {n_a}({counts})"
+            return n_b - n_a, judge.Judgement(judge.FAIL, reason)
+        reason = f"b 쪽 fail 수 <= a 쪽({counts})"
+        return n_b - n_a, judge.Judgement(judge.PASS, reason)
+
+    def _balance_key(self, item: Item) -> tuple[str, str, str, str | None]:
+        """균형 덮음 단위: 회차 stage·pacing + 지표·서브셋."""
+        run = self.runs[item.ref]
+        return run["stage"], str(run.get("pacing", "-")), item.metric, item.subset
+
+    def judge_balance(self) -> None:
+        """예상 fail 균형: 대상 ABBA 블록의 a·b 쪽 예상 fail 수 비교.
+
+        예상 fail 이 양쪽에 같이 나는 구조적 fail 인지 확인 — 대상(b) 쪽이 더 자주 fail
+        하면 회귀를 덮은 것이므로 예상 밖 fail. 항목 = (블록, 지표, 서브셋) 당 1 건이며
+        잡음 블록이 아닌 블록이 있으면 목적과 무관하게 만듦. regress 목적에서는 균형
+        항목이 덮지 못한 예상 fail(회차 stage·pacing·지표·서브셋 단위)을 not_established 로 둠.
+        """
+        if not any("expected_fail" in rule for rule in self.rules):
+            return
+        marked = [
+            i
+            for i in self.items
+            if i.kind == "run"
+            and i.expected_fail is not None
+            and i.status != judge.RECORD_ONLY
+        ]
+        covered: set[tuple[str, str, str, str | None]] = set()
+        made: list[Item] = []
+        for block in self.blocks:
+            if "noise_for" in block:
+                continue
+            abba_id = block["abba_id"]
+            side = {p["a"]: "a" for p in block["pairs"]}
+            side.update({p["b"]: "b" for p in block["pairs"]})
+            stage = self.runs[next(iter(side))]["stage"] if side else ""
+            groups: dict[tuple[str, str | None], dict[str, list[Item]]] = {}
+            for item in marked:
+                if item.ref in side:
+                    group = groups.setdefault(
+                        (item.metric, item.subset), {"a": [], "b": []}
+                    )
+                    group[side[item.ref]].append(item)
+                    covered.add(self._balance_key(item))
+            for (metric, subset), group in groups.items():
+                value, verdict = self._balance_verdict(abba_id, group["a"], group["b"])
+                made.append(
+                    self._balance_item(metric, abba_id, stage, subset, value, verdict)
+                )
+        if "regress" in self.scope["purposes"]:
+            uncovered = dict.fromkeys(
+                self._balance_key(i)
+                for i in marked
+                if i.is_expected_fail and self._balance_key(i) not in covered
+            )
+            for stage, pacing, metric, subset in uncovered:
+                reason = (
+                    f"균형 대조 블록 없음({stage}·{pacing} 회차의 예상 fail — regress 는 "
+                    "그 지표를 판정하는 A ↔ B′ ABBA 블록으로 양쪽 fail 수를 대조)"
+                )
+                verdict = judge.Judgement(judge.NOT_ESTABLISHED, reason)
+                made.append(
+                    self._balance_item(
+                        metric, NO_BLOCK_REF, stage, subset, None, verdict
+                    )
+                )
+        self.items += made
+
+    def expected_rules(self) -> tuple[ExpectedRule, ...]:
+        """등록된 예상 fail 규칙과 덮은 항목 수(리포트 §0)."""
+        out: list[ExpectedRule] = []
+        for rule in self.rules:
+            if "expected_fail" not in rule:
+                continue
+            hits = self.expected_hits.get(_rule_key(rule["metric"], rule["when"]))
+            covered, failed = hits or (0, 0)
+            out.append(
+                ExpectedRule(rule_label(rule), rule["expected_fail"], covered, failed)
+            )
+        return tuple(out)
 
     def add_missing(self, partial: list[str] | None) -> list[str]:
         """필수 지표 누락 → not_established 항목 + 누락 목록."""
@@ -489,25 +727,15 @@ class _Builder:
                     thermal=run.get("thermal"),
                     problems=tuple(self.problems[run_id]),
                     sampler_problems=tuple(self.sampler_bad.get(run_id, [])),
+                    superseded_by=run.get("superseded_by"),
+                    superseded_reason=str(run.get("superseded_reason", "")),
                 )
             )
         return out
 
 
 def _replace_status(item: Item, status: str, reason: str) -> Item:
-    return Item(
-        metric=item.metric,
-        kind=item.kind,
-        ref=item.ref,
-        context=item.context,
-        stage=item.stage,
-        subset=item.subset,
-        value=item.value,
-        unit=item.unit,
-        status=status,
-        reason=reason,
-        category=item.category,
-    )
+    return dataclasses.replace(item, status=status, reason=reason)
 
 
 def build_report(
@@ -528,10 +756,15 @@ def build_report(
     builder.judge_acc_degradation()
     builder.judge_pairs()
     builder.judge_abba()
+    builder.apply_noise_controls()
+    builder.judge_balance()
     missing = builder.add_missing(partial)
+    # counts = 원판정(예상 fail 도 fail 로 셈), effective = 예상 fail 을 pass 로 본 집계
     counts = {status: 0 for status in _STATUS_ORDER}
+    effective = {status: 0 for status in _STATUS_ORDER}
     for item in builder.items:
         counts[item.status] += 1
+        effective[_effective_status(item)] += 1
     task = builder.task
     return ReportModel(
         project=results["project"]["name"],
@@ -547,6 +780,8 @@ def build_report(
         missing=missing,
         abba_problems=dict(builder.cross.abba),
         counts=counts,
-        overall=judge.worst(i.status for i in builder.items),
-        exit_code=exit_code_for(counts),
+        overall=judge.worst(_effective_status(i) for i in builder.items),
+        exit_code=exit_code_for(effective),
+        expected_fail=sum(i.is_expected_fail for i in builder.items),
+        expected_rules=builder.expected_rules(),
     )

@@ -288,6 +288,180 @@ class SchemaTest(unittest.TestCase):
         helpers.run_by_id(two, "s1_golden_cpu")["acc_baseline"] = True
         self.assert_one(self.errors(two), "acc_baseline")
 
+    # ------------------------------------------------ 1.0.25(계획 §4·§7.2 T1~T5)
+
+    def th_problems(self, thresholds: Obj) -> list[str]:
+        return schema.validate_thresholds(thresholds, self.catalog)
+
+    def test_expected_fail_format(self) -> None:
+        # T1
+        ok = helpers.expect_fail(self.thresholds, "SPD.jitter", "S5", regress=True)
+        self.assertEqual(self.th_problems(ok), [])
+        for bad in ("", 3):
+            th = helpers.clone(self.thresholds)
+            helpers.set_rule(th, "SPD.jitter", "S5", expected_fail=bad)
+            self.assert_one(self.th_problems(th), "expected_fail")
+        record = helpers.clone(self.thresholds)
+        helpers.set_rule(record, "SPD.jitter", "S3", expected_fail="사유")
+        self.assert_one(self.th_problems(record), "op=record 규칙에는 expected_fail")
+
+    def test_expected_fail_scope_limit(self) -> None:
+        # T1b: 목적의 핵심 판정(ACC·DEC·NUM·STB·CNV·pair)은 예상 fail 로 덮지 못함
+        no_stage = helpers.clone(self.thresholds)
+        for rule in no_stage["rules"]:
+            if rule["metric"] == "SPD.tail_over_hop":
+                rule["expected_fail"] = "사유"
+        self.assert_one(self.th_problems(no_stage), "when.stage 가 있는 규칙만")
+        seen: set[str] = set()
+        for category in ("NUM", "DEC", "ACC", "STB", "CNV"):
+            th = helpers.clone(self.thresholds)
+            for rule in th["rules"]:
+                spec = self.catalog.get(rule["metric"])
+                if spec.category == category and rule["op"] != "record":
+                    rule["expected_fail"] = "사유"
+                    seen.add(spec.scope)
+                    break
+            else:
+                self.fail(category)
+            self.assert_one(self.th_problems(th), "SPD·RES·PWR·THM")
+        self.assertEqual(seen, {"run", "pair"})
+
+    def test_validity_optional_keys(self) -> None:
+        # T5·T5b
+        def with_validity(**extra: Any) -> list[str]:
+            th = helpers.clone(self.thresholds)
+            th["validity"].update(extra)
+            return self.th_problems(th)
+
+        self.assertEqual(with_validity(abba_start_battery_min_c=30.0), [])
+        self.assertEqual(with_validity(abba_start_battery_min_c=34.0), [])
+        for bad in ("30", True, None):
+            self.assert_one(
+                with_validity(abba_start_battery_min_c=bad), "abba_start_battery_min_c"
+            )
+        self.assert_one(with_validity(start_battery_min_c=30.0), "미지 키")
+        self.assert_one(
+            with_validity(abba_start_battery_min_c=34.5), "start_battery_max_c 이하"
+        )
+
+    def test_superseded_format(self) -> None:
+        # T2
+        def base() -> tuple[Obj, Obj]:
+            results = helpers.clone(self.results)
+            old = helpers.add_superseded(
+                results, "s5_perf", "s5_perf_old", "2026-11-13T09:30:00+09:00"
+            )
+            return results, old
+
+        results, old = base()
+        self.assertEqual(self.errors(results), [])
+        self.assertTrue(schema.is_superseded(old))
+        active = schema.active_runs(results["runs"])
+        self.assertEqual(len(active), len(results["runs"]) - 1)
+        self.assertNotIn("s5_perf_old", [r["run_id"] for r in active])
+
+        results, old = base()
+        old["superseded_by"] = "no_such_run"
+        self.assert_one(self.errors(results), "미지 run 참조")
+
+        results, old = base()
+        old["superseded_by"] = "s5_perf_old"
+        self.assert_one(self.errors(results), "자기 참조")
+
+        results, old = base()
+        new = helpers.run_by_id(results, "s5_perf")
+        new.update(superseded_by="s5_perf_old", superseded_reason="되돌림")
+        self.assert_one(self.errors(results), "순환")
+
+        results, old = base()
+        old["superseded_by"] = "s4_perf_b1"
+        self.assert_one(self.errors(results), "stage 다름")
+
+        for key in ("superseded_by", "superseded_reason"):
+            results, old = base()
+            del old[key]
+            self.assert_one(self.errors(results), "함께 있어야 함")
+        results, old = base()
+        old["superseded_reason"] = ""
+        self.assert_one(self.errors(results), "superseded_reason")
+
+    def test_superseded_role(self) -> None:
+        # T2b: 같은 역할의 재측정만 대체로 인정
+        def errors_with(change: Any) -> list[str]:
+            results = helpers.clone(self.results)
+            old = helpers.add_superseded(
+                results, "s5_perf", "s5_perf_old", "2026-11-13T09:30:00+09:00"
+            )
+            change(old)
+            return self.errors(results)
+
+        def later(old: Obj) -> None:
+            old["started_at"] = "2026-11-13T10:30:00+09:00"
+
+        def manifest(old: Obj) -> None:
+            old["identity"]["manifest_sha256"] = "0" * 64
+
+        def pacing(old: Obj) -> None:
+            old["pacing"] = "realtime"
+
+        def git_sha(old: Obj) -> None:
+            old["identity"]["git_sha"] = "41d7e05"
+
+        self.assert_one(errors_with(later), "started_at 이 더 늦어야 함")
+        self.assert_one(errors_with(manifest), "manifest_sha256 다름")
+        self.assert_one(errors_with(pacing), "pacing 다름")
+        self.assert_one(errors_with(git_sha), "git_sha 다름")
+
+    def test_superseded_references(self) -> None:
+        # T3: pairs·abba 참조 = 형식 문제, sampler 결속 참조 = sampler invalid(형식 문제 아님)
+        pair = helpers.clone(self.results)
+        helpers.add_superseded(
+            pair, "s3_acc", "s3_acc_old", "2026-11-11T13:50:00+09:00"
+        )
+        helpers.by_id(pair["pairs"], "pair_id", "chain_s2_s3")["target"] = "s3_acc_old"
+        self.assert_one(self.errors(pair), "대체된 회차 참조")
+
+        abba = helpers.clone(self.results)
+        helpers.add_superseded(
+            abba, "s4_perf_a1", "s4_perf_a1_old", "2026-11-12T09:50:00+09:00"
+        )
+        abba["abba"][0]["pairs"][0]["a"] = "s4_perf_a1_old"
+        self.assert_one(self.errors(abba), "대체된 회차 참조")
+
+        bound = helpers.clone(self.results)
+        helpers.add_superseded(
+            bound, "s5_perf", "s5_perf_old", "2026-11-13T09:30:00+09:00"
+        )
+        helpers.run_by_id(bound, "s5_perf")["nonce"] = "n-s5-rerun"
+        self.assertEqual(self.errors(bound), [])
+        got = schema.cross_problems(bound, self.thresholds["validity"]).sampler
+        self.assertEqual(set(got), {"s5_sampler"})
+        self.assertIn("perf 짝 s5_perf_old 는 대체됨", "; ".join(got["s5_sampler"]))
+
+    def test_noise_for_format(self) -> None:
+        # T4·T4b
+        def base(metrics: tuple[str, ...] = ("RES.rss_peak_mib",)) -> Obj:
+            results = helpers.clone(self.results)
+            helpers.add_noise_block(results, metrics=metrics)
+            return results
+
+        self.assertEqual(self.errors(base()), [])
+
+        unknown = base()
+        unknown["abba"][1]["noise_for"] = "no_such_block"
+        self.assert_one(self.errors(unknown), "미지 블록")
+
+        own = base()
+        own["abba"][1]["noise_for"] = helpers.NOISE_ID
+        self.assert_one(self.errors(own), "자기 참조")
+
+        chained = base()
+        chained["abba"][0]["noise_for"] = helpers.NOISE_ID
+        self.assert_one(self.errors(chained), "잡음 블록을 가리킴")
+
+        extra = base(("RES.rss_peak_mib", "SPD.lat_p50"))
+        self.assert_one(self.errors(extra), "대상 블록 metrics 에 없음")
+
 
 if __name__ == "__main__":
     unittest.main()
