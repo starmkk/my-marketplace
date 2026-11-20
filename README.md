@@ -25,7 +25,7 @@
 
 ## dev-helper-plugin
 
-개발 워크플로우 자동화 스킬 8종을 제공합니다.
+개발 워크플로우 자동화 스킬 9종을 제공합니다.
 
 ### 설치
 
@@ -45,6 +45,7 @@
 | `device-settings` | Android 단말 테스트 전 설정(font_scale·애니메이션 배율 등) 기록과 종료 후 복원 — `scripts/device_settings.sh save\|diff\|restore` |
 | `notion-issue` | 요청한 이슈를 Notion 「Claude Code 리포트」 이슈 DB 에 배경·근거·완료 조건과 함께 등록하고, 작업 시 상태(백로그·진행중·보류·완료)·진행 기록 갱신(관련 리포트 🔵 진행중 연동) — "이슈 등록해줘: …" 또는 `/dev-helper-plugin:notion-issue` |
 | `port-metrics` | PT→MNN 포팅 5단계(PT·pymnn·C++ CLI·단말 CLI·단말 앱) 공통 측정 지표 — 임계 동결·체크리스트·판정·표준 리포트 생성(`skills/port-metrics/scripts/make_report.py`) |
+| `update-plugins` | vibe-coding-tools plugin 을 호스트에서 갱신하고 claude-insights `--sync-env` 로 voiceguard 컨테이너에 즉시 반영 — 결과 표(이전·이후·scope·조치) |
 
 ---
 
