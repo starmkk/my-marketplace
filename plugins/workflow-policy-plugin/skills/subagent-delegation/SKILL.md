@@ -136,6 +136,11 @@ Measured first-request size (median, 2026-11-10~17): Agent-tool `general-purpose
   detail file past 500 lines is split per Document Size). Use `schema` in workflows
 - **Long runs**: for GPU sweeps or long device measurements, the agent prepares a small smoke run and
   the command; the main session launches the real run in the background. Agents never poll
+  - Waiting (main session and agents): launch with `run_in_background` and wait for its completion
+    notification — no `sleep N; …` chains or `until`/`pgrep` loops in Bash. A condition with no
+    notification goes to `Monitor`. While waiting, report in one line what is running and its
+    expected end time (seen 2026-11-20: 7 wait failures on aip1, `sleep 45` blocked on aip2, and a
+    user asking at 17:30 what the session was waiting for)
 - **The main session decides what is correct.** A subagent report is evidence; confirm its numbers
   and verdicts with a reproduction command or the original source (wrong comparison points have
   produced wrong conclusions before). Never assign judgment-critical work to a lower tier
