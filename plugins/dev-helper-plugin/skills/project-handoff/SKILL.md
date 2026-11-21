@@ -43,7 +43,7 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 
 ---
 
-## 2. 작성 절차 (5 step)
+## 2. 작성 절차 (6 step)
 
 1. **사실 수집 (Bash 1회) + 파일명 결정** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/collect-handoff-facts.sh" [repo2 repo3 ...]` 실행 → 오늘 날짜·파일명 접두, §1 스냅샷 표(HEAD / branch / 직전 10 commit chain markdown — `capture-repo-state.sh` 위임), 미커밋 변경, 최근 handoff 5개를 한 번에 출력. multi-repo 는 인자로 sibling repo 경로 추가. `<topic>` 은 kebab-case ≤ 30 자 (예: `live-speechlm-streaming`, `mnn-3.6.0-upgrade`). 파일명: `docs/handoffs/<오늘 날짜 YYYY-MM-DD>-<topic>-handoff.md` — 날짜는 스크립트 출력값 (추정 금지).
    - **독립 사실 확인은 Bash 1회 또는 병렬 호출로 묶는다** — 순차 `grep`·`sed`·`cat`·`ls` 를 요청마다 하나씩 보내지 않는다 (근거: 30일 35회 handoff 작성의 요청 수 중앙 7, 10회 이상 12건이 9.2M IET — 초과 요청은 순차 grep·sed·cat·ls).
@@ -51,6 +51,7 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 3. **실행 중 작업 정리** — `ListAgents` 의 **Teammates** 행 = 이 세션이 `name` 을 주고 띄운 팀원(agent teams)이다. 팀원은 보고 뒤에도 끝나지 않고 대기 프로세스로 남으며, 새 세션에서는 주소 불가이고 tmux 모드(`teammateMode: "tmux"`)에서는 `TaskStop` 뒤 같은 이름으로 재개되지 않는다. ① 결과를 이미 받은 **대기 팀원은 묻지 않고** 결과 원문이 파일로 보관됐는지 확인한 뒤 리더(메인 세션)에서 `TaskStop({task_id: "<이름>"})` 으로 종료한다 ② 아직 일하는 팀원·백그라운드 명령·워크플로는 항목별로 종료할지 AskUserQuestion 1회로 묻고, 종료한 것은 `TaskStop`(명령·워크플로는 작업 ID)으로 끝내고 남기는 것은 handoff §1 에 `실행 중: <이름·목적·결과 경로>` 로 적는다 ③ 끝나면 `ListAgents` 를 다시 불러 Teammates 행이 사라졌는지 확인한다. 예외: handoff 뒤 **이 세션에서 계속 다시 쓸** 대기 팀원은 남기고 §1 에 `` 실행 중(이 세션 한정 — 새 세션에서 주소 불가): `<이름>` — 목적·결과 경로 `` 로 적는다(다시 만들면 맥락을 잃음 — tmux 모드는 종료 뒤 재개 불가). 세션을 끝내거나 `/clear` 하기 전에는 이 팀원도 `TaskStop` 한다. step 4 의 verify 가 살아 있는 대기 팀원을 FAIL 로 잡고, §1 의 `실행 중(이 세션 한정` 줄(펜스·HTML 주석 제외)에 백틱으로 감싼 그 이름이 있으면 WARN 으로 낮춘다. 다음 세션이 같은 빌드 디렉터리·단말을 쓰다 충돌하는 것을 막기 위함(관측: 새 세션 시작 뒤에도 이전 세션의 리뷰 에이전트 2개가 계속 실행, 2026-11-19 마일스톤·handoff 뒤에도 이름 붙은 diff 리뷰 팀원이 44분 대기 — §1 에 '대기' 로만 적고 넘어감)
 4. **self-review (commit 전)** — `bash "${CLAUDE_PLUGIN_ROOT}/skills/project-handoff/scripts/verify-handoff-integrity.sh" <handoff 파일 경로>` 실행 → HEAD anchor(§1 스냅샷 ↔ `git HEAD`)·§10 시작 프롬프트·§8 참조 경로 존재·파일명 날짜·이 세션의 살아 있는 팀원(대기 = FAIL, 작업 중일 수 있음 = WARN)을 검사. `[FAIL]` 이면 정정 후 재검증 (`[WARN]` 은 확인만).
 5. **commit** — 전역 CLAUDE.md Git Commit Rules: `dev-helper-plugin:github-commit` 스킬 위임 (직접 `git commit` 금지). §5 참조. 커밋 직후 verify 를 다시 돌려도 통과한다 (anchor = `HEAD^` 이고 HEAD 가 이 handoff 를 포함한 커밋 → `[OK](커밋 후 검증)`). 그 뒤 handoff 와 무관한 커밋이 생기면 FAIL — §1·§10 HEAD 를 정정.
+6. **공유·PID 보고 — 사용자가 handoff 작성을 직접 요청한 경우만** — commit 뒤 `SendUserFile` 이 있으면(지연 도구면 `ToolSearch({query: "select:SendUserFile", max_results: 1})`) handoff 파일을 `display: "attach"` 로 보내고 caption 에 다음 진입점(§10)을 한 줄로 적는다. 같은 응답에서 현재 세션의 claude PID 를 보고한다 — Bash 1회로 `$$` 에서 부모를 거슬러 올라가며 `ps -o pid=,ppid=,etime=,args=` 로 `claude` 프로세스의 pid·경과 시간을 찾는다. 마일스톤 경계에서 세션이 스스로 쓴 handoff 는 보내지 않는다. `SendUserFile` 이 없으면 파일 경로와 PID 만 보고한다 (근거: 2026-11-20 직접 요청 3회 모두 직후 공유 요청·PID 요청 2회, 자체 판단 4회는 요청 없음).
 
 ---
 
