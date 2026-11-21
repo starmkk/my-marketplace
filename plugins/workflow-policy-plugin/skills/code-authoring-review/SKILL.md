@@ -26,6 +26,10 @@ description: >
 - **After implementing** → review the diff **before** lint/test, continuing the same reviewer agent
   via `SendMessage` to its `agentId` (not a new one — spawn the reviewer without `name`; see
   `subagent-delegation` "Agent lifecycle"). Apply **High** findings; report Medium/Low to the user
+- **One reviewer per implementation unit**: design consult → diff review → re-review of High fixes
+  stays with one reviewer; when the next function/module/plan step starts, spawn a new reviewer
+  instead of continuing the old `agentId` (seen 2026-11-20: one reviewer chained 112 requests ·
+  7.11M input-equivalent, 63k per request vs a 23.7k fresh first context)
 - Subagents cannot call the reviewer: for a subagent-implemented change the main session (or a
   workflow stage with `agentType: 'code-quality-plugin:strategic-code-reviewer'`) runs the review,
   and the implementer or fix stage applies the High findings
