@@ -1,6 +1,6 @@
 ---
 name: project-handoff
-description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계할 때, 여러 repo 에 걸친 변경을 넘길 때, Claude Design 시안이 도착했을 때 — `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 토픽 handoff 파일을 작성한다. 사용자가 '핸드오프 / 진행상황 정리 / 다음 세션 인계 / `/clear` 전에 정리 / handoff 작성 / cross-repo 인계 / 시안 도착' 을 발화하거나, 마일스톤 PASS 직후 · 큰 결정 동결 직후에 사용. 'handoff 읽고 이어서 / 작업 재개' 로 handoff 를 읽고 시작할 때는 §8 재개 모드(동기화 점검)를 따른다. 구 resume-handoff / enhanced-handoff 를 대체 — RESUME.md 누적 방식은 폐기하고 토픽별 자기완결 handoff 파일이 SoT."
+description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이후 / 다른 작업자에게 인계할 때, 여러 repo 에 걸친 변경을 넘길 때, Claude Design 시안이 도착했을 때 — `docs/handoffs/<YYYY-MM-DD>-<topic>-handoff.md` 토픽 handoff 파일을 작성한다. 사용자가 '핸드오프 / 진행상황 정리 / 다음 세션 인계 / `/clear` 전에 정리 / handoff 작성 / cross-repo 인계 / 시안 도착' 을 발화하거나, 마일스톤 PASS 직후 · 큰 결정 동결 직후 · 마일스톤을 끝내고 사용자 결정을 기다리며 턴을 끝내기 직전에 사용. 'handoff 읽고 이어서 / 작업 재개' 로 handoff 를 읽고 시작할 때는 §8 재개 모드(동기화 점검)를 따른다. 구 resume-handoff / enhanced-handoff 를 대체 — RESUME.md 누적 방식은 폐기하고 토픽별 자기완결 handoff 파일이 SoT."
 ---
 
 # project-handoff — 토픽별 세션 인계 문서 작성
@@ -26,6 +26,8 @@ description: "세션·마일스톤 작업을 다른 conversation / `/clear` 이�
 `docs/handoffs/2026-07-02-live-speechlm-streaming-handoff.md` (multi-repo·대형) / `2026-06-24-m-slm6-imported-realtime-remaining-handoff.md` (단일 repo·중형) / `2026-06-25-mnn-3.6.0-upgrade-handoff.md` (인프라 업그레이드형).
 
 **언제 쓰나 (시점):** 마일스톤 경계(게이트 통과·커밋 직후)에 쓴다. handoff 작성의 요청당 비용 ≈ 호출 시점 문맥 크기이므로 (실측: 30일 중앙 536k vs 2026-11-17 표본 232k~256k) 문맥이 커질 때까지 미루지 않는다.
+- **멈추기 전에도 쓴다:** 마일스톤을 끝냈고 남은 일이 모두 사용자 결정·요청 대기라 턴을 끝내려면, 현재 진입점 handoff 가 방금 끝낸 작업을 아직 "다음 작업"으로 가리키는지 확인하고, 가리키면 새 handoff 를 먼저 쓴다. 커밋을 요청 시에만 하는 프로젝트에서는 파일만 쓰고 step 5 commit 은 보류했다고 보고한다 (관측 2026-11-21 22:51 ui-dev: 결정 대기로 멈추며 handoff 를 생략 — 진입점이 끝난 캔버스 작업을 다음 작업으로 가리킴)
+- **문맥 크기(%) 기준을 옮기지 않는다:** 이전 handoff §10 에 "컨텍스트가 N% 를 넘으면 handoff" 같은 문구가 있으면 새 §10 에는 "마일스톤 경계와 멈추기 전에 handoff" 로 바꿔 적는다 (위 사례의 세션이 70% 문구만 기준으로 삼음 — ui-dev handoff 8개에 복사돼 있었음)
 
 ---
 

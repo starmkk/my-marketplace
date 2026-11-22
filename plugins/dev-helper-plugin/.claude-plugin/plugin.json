@@ -1,5 +1,5 @@
 {
   "name": "dev-helper-plugin",
   "description": "개발 워크플로우 자동화 — git 커밋, PyTorch 프로젝트 하네스 스캐폴딩, 세션 인계(handoff) 문서 작성·재개, 서브에이전트 모델 프로필 전환, Claude Code 리포트 검토 인터뷰(claude-insights), Notion 이슈 등록·갱신, Android 단말 설정 기록·복원, PT→MNN 포팅 공통 측정 지표·리포트 생성기(port-metrics), marketplace plugin 갱신·컨테이너 반영(update-plugins) 스킬 9종 + 리포트 알림 세션 시작 훅",
-  "version": "1.0.27"
+  "version": "1.0.28"
 }
