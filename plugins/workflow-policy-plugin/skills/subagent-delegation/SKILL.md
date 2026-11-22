@@ -126,12 +126,17 @@ Measured first-request size (median, 2026-11-10~17): Agent-tool `general-purpose
     grep/Read
   - In a worktree session, temp scripts and outputs go under that worktree's `experiments/` — the
     original checkout's scratchpad path is outside the isolation boundary and is refused
-- **Pass results through files, not prompts**: a stage writes `experiments/<date>-<topic>/`
-  (`PLAN.md`, `report.md`); the next stage gets the path plus a few summary lines. In workflow
+- **Pass results through files, not prompts**: a stage writes its details to
+  `experiments/<date>-<topic>/` (`<topic>-detail.md`, `.json`, `.txt`) and returns only the
+  conclusion and paths; the next stage gets the path plus a few summary lines. In workflow
   scripts, interpolate a full prior result only in the final fix stage that must judge it
-  - Name the exact output directory in the prompt. If the harness refuses a subagent's `.md` write
-    (seen 2026-11-17), the subagent writes `.json`/`.txt` or returns the text, and the main session
-    saves `report.md`
+  - Name the exact output directory and file name in the prompt. The harness refuses a subagent's
+    `.md` Write whose name starts with report/summary/findings/analysis (case-insensitive; seen
+    2026-11-16~21: 6 of 6 refused, 120 other `.md` names written), and the refused agent then
+    returns the whole body, which fills the main context (2.4k-16.7k characters each) — never
+    assign such a name to a subagent
+  - The main session writes `report.md` itself: conclusion, verdict, links to the detail files,
+    30 lines or fewer. It reads only the detail lines it must judge and never copies the body
 - **Short reports**: conclusion / verified / not verified / artifact paths; details in files (a
   detail file past 500 lines is split per Document Size). Use `schema` in workflows
 - **Long runs**: for GPU sweeps or long device measurements, the agent prepares a small smoke run and
