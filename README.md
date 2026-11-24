@@ -15,7 +15,7 @@
 | `dev-helper-plugin` | 1.0.22 | 스킬 8종 + 훅 1종 | git 커밋 자동화 + PyTorch 프로젝트 하네스 + 세션 인계 문서·재개 + 모델 프로필 전환 + 리포트 검토 인터뷰 + Notion 이슈 등록 + 단말 설정 기록·복원 + PT→MNN 포팅 측정 지표·리포트 |
 | `on-device-ai-plugin` | 1.1.13 | 스킬 7종 + 에이전트 1종 | 온디바이스 AI 모델 개발 레퍼런스 |
 | `kws-speech-plugin` | 1.0.4 | 스킬 2종 | KWS 학습용 한국어 합성 데이터 파이프라인 |
-| `code-quality-plugin` | 1.0.12 | 스킬 4종 + 에이전트 1종 + 훅 3종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 + pkill/pgrep -f 자기 매칭 차단 |
+| `code-quality-plugin` | 1.0.13 | 스킬 4종 + 에이전트 1종 + 훅 3종 | 6원칙 코드 리뷰 + C++/lint 컨벤션 + diff 리뷰 형식 + Serena 우선 검색 + 시스템 python pytest 차단 + pkill/pgrep -f 자기 매칭 차단 |
 | `research-plugin` | 1.0.1 | 에이전트 3종 | 논문 문헌·특허 선행기술·레퍼런스 구현 조사 |
 | `secure-coding-plugin` | 1.0.8 | 스킬 7종 + 에이전트 1종 + 훅 1종 | 한국 전자정부 SW 개발보안(시큐어코딩) 공식 가이드 레퍼런스 + OWASP MASVS·ASVS 국제표준 보완 |
 | `project-board` | 1.0.3 | mod(훅 모듈) 1종 | 오른쪽 패널에 로드맵 진행 단계·개발용어·결정 사항(현재/지난/앞으로)·세션 시작 대비 변경 표시 |
