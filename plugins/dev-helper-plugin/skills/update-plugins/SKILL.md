@@ -77,7 +77,8 @@ workflow-policy 1.0.9 누락 사례).
 - 조치: 갱신 · 변경 없음 · 미설치 · project scope(미갱신 — 호스트) · 실패(사유)
 - 1 에서 push 했으면 push 범위(`<원격>..<HEAD>`)를, 제외했으면 미push 커밋 수를 표 아래 한 줄로
 - 컨테이너 버전은 `docker exec -w /workspace voiceguard /root/.local/bin/claude plugin list` 로 확인한 값
-- 끝에 한 줄: 현재 세션에는 `/reload-plugins` 후 적용됨(새 세션은 자동)
+- 끝에 한 줄: 실행 중인 claude(호스트·컨테이너)는 `/reload-plugins` 또는 재시작 후 적용됨 —
+  `/clear` 는 같은 프로세스라 반영되지 않음(2026-11-22 voiceguard 세션이 1.0.26 설치 뒤 1.0.24 로드)
 
 ## 하지 않는 것
 
