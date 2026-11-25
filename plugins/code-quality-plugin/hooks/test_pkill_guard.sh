@@ -5,10 +5,14 @@ HOOK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/pkill_guard.py"
 export PYTHONDONTWRITEBYTECODE=1
 pass=0
 fail=0
+run_hook() {  # 명령 1개를 hook 입력 JSON 으로 감싸 실행(rc 는 hook 의 것)
+  local payload='import json, sys
+print(json.dumps({"tool_name": "Bash", "cwd": "/", "tool_input": {"command": sys.argv[1]}}))'
+  python3 -c "${payload}" "$1" | python3 "${HOOK}"
+}
 check() {  # 설명 명령 기대(deny|pass)
-  local desc="$1" cmd="$2" expect="$3" input out rc got
-  input="$(python3 -c 'import json,sys; print(json.dumps({"tool_name": "Bash", "cwd": "/", "tool_input": {"command": sys.argv[1]}}))' "${cmd}")"
-  out="$(printf '%s' "${input}" | python3 "${HOOK}")"
+  local desc="$1" cmd="$2" expect="$3" out rc got
+  out="$(run_hook "${cmd}")"
   rc=$?
   got="pass"
   [[ "${out}" == *'"deny"'* ]] && got="deny"
@@ -16,6 +20,20 @@ check() {  # 설명 명령 기대(deny|pass)
     pass=$((pass + 1))
   else
     echo "FAIL ${desc}: rc=${rc} got=${got} out=${out}"
+    fail=$((fail + 1))
+  fi
+}
+check_reason() {  # 설명 명령 거부-사유에-포함될-문자열
+  local desc="$1" cmd="$2" want="$3" out reason
+  local extract='import json, sys
+print(json.load(sys.stdin)["hookSpecificOutput"]["permissionDecisionReason"])'
+  out="$(run_hook "${cmd}")"
+  # JSON 이스케이프(`\` → `\\`)를 풀어 사유 원문과 비교
+  reason="$(printf '%s' "${out}" | python3 -c "${extract}" 2>/dev/null)"
+  if [[ "${out}" == *'"deny"'* && "${reason}" == *"${want}"* ]]; then
+    pass=$((pass + 1))
+  else
+    echo "FAIL ${desc}: want=${want} out=${out}"
     fail=$((fail + 1))
   fi
 }
@@ -51,6 +69,21 @@ check "-F pidfile (대문자 F)" 'pkill -F /tmp/w.pid; echo ok' pass
 check "pkill 아닌 명령" 'ls -la; grep -f patterns.txt log' pass
 check "따옴표 안의 pkill 문자열(단일 토큰)" 'echo "pkill -f worker"' pass
 check "빈 명령" '' pass
+# --- 거부 사유: 실제 패턴 기준 대체 패턴(분기마다 첫 글자 대괄호)
+check_reason "교대 패턴은 분기마다 감쌈" 'pgrep -af "pytest|mypy"' '`[p]ytest|[m]ypy`'
+check_reason "문자 클래스 안의 | 는 분기가 아님" 'pgrep -f "foo|[a|b]x"' '`[f]oo|[a|b]x`'
+check_reason "클래스 맨 앞 ] 는 리터럴" 'pgrep -f "w[]|a]x|zz"' '`[w][]|a]x|[z]z`'
+check_reason "부정 클래스 [^] 의 ] 도 리터럴" 'pgrep -f "[^]|a]x|zz"' '`[^]|a]x|[z]z`'
+check_reason "클래스 안 이스케이프 \\]" 'pgrep -f "[\]|a]+q|zz"' '`[\]|a]+q|[z]z`'
+check_reason "셸 이스케이프로 풀린 패턴은 나머지 검증 생략" \
+  'pgrep -f pytest\|mypy' '`[p]ytest|[m]ypy`'
+check_reason "그룹 안 분기도 감쌈" 'pgrep -f "(pytest|mypy)"' '`([p]ytest|[m]ypy)`'
+check_reason "첫 글자가 메타문자 → 일반 안내" 'pkill -f ".orker"; true' '메타문자가 아닌 첫 글자'
+check_reason "바꿔도 명령 나머지에 매칭 → 분리 안내" 'pgrep -f "pgrep"' '`[p]grep`'
+check_reason "바꿔도 명령 나머지에 매칭 → 분리 안내 문구" 'pgrep -f "pgrep"' '바꾼 뒤에도'
+check_reason "이미 대괄호 → 평문 분리 안내" \
+  'pkill -f "[r]un_reports.py"; nohup python run_reports.py &' '자체는 자기 매칭하지 않지만'
+check_reason "교대 + 정규식 오류는 거부 유지" 'pkill -f "a|[unclosed"; true' '정규식으로 해석할 수 없어'
 out="$(printf '{broken' | python3 "${HOOK}")"; rc=$?
 if [[ "${rc}" -eq 0 && -z "${out}" ]]; then pass=$((pass + 1)); else echo "FAIL 깨진 입력"; fail=$((fail + 1)); fi
 echo "passed=${pass} failed=${fail}"
