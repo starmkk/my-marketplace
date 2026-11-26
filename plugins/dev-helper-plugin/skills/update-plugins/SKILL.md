@@ -48,7 +48,9 @@ workflow-policy 1.0.9 누락 사례).
 
 ## 3. plugin 갱신(호스트)
 
-- 0 에서 기록한 user scope 항목마다 `claude plugin update <이름>@vibe-coding-tools`
+- 0 에서 기록한 user scope 항목마다 `claude plugin update <이름>@vibe-coding-tools` — **한 번에 하나씩
+  순차 실행**. 병렬이면 `installed_plugins.json` 쓰기 경합으로 "updated" 출력에도 기록이 유실되고
+  `--sync-env` 가 차이 없음으로 판정함(2026-11-25 dev-helper 1.0.29 실측). 끝나면 그 파일의 user 버전을 출력과 대조
 - marketplace 에 있는데 설치되지 않은 plugin 은 설치하지 않고 표에 "미설치" 로만 표시(설치는 사용자 결정)
 - 호스트 project scope 설치분은 갱신하지 않고 표에 경로·버전만 표시 — 해당 프로젝트에서 갱신할지 사용자에게 알림
 
@@ -64,7 +66,7 @@ workflow-policy 1.0.9 누락 사례).
 - 컨테이너 project scope: `--sync-env` 는 user scope 만 맞춘다. `/workspace/.claude/settings.json` 의 project
   scope 설치분(2026-11-21 확인)은 직접 갱신
   - `docker exec -w /workspace voiceguard /root/.local/bin/claude plugin list` 에서
-    `Scope: project` 항목이 같은 plugin 의 user 버전보다 낮으면 항목마다
+    `Scope: project` 항목이 같은 plugin 의 user 버전보다 낮으면 항목마다 순차로
     `docker exec -w /workspace voiceguard /root/.local/bin/claude plugin update <이름>@vibe-coding-tools --scope project`
   - 실패하면 원문 마지막 줄을 보고(EXDEV 대체는 하지 않음 — 2026-11-21 실측 성공)
 
@@ -77,7 +79,8 @@ workflow-policy 1.0.9 누락 사례).
 - 조치: 갱신 · 변경 없음 · 미설치 · project scope(미갱신 — 호스트) · 실패(사유)
 - 1 에서 push 했으면 push 범위(`<원격>..<HEAD>`)를, 제외했으면 미push 커밋 수를 표 아래 한 줄로
 - 컨테이너 버전은 `docker exec -w /workspace voiceguard /root/.local/bin/claude plugin list` 로 확인한 값
-- 끝에 한 줄: 현재 세션에는 `/reload-plugins` 후 적용됨(새 세션은 자동)
+- 끝에 한 줄: 실행 중인 claude(호스트·컨테이너)는 `/reload-plugins` 또는 재시작 후 적용됨 —
+  `/clear` 는 같은 프로세스라 반영되지 않음(2026-11-22 voiceguard 세션이 1.0.26 설치 뒤 1.0.24 로드)
 
 ## 하지 않는 것
 
