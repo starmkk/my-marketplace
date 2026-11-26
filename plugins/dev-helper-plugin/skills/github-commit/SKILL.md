@@ -40,6 +40,9 @@ allowed-tools:
 
 1. Identify all changes — run the collector **once** (replaces separate `git status`/`git diff` calls):
    `bash "${CLAUDE_PLUGIN_ROOT}/skills/github-commit/scripts/collect-changes.sh" [repo]`
+   - 종료 코드 2(`ERROR: git 저장소 아님`)면 `GIT_DIR`·`--git-dir`·`--work-tree` 우회 없이 커밋하지 않고
+     경로·오류만 보고. worktree gitdir 이 다른 호스트·컨테이너 경로(예: `/workspace/...`)를 가리키면
+     그 환경에서 커밋하라고 안내
    - 출력: identity · status · 수집 시점 staged 목록 · log · diff --stat · untracked(바이트) · secret scan · diff 본문(최대 20,000바이트, 비밀 패턴 마스킹)
    - secret scan 에 `SECRET` 행이 있으면 해당 파일을 Read 하지 말고 커밋 없이 위치만 보고(값은 옮기지 않음). 요청에 그 파일 허용이 명시된 경우만 진행
    - identity 가 `(미설정)` 이면 요청에 `-c user.name=… -c user.email=…` 지시가 있을 때만 그 플래그로 진행. git config 는 바꾸지 않음

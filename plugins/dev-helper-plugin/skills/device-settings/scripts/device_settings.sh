@@ -62,7 +62,9 @@ case "${cmd}" in
         if [[ "${value}" == "null" ]]; then
           "${ADB}" -s "${serial}" shell settings delete "${ns}" "${key}" > /dev/null
         else
-          "${ADB}" -s "${serial}" shell settings put "${ns}" "${key}" "${value}"
+          # adb shell 은 인자를 공백으로 이어 단말 셸이 다시 해석함 — ;·공백이 든 값
+          # (enabled_input_methods 등)이 잘리거나 명령으로 실행되지 않게 값을 인용해 넘김
+          "${ADB}" -s "${serial}" shell settings put "${ns}" "${key}" "$(printf '%q' "${value}")"
         fi
       fi
       if [[ "$(get "${ns}" "${key}")" == "${value}" ]]; then ok=$((ok + 1)); else
