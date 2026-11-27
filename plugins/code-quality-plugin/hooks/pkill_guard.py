@@ -9,7 +9,7 @@
 - 판정: 각 후보 패턴에 `re.search(패턴, 명령 전체)` 를 수행해 자기 매칭을 직접 확인함.
   대괄호 유무가 아니라 매칭 여부가 기준이므로 `[r]un` 이어도 같은 명령에 `run` 평문이 남아 있으면
   거부하고, 정규식 오류(re.error)도 거부함
-- 탐지: 명령 전체를 shlex 로 토큰화해 basename 이 pkill·pgrep 인 토큰을 위치와 무관하게 찾음
+- 탐지: shell_parse.find_commands 로 basename 이 pkill·pgrep 인 명령을 위치와 무관하게 찾음
   (`sudo`·`xargs`·`$(...)`·`bash -c` 안쪽 포함). 다음 `; | & ( )` 전까지가 그 명령의 인자임
 - 거부는 `permissionDecision: deny` 로만 표현함. allow 는 출력하지 않음
 - 거부 사유: 매칭된 패턴의 분기(처음·`|`·`(` 뒤)마다 메타문자가 아닌 첫 글자를 `[c]` 로 감싼 대체 패턴을
@@ -24,16 +24,14 @@
 from __future__ import annotations
 
 import json
-import os
 import re
-import shlex
 import signal
 import string
 import sys
 
+import shell_parse
+
 _TARGETS = ("pkill", "pgrep")
-_PUNCT = "();<>|&\n"
-_SHELLS = ("bash", "sh", "zsh")
 _SIGNALS = frozenset(s.name.removeprefix("SIG") for s in signal.Signals)
 # 값을 받는 짧은 옵션(procps-ng 3.3.16 `pkill --help` 기준). 대문자 -F 는 pidfile 이라 -f 와 구분함
 _VALUE_SHORT = frozenset("gGPstuUFrd")
@@ -42,18 +40,6 @@ _VALUE_LONG = frozenset({
     "--terminal", "--euid", "--uid", "--pidfile", "--runstates", "--delimiter",
 })
 _HINT_CHARS = frozenset(string.ascii_letters + string.digits + "_-/")  # `[c]` 로 감쌀 리터럴 글자
-
-
-def _tokens(command: str) -> list[str]:
-    lex = shlex.shlex(command, posix=True, punctuation_chars=_PUNCT)
-    lex.whitespace = " \t\r"
-    lex.whitespace_split = True
-    lex.commenters = ""
-    return list(lex)
-
-
-def _is_punct(token: str) -> bool:
-    return all(c in _PUNCT for c in token)
 
 
 def _is_signal(option: str) -> bool:
@@ -93,72 +79,24 @@ def _parse_args(args: list[str]) -> tuple[bool, bool, list[str]]:
     return full, exact, candidates
 
 
-def _split_backticks(tokens: list[str]) -> list[str]:
-    """따옴표 없는 백틱(공백 없는 토큰에 붙은 것)을 `;` 구분자로 펼침. 공백이 든 토큰은 그대로 둠."""
-    expanded: list[str] = []
-    for token in tokens:
-        if "`" not in token or any(c.isspace() for c in token):
-            expanded.append(token)
-            continue
-        for part_index, part in enumerate(token.split("`")):
-            if part_index:
-                expanded.append(";")
-            if part:
-                expanded.append(part)
-    return expanded
-
-
-def _substitution_body(token: str) -> str:
-    """따옴표 안에 든 `$(...)`·백틱 명령 치환의 안쪽 문자열(없으면 빈 문자열)."""
-    if "$(" in token:
-        return token.split("$(", 1)[1]
-    if "`" in token:
-        return token.split("`", 1)[1].replace("`", " ")
-    return ""
-
-
-def _shell_c_body(following: list[str]) -> str:
-    """`bash -c '<명령>'`·`bash -lc '<명령>'` 의 명령 문자열(없으면 빈 문자열)."""
-    for offset, option in enumerate(following):
-        if option.startswith("-") and not option.startswith("--") and "c" in option[1:]:
-            return following[offset + 1] if offset + 1 < len(following) else ""
-    return ""
-
-
-def _self_matching(command: str, full_text: str) -> list[tuple[str, str, str]]:
+def _self_matching(command: str) -> list[tuple[str, str, str]]:
     """(명령 이름, 자기 매칭 사유, 패턴) 목록 — 사유는 'match' 또는 'regex-error'."""
-    try:
-        tokens = _split_backticks(_tokens(command))
-    except ValueError:
-        return []
     found: list[tuple[str, str, str]] = []
-    for index, token in enumerate(tokens):
-        name = os.path.basename(token)
-        substitution = _substitution_body(token)
-        if substitution:
-            found.extend(_self_matching(substitution, full_text))
-            continue
-        if name in _SHELLS:
-            inner = _shell_c_body(tokens[index + 1:index + 5])
-            if inner:
-                found.extend(_self_matching(inner, full_text))
-            continue
-        if name not in _TARGETS:
-            continue
+    for name, following in shell_parse.find_commands(command, _TARGETS):
         args: list[str] = []
-        for following in tokens[index + 1:]:
-            if _is_punct(following):
-                if following[0] in "<>" and args and args[-1].isdigit():
+        for token in following:
+            if shell_parse.is_punct(token):
+                if token[0] in "<>" and args and args[-1].isdigit():
                     args.pop()  # `2>&1` 의 파일 디스크립터 번호는 패턴이 아님
                 break
-            args.append(following)
+            args.append(token)
         full, exact, candidates = _parse_args(args)
         if not full:
             continue
         matcher = re.fullmatch if exact else re.search  # -x 는 명령줄 전체 일치라 자기 셸에 안 걸림
         for pattern in candidates:
             try:
-                if matcher(pattern, full_text):
+                if matcher(pattern, command):
                     found.append((name, "match", pattern))
             except re.error:
                 found.append((name, "regex-error", pattern))
@@ -228,7 +166,7 @@ def _bracketed_pattern(pattern: str) -> str | None:
 
 def verdict(command: str) -> str | None:
     """거부 사유(거부 대상이 아니면 None)."""
-    hits = _self_matching(command, command)
+    hits = _self_matching(command)
     if not hits:
         return None
     name, kind, pattern = hits[0]
