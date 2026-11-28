@@ -16,12 +16,14 @@ from pathlib import Path
 _CANDIDATES = ("/workspace/work/claude/claude-insights", "~/work/claude/claude-insights")
 _KIND_TEXT = {"relogin": "재로그인 필요", "expiring": "로그인 만료 임박",
               "container_down": "컨테이너 중지", "lock_busy": "실행 중복",
-              "run_failed": "생성 실패", "env_sync": "환경 동기화 확인 필요"}
+              "run_failed": "생성 실패", "env_sync": "환경 동기화 확인 필요",
+              "check_failed": "인증 상태 확인 실패"}
 _TARGET_TEXT = {"host": "호스트", "env": "호스트↔voiceguard", "report": "리포트 실행"}
 _STEPS = {"relogin": "`claude auth login`(호스트) 또는 "
                      "`docker exec -it voiceguard /root/.local/bin/claude auth login`",
           "expiring": "만료 전에 재로그인",
-          "container_down": "`docker start voiceguard`"}
+          "container_down": "`docker start voiceguard`",
+          "check_failed": "다음 정기 점검에서 자동 재확인"}
 
 
 def _repo() -> Path | None:
@@ -53,7 +55,9 @@ def main() -> int:
                          + (f": {step}" if step else ""))
         print(json.dumps({"systemMessage": "⚠️ claude-insights 리포트: " + " · ".join(parts)},
                          ensure_ascii=False))
-    except Exception:  # 훅 실패가 세션 시작을 방해하지 않게 함
+    # 훅 실패가 세션 시작을 방해하지 않게 함 — 읽기·파싱(OSError·ValueError), 객체가 아닌 JSON(AttributeError),
+    # 홈 경로 해석 실패·깊은 중첩(RuntimeError)
+    except (OSError, ValueError, AttributeError, RuntimeError):
         return 0
     return 0
 

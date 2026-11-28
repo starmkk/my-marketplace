@@ -28,6 +28,9 @@ check "재로그인 필요" "contains:재로그인 필요 — voiceguard" \
 check "호스트 표기" "contains:호스트" '{"host|expiring": {"active": true, "since": "2026-11-17"}}'
 check "환경 동기화" "contains:환경 동기화 확인 필요 — 호스트↔voiceguard" \
   '{"env|env_sync": {"active": true, "since": "2026-11-17"}}'
+check "인증 확인 실패" "contains:인증 상태 확인 실패 — 호스트 (since 2026-11-27T18:52): 다음 정기 점검에서 자동 재확인" \
+  '{"host|check_failed": {"active": true, "since": "2026-11-27T18:52:00+09:00", "detail": "x"}}'
 check "깨진 파일" empty '{broken'
+check "객체 아닌 JSON" empty '[]'
 echo "passed=${pass} failed=${fail}"
 [[ "${fail}" -eq 0 ]]
